@@ -17,28 +17,27 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@800;900&family=Poppins:wght@300;400;600;800&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="css/paginas-legales.css">
-  <link rel="stylesheet" href="css/pie-legal.css">
+  <link rel="stylesheet" href="css/cuentas.css?v=2">
+  <link rel="stylesheet" href="css/tienda.css?v=1">
 </head>
-<body>
+<body class="tienda">
 
-  <div class="sidebar-overlay" id="menuOverlay" onclick="toggleMenu()"></div>
-
-  <aside class="sidebar" id="sidebarMenu">
-    <button type="button" class="close-btn" onclick="toggleMenu()" aria-label="Cerrar menú">✖</button>
-    <div class="sidebar-logo">
-      <img src="logo-chico.png" alt="Logo Level Up" width="36" height="35"> LEVEL<span>UP</span>
+  <header class="nav">
+    <div class="contenedor nav-interior">
+      <a href="index.html" class="nav-marca" aria-label="Level Up, inicio">
+        <img src="logo-chico.png" alt="" width="36" height="35">
+        <div>LEVEL <span>UP</span><small>Cuentas Free Fire</small></div>
+      </a>
+      <nav class="nav-enlaces" aria-label="Principal">
+        <a class="nav-enlace" href="index.html#cuentas">Comprar</a>
+        <a class="nav-enlace" href="index.html#vender">Vender</a>
+        <a class="nav-enlace" href="reglas-cuentas.html" aria-current="page">Reglas</a>
+      </nav>
+      <div class="nav-acciones">
+        <a class="btn-nav" href="index.html">Ir a la tienda</a>
+      </div>
     </div>
-
-    <a href="index.html">🛒 Tienda de cuentas</a>
-    <a href="reglas-cuentas.html" aria-current="page">🛡️ Reglas del Intermediario</a>
-  </aside>
-
-  <div class="barra-superior">
-    <button type="button" class="menu-toggle" onclick="toggleMenu()" aria-label="Abrir menú">☰</button>
-    <a href="index.html" class="nav-logo">
-      <img src="logo-chico.png" alt="Logo Level Up" width="36" height="35"> LEVEL<span>UP</span>
-    </a>
-  </div>
+  </header>
 
   <main>
     <header class="animate-up">
@@ -112,11 +111,13 @@
     </section>
   </main>
 
-  <footer class="pie-legal">
-    <div class="pie-legal-enlaces" role="navigation" aria-label="Información legal">
+  <footer class="pie">
+    <div class="contenedor">
+      <div class="pie-legal-texto">
+        <p>Level Up es un servicio independiente. No está afiliado, patrocinado ni respaldado por Garena (Free Fire). Todas las marcas y logotipos pertenecen a sus respectivos dueños.</p>
+        <p>&copy; 2026 <strong>Level Up</strong>. Todos los derechos reservados.</p>
+      </div>
     </div>
-    <p class="pie-legal-aviso">Level Up es un servicio independiente. No está afiliado, patrocinado ni respaldado por Garena (Free Fire). Todas las marcas y logotipos pertenecen a sus respectivos dueños.</p>
-    <p class="pie-legal-copy">&copy; 2026 <strong>Level Up</strong>. Todos los derechos reservados.</p>
   </footer>
 
   <a href="https://wa.me/584228887089" target="_blank" rel="noopener noreferrer" class="whatsapp-float" aria-label="Escribir a Soporte por WhatsApp">
@@ -125,15 +126,6 @@
     </svg>
   </a>
 
-  <script>
-    function toggleMenu() {
-      const sidebar = document.getElementById('sidebarMenu');
-      const overlay = document.getElementById('menuOverlay');
-      const abierto = sidebar.classList.toggle('open');
-      overlay.style.display = abierto ? 'block' : 'none';
-      document.body.classList.toggle('no-scroll', abierto);
-    }
-  </script>
 
 </body>
 </html>

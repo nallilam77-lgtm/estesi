@@ -37,7 +37,7 @@
 
     <div class="mercado">
       <section class="panel-caja oculto" id="cajaAcceso" aria-labelledby="tituloAcceso">
-        <h2 id="tituloAcceso">🔐 Entrar como administrador</h2>
+        <h2 id="tituloAcceso">Entrar como administrador</h2>
         <form id="formAcceso" novalidate>
           <div class="consulta-campos">
             <div class="campo">
@@ -252,7 +252,7 @@
         await traerCorreos(data.map((c) => c.vendedor));
         const whatsapp = new Map((contactos || []).map((c) => [c.cuenta, c.whatsapp]));
         lista.replaceChildren();
-        if (!data.length) return lista.append(crear('p', 'estado-lista', 'No hay publicaciones por revisar. 🎉'));
+        if (!data.length) return lista.append(crear('p', 'estado-lista', 'No hay publicaciones por revisar.'));
         for (const c of data) {
           const fila = crear('article', 'mi-cuenta revision-fila');
           const fotos = crear('div', 'revision-fotos');

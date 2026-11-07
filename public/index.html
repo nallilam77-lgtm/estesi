@@ -7,15 +7,14 @@
     // Modo ligero en todos los celulares y tablets (pantalla táctil), con ahorro de datos o "reducir movimiento": sin desenfoque, animaciones ni transiciones (css/ligero.css)
     (function () { var n = navigator, c = n.connection || {}; if ((n.deviceMemory && n.deviceMemory <= 2) || (n.hardwareConcurrency && n.hardwareConcurrency <= 4) || c.saveData || /(^|\D)2g/.test(c.effectiveType || '') || (window.matchMedia && (matchMedia('(pointer: coarse)').matches || matchMedia('(prefers-reduced-motion: reduce)').matches))) { document.documentElement.classList.add('ligero'); var l = document.createElement('link'); l.rel = 'stylesheet'; l.href = 'css/ligero.css?v=3'; document.head.appendChild(l); } })();
   </script>
-  <meta name="description" content="Compra y vende cuentas de Free Fire con Level Up como intermediario: el dinero queda retenido hasta que la cuenta se entrega. Vender es gratis.">
-  <meta name="theme-color" content="#0f172a">
+  <meta name="description" content="Compra y vende cuentas de Free Fire con Level Up como intermediario: el dinero queda retenido hasta que la cuenta se entrega. Comprar no tiene comisión y vender es gratis.">
+  <meta name="theme-color" content="#0b1120">
   <title>Cuentas de Free Fire - Level Up</title>
   <meta property="og:type" content="website">
   <meta property="og:site_name" content="Level Up">
   <meta property="og:locale" content="es_VE">
   <meta property="og:title" content="Cuentas de Free Fire · Level Up">
   <meta property="og:description" content="Compra y vende cuentas de Free Fire con intermediario: el dinero queda retenido hasta la entrega.">
-  <meta name="twitter:card" content="summary_large_image">
   <link rel="icon" type="image/png" href="logo.png">
   <link rel="apple-touch-icon" href="logo.png">
 
@@ -25,283 +24,462 @@
   <link rel="stylesheet" href="css/paginas-legales.css">
   <link rel="stylesheet" href="css/creadores.css">
   <link rel="stylesheet" href="css/billetera.css">
-  <link rel="stylesheet" href="css/cuentas.css">
-  <link rel="stylesheet" href="css/pie-legal.css">
+  <link rel="stylesheet" href="css/cuentas.css?v=2">
+  <link rel="stylesheet" href="css/tienda.css?v=1">
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.js" defer></script>
-  <script src="js/mercado.js?v=1" defer></script>
+  <script src="js/mercado.js?v=2" defer></script>
 </head>
-<body>
+<body class="tienda">
+
+  <!-- Iconos (trazos de 24 px) -->
+  <svg width="0" height="0" style="position:absolute" aria-hidden="true">
+    <symbol id="i-escudo" viewBox="0 0 24 24"><path d="M12 3 4 6v6c0 5 3.4 8.5 8 9 4.6-.5 8-4 8-9V6l-8-3z"/><path d="m9 12 2 2 4-4"/></symbol>
+    <symbol id="i-candado" viewBox="0 0 24 24"><rect x="5" y="11" width="14" height="10" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></symbol>
+    <symbol id="i-chat" viewBox="0 0 24 24"><path d="M21 12a8 8 0 0 1-11.6 7.1L4 20l1-4.6A8 8 0 1 1 21 12z"/></symbol>
+    <symbol id="i-video" viewBox="0 0 24 24"><rect x="3" y="6" width="13" height="12" rx="2"/><path d="m16 10 5-3v10l-5-3"/></symbol>
+    <symbol id="i-check" viewBox="0 0 24 24"><path d="m5 12 5 5 9-10"/></symbol>
+    <symbol id="i-buscar" viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="m20 20-4-4"/></symbol>
+    <symbol id="i-etiqueta" viewBox="0 0 24 24"><path d="M3 12V4h8l10 10-8 8L3 12z"/><circle cx="7.5" cy="7.5" r="1.5"/></symbol>
+    <symbol id="i-usuario" viewBox="0 0 24 24"><circle cx="12" cy="8" r="4"/><path d="M4 21a8 8 0 0 1 16 0"/></symbol>
+    <symbol id="i-billetera" viewBox="0 0 24 24"><path d="M3 7a2 2 0 0 1 2-2h13v4"/><rect x="3" y="7" width="18" height="13" rx="2"/><path d="M16 13h2"/></symbol>
+    <symbol id="i-flecha" viewBox="0 0 24 24"><path d="M5 12h14M13 6l6 6-6 6"/></symbol>
+    <symbol id="i-menu" viewBox="0 0 24 24"><path d="M4 7h16M4 12h16M4 17h16"/></symbol>
+    <symbol id="i-mas" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></symbol>
+    <symbol id="i-reloj" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></symbol>
+    <symbol id="i-camara" viewBox="0 0 24 24"><path d="M4 8h3l2-3h6l2 3h3v11H4z"/><circle cx="12" cy="13" r="3.5"/></symbol>
+    <symbol id="i-panel" viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="9" rx="1"/><rect x="14" y="3" width="7" height="5" rx="1"/><rect x="14" y="12" width="7" height="9" rx="1"/><rect x="3" y="16" width="7" height="5" rx="1"/></symbol>
+    <symbol id="i-libro" viewBox="0 0 24 24"><path d="M4 5a2 2 0 0 1 2-2h13v16H6a2 2 0 0 0-2 2V5z"/><path d="M4 19a2 2 0 0 1 2-2h13"/></symbol>
+    <symbol id="i-dinero" viewBox="0 0 24 24"><rect x="2" y="6" width="20" height="12" rx="2"/><circle cx="12" cy="12" r="3"/><path d="M6 12h.01M18 12h.01"/></symbol>
+    <symbol id="i-globo" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3c3 3.5 3 14.5 0 18M12 3c-3 3.5-3 14.5 0 18"/></symbol>
+    <symbol id="i-imagen" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="16" rx="2"/><circle cx="9" cy="10" r="2"/><path d="m21 16-5-5-9 9"/></symbol>
+  </svg>
 
   <div class="sidebar-overlay" id="menuOverlay" onclick="toggleMenu()"></div>
-
-  <aside class="sidebar" id="sidebarMenu">
+  <aside class="sidebar" id="sidebarMenu" aria-label="Menú">
     <button type="button" class="close-btn" onclick="toggleMenu()" aria-label="Cerrar menú">✖</button>
     <div class="sidebar-logo">
-      <img src="logo-chico.png" alt="Logo Level Up" width="36" height="35"> LEVEL<span>UP</span>
+      <img src="logo-chico.png" alt="" width="36" height="35"> LEVEL<span>UP</span>
     </div>
-
-    <a href="index.html" aria-current="page">🛒 Tienda de cuentas</a>
-    <a href="reglas-cuentas.html">🛡️ Reglas del Intermediario</a>
+    <nav class="cajon-enlaces">
+      <button type="button" class="nav-enlace" data-ir="cuentas"><svg class="icono"><use href="#i-buscar"/></svg>Comprar cuentas</button>
+      <button type="button" class="nav-enlace" data-vista="vender"><svg class="icono"><use href="#i-etiqueta"/></svg>Vender mi cuenta</button>
+      <button type="button" class="nav-enlace" data-vista="panel"><svg class="icono"><use href="#i-panel"/></svg>Mi panel</button>
+      <button type="button" class="nav-enlace" data-ir="como-funciona"><svg class="icono"><use href="#i-escudo"/></svg>Cómo funciona</button>
+      <a class="nav-enlace" href="reglas-cuentas.html"><svg class="icono"><use href="#i-libro"/></svg>Reglas del Intermediario</a>
+    </nav>
   </aside>
 
-  <div class="barra-superior">
-    <button type="button" class="menu-toggle" onclick="toggleMenu()" aria-label="Abrir menú">☰</button>
-    <a href="index.html" class="nav-logo">
-      <img src="logo-chico.png" alt="Logo Level Up" width="36" height="35"> LEVEL<span>UP</span>
-    </a>
-  </div>
+  <header class="nav">
+    <div class="contenedor nav-interior">
+      <a href="index.html" class="nav-marca" aria-label="Level Up, inicio">
+        <img src="logo-chico.png" alt="" width="36" height="35">
+        <div>LEVEL <span>UP</span><small>Cuentas Free Fire</small></div>
+      </a>
+      <nav class="nav-enlaces" aria-label="Principal">
+        <button type="button" class="nav-enlace" data-ir="cuentas">Comprar</button>
+        <button type="button" class="nav-enlace" data-vista="vender">Vender</button>
+        <button type="button" class="nav-enlace" data-ir="como-funciona">Cómo funciona</button>
+        <a class="nav-enlace" href="reglas-cuentas.html">Reglas</a>
+      </nav>
+      <div class="nav-acciones">
+        <button type="button" class="btn-nav" data-vista="panel">
+          <svg class="icono"><use href="#i-usuario"/></svg><span id="textoBotonPanel">Entrar</span>
+          <span class="punto-aviso oculto" id="puntoPanel" aria-label="Tienes tratos pendientes"></span>
+        </button>
+        <button type="button" class="nav-menu" onclick="toggleMenu()" aria-label="Abrir menú"><svg class="icono"><use href="#i-menu"/></svg></button>
+      </div>
+    </div>
+  </header>
 
   <main>
-    <header class="animate-up">
-      <h1 class="titulo-principal">Cuentas de Free Fire</h1>
-      <p class="subtitulo">Compra una cuenta o vende la tuya con Level Up como intermediario: el dinero queda retenido hasta que la cuenta se entrega.</p>
-      <p class="subtitulo"><a class="enlace-reglas" href="reglas-cuentas.html">🛡️ Lee las Reglas del Intermediario</a></p>
-    </header>
-
-    <div class="mercado">
-      <ol class="como-funciona" aria-label="Cómo funciona">
-        <li><strong>1. Pagas a Level Up</strong><span>El dinero queda retenido, no va al vendedor.</span></li>
-        <li><strong>2. Recibes los datos</strong><span>En el chat del trato, con Level Up de testigo.</span></li>
-        <li><strong>3. Grabas y revisas</strong><span>Video sin cortes desde que entras a la cuenta.</span></li>
-        <li><strong>4. Finalizas</strong><span>Recién ahí el vendedor recibe su dinero.</span></li>
-      </ol>
-
-      <div class="pestanas mercado-pestanas" role="tablist" id="pestanasMercado">
-        <button type="button" class="pestana" role="tab" aria-selected="true" data-vista="buscar">Buscar</button>
-        <button type="button" class="pestana" role="tab" aria-selected="false" data-vista="vender">Vender</button>
-        <button type="button" class="pestana" role="tab" aria-selected="false" data-vista="panel">Mi panel<span class="punto-aviso oculto" id="puntoPanel" aria-label="Tienes tratos pendientes"></span></button>
-      </div>
-
-      <!-- ================= BUSCAR ================= -->
-      <section id="vistaBuscar" aria-label="Cuentas a la venta" class="vista-buscar">
-        <form class="panel-caja filtros" id="formFiltros" role="search">
-          <div class="campo">
-            <label for="filtroTexto">Buscar</label>
-            <input type="search" id="filtroTexto" placeholder="Ej: Cobra, Angelical, pase élite" maxlength="40" autocomplete="off">
+    <!-- ================= INICIO (portada + cuentas + información) ================= -->
+    <div id="vistaInicio">
+      <section class="hero">
+        <div class="contenedor hero-interior">
+          <div>
+            <span class="etiqueta-hero"><svg class="icono"><use href="#i-escudo"/></svg>Intermediario oficial · Pago protegido</span>
+            <h1>Cuentas de Free Fire <em>sin riesgo de estafa</em></h1>
+            <p class="hero-texto">Level Up retiene tu dinero hasta que recibes la cuenta y confirmas que todo está bien. El vendedor cobra solo cuando tú finalizas.</p>
+            <div class="hero-botones">
+              <button type="button" class="btn btn-principal" data-ir="cuentas"><svg class="icono"><use href="#i-buscar"/></svg>Ver cuentas</button>
+              <button type="button" class="btn btn-borde" data-vista="vender"><svg class="icono"><use href="#i-etiqueta"/></svg>Vender mi cuenta</button>
+            </div>
+            <div class="hero-datos">
+              <div class="dato dato-acento"><strong id="statCuentas">—</strong><span>cuentas a la venta</span></div>
+              <div class="dato"><strong>0 %</strong><span>comisión al comprar</span></div>
+              <div class="dato"><strong id="statHoras">24 h</strong><span>para revisar tu cuenta</span></div>
+            </div>
           </div>
-          <div class="campo">
-            <label for="filtroRegion">Región</label>
+
+          <div class="hero-visual" aria-hidden="true">
+            <div class="demo-trato">
+              <div class="demo-cabecera"><span>Trato T-128 · Tu compra</span><span class="demo-sello"><svg class="icono"><use href="#i-candado"/></svg>Dinero retenido</span></div>
+              <p class="demo-titulo">Nivel 72 · Cobra MP40 · 5 pases élite</p>
+              <p class="demo-precio">45 USD</p>
+              <ol class="demo-pasos">
+                <li class="hecho"><i><svg class="icono"><use href="#i-check"/></svg></i><span><strong>Pago confirmado</strong>Level Up lo retiene</span></li>
+                <li class="hecho"><i><svg class="icono"><use href="#i-check"/></svg></i><span><strong>Datos entregados</strong>En el chat del trato</span></li>
+                <li class="actual"><i><svg class="icono"><use href="#i-video"/></svg></i><span><strong>Revisas grabando</strong>Tienes 24 h para confirmar</span></li>
+                <li><i><svg class="icono"><use href="#i-dinero"/></svg></i><span><strong>El vendedor cobra</strong>Solo cuando tú finalizas</span></li>
+              </ol>
+              <div class="demo-flotante"><svg class="icono"><use href="#i-chat"/></svg><div><strong>Level Up en el chat</strong>Testigo de cada entrega</div></div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section class="confianza" aria-label="Por qué es seguro">
+        <ul class="contenedor confianza-lista">
+          <li><span class="icono-caja"><svg class="icono"><use href="#i-candado"/></svg></span><span><strong>Dinero retenido</strong>Hasta que confirmas</span></li>
+          <li><span class="icono-caja"><svg class="icono"><use href="#i-chat"/></svg></span><span><strong>Chat con testigo</strong>Sin dar tu número</span></li>
+          <li><span class="icono-caja"><svg class="icono"><use href="#i-video"/></svg></span><span><strong>Video obligatorio</strong>Reclamos con pruebas</span></li>
+          <li><span class="icono-caja"><svg class="icono"><use href="#i-escudo"/></svg></span><span><strong>Cuentas revisadas</strong>Antes de publicarse</span></li>
+        </ul>
+      </section>
+
+      <section class="seccion" id="cuentas" aria-labelledby="tituloCuentas">
+        <div class="contenedor">
+          <div class="seccion-cabecera">
+            <div>
+              <span class="antetitulo">Mercado</span>
+              <h2 class="titulo-seccion" id="tituloCuentas">Cuentas a la venta</h2>
+            </div>
+            <span class="conteo" id="conteoCuentas" aria-live="polite"></span>
+          </div>
+
+          <form class="barra-filtros" id="formFiltros" role="search">
+            <div class="campo-buscar">
+              <svg class="icono"><use href="#i-buscar"/></svg>
+              <label for="filtroTexto" class="solo-lectores">Buscar</label>
+              <input type="search" id="filtroTexto" placeholder="Busca skins, armas o pases: Cobra, Angelical…" maxlength="40" autocomplete="off">
+            </div>
+            <label class="solo-lectores" for="filtroRegion">Región</label>
             <select id="filtroRegion">
-              <option value="">Todas</option>
+              <option value="">Región: todas</option>
               <option>LATAM</option><option>Brasil</option><option>EE. UU.</option><option>Europa</option><option>Asia</option><option>Otra</option>
             </select>
-          </div>
-          <div class="campo">
-            <label for="filtroPrecio">Precio máximo (USD)</label>
-            <input type="number" id="filtroPrecio" placeholder="Sin límite" min="1" max="5000" inputmode="numeric">
-          </div>
-          <div class="campo">
-            <label for="filtroOrden">Ordenar</label>
+            <label class="solo-lectores" for="filtroPrecio">Precio máximo (USD)</label>
+            <input type="number" id="filtroPrecio" placeholder="Precio máx. (USD)" min="1" max="5000" inputmode="numeric">
+            <label class="solo-lectores" for="filtroOrden">Ordenar</label>
             <select id="filtroOrden">
               <option value="recientes">Más recientes</option>
-              <option value="barato">Más baratas</option>
-              <option value="caro">Más caras</option>
+              <option value="barato">Menor precio</option>
+              <option value="caro">Mayor precio</option>
               <option value="nivel">Mayor nivel</option>
             </select>
-          </div>
-        </form>
-
-        <div class="grid-cuentas" id="gridCuentas" aria-live="polite"></div>
-        <p class="estado-lista" id="estadoLista">Cargando cuentas…</p>
-        <button type="button" class="btn-secundario btn-ver-mas oculto" id="btnVerMas">Ver más cuentas</button>
-      </section>
-
-      <!-- ================= ACCESO ================= -->
-      <section class="panel-caja oculto" id="cajaAcceso" aria-labelledby="tituloAcceso">
-        <h2 id="tituloAcceso">🔐 Entra a tu cuenta</h2>
-        <p>Usa tu correo y una contraseña.</p>
-
-        <div class="pestanas" role="tablist" id="pestanasAcceso">
-          <button type="button" class="pestana" role="tab" aria-selected="true" data-modo="entrar">Entrar</button>
-          <button type="button" class="pestana" role="tab" aria-selected="false" data-modo="crear">Crear cuenta</button>
-        </div>
-
-        <form id="formAcceso" novalidate>
-          <div class="consulta-campos">
-            <div class="campo">
-              <label for="inputCorreo">Correo</label>
-              <input type="email" id="inputCorreo" placeholder="tucorreo@gmail.com" autocomplete="email" maxlength="120" required>
-            </div>
-            <div class="campo">
-              <label for="inputClave">Contraseña</label>
-              <input type="password" id="inputClave" placeholder="Mínimo 8 caracteres" autocomplete="current-password" minlength="8" maxlength="72" required>
-            </div>
-          </div>
-          <button type="submit" class="btn-consultar-panel" id="btnAcceso">Entrar</button>
-        </form>
-        <button type="button" class="enlace-texto" id="btnOlvide">¿Olvidaste tu contraseña?</button>
-        <div class="panel-mensaje" id="mensajeAcceso" role="status" aria-live="polite"></div>
-      </section>
-
-      <section class="panel-caja oculto" id="cajaNuevaClave" aria-labelledby="tituloNuevaClave">
-        <h2 id="tituloNuevaClave">🔑 Nueva contraseña</h2>
-        <form id="formNuevaClave" novalidate>
-          <div class="campo">
-            <label for="inputNuevaClave">Nueva contraseña</label>
-            <input type="password" id="inputNuevaClave" placeholder="Mínimo 8 caracteres" autocomplete="new-password" minlength="8" maxlength="72" required>
-          </div>
-          <button type="submit" class="btn-consultar-panel" id="btnNuevaClave">Guardar</button>
-        </form>
-        <div class="panel-mensaje" id="mensajeNuevaClave" role="status" aria-live="polite"></div>
-      </section>
-
-      <!-- ================= VENDER ================= -->
-      <section class="panel-caja oculto" id="vistaVender" aria-labelledby="tituloVender">
-        <div class="saldo-cabecera">
-          <h2 id="tituloVender">Publica tu cuenta</h2>
-          <button type="button" class="btn-secundario" data-salir>Salir</button>
-        </div>
-        <p>La revisamos antes de mostrarla. Tu WhatsApp no se publica. Cuando el comprador confirma que recibió la cuenta, el precio completo pasa a tu saldo. Publicar y vender es gratis: solo se cobra un <strong id="textoComision">4 %</strong> al retirar.</p>
-
-        <form class="form-publicar" id="formPublicar" novalidate>
-          <div class="campo">
-            <label for="pubTitulo">Título</label>
-            <input type="text" id="pubTitulo" placeholder="Ej: Cuenta nivel 72 con Cobra MP40 y 5 pases élite" minlength="8" maxlength="80" required>
-          </div>
-          <div class="form-fila tres">
-            <div class="campo">
-              <label for="pubNivel">Nivel</label>
-              <input type="number" id="pubNivel" placeholder="Ej: 65" min="1" max="100" inputmode="numeric" required>
-            </div>
-            <div class="campo">
-              <label for="pubRegion">Región</label>
-              <select id="pubRegion" required>
-                <option>LATAM</option><option>Brasil</option><option>EE. UU.</option><option>Europa</option><option>Asia</option><option>Otra</option>
-              </select>
-            </div>
-            <div class="campo">
-              <label for="pubVinculacion">Vinculada a</label>
-              <select id="pubVinculacion" required>
-                <option>Facebook</option><option>Google</option><option>VK</option><option>X (Twitter)</option><option>Apple</option><option>Huawei</option><option>Otra</option>
-              </select>
-            </div>
-          </div>
-          <div class="form-fila">
-            <div class="campo">
-              <label for="pubPrecio">Precio (USD)</label>
-              <input type="number" id="pubPrecio" placeholder="Ej: 25" min="1" max="5000" step="0.01" inputmode="decimal" required>
-              <p class="campo-ayuda" id="ayudaPrecio">Recibes el precio completo en tu saldo.</p>
-            </div>
-            <div class="campo">
-              <label for="pubWhatsapp">Tu WhatsApp (privado)</label>
-              <div class="campo-telefono">
-                <span>+58</span>
-                <input type="tel" id="pubWhatsapp" placeholder="4141234567" inputmode="numeric" maxlength="11" autocomplete="tel-national" required>
-              </div>
-              <p class="campo-ayuda">Solo lo ve Level Up, por si hay que avisarte de una venta.</p>
-            </div>
-          </div>
-          <div class="campo">
-            <label for="pubDestacados">Lo más valioso</label>
-            <input type="text" id="pubDestacados" placeholder="Ej: Cobra MP40, Angelical, 12 pases élite, M1887 evolutiva" maxlength="300">
-          </div>
-          <div class="campo">
-            <label for="pubDescripcion">Descripción</label>
-            <textarea id="pubDescripcion" placeholder="Cuéntale al comprador lo que trae la cuenta y desde cuándo la tienes." maxlength="1500"></textarea>
-          </div>
-          <div class="campo">
-            <span class="campo-ayuda" id="ayudaFotos">Fotos de la cuenta (1 a 6). La primera es la portada. No muestres tu ID ni datos de inicio de sesión.</span>
-            <label class="fotos-elegir">
-              <strong>Elegir fotos</strong>
-              <span>Capturas del perfil, armario y armas</span>
-              <input type="file" id="pubFotos" accept="image/*" multiple aria-describedby="ayudaFotos">
-            </label>
-            <div class="fotos-vista" id="fotosVista"></div>
-          </div>
-          <label class="casilla">
-            <input type="checkbox" id="pubAcepto" required>
-            <span>Acepto las <a href="reglas-cuentas.html" target="_blank" rel="noopener">Reglas del Intermediario</a>: entrego los datos solo en el chat del trato, retiro mi dinero con un 4 % de comisión y no recupero la cuenta después de venderla.</span>
-          </label>
-          <button type="submit" class="btn-juego" id="btnPublicar">Publicar cuenta</button>
-        </form>
-        <div class="panel-mensaje" id="mensajePublicar" role="status" aria-live="polite"></div>
-      </section>
-
-      <!-- ================= MI PANEL ================= -->
-      <div class="vista-buscar oculto" id="vistaPanel">
-        <section class="panel-caja" aria-labelledby="tituloTratos">
-          <div class="saldo-cabecera">
-            <h2 id="tituloTratos">Mis tratos</h2>
-            <button type="button" class="btn-secundario" data-salir>Salir</button>
-          </div>
-          <p class="saldo-cuenta" id="textoCuenta"></p>
-          <div class="lista-tratos" id="listaTratos"></div>
-          <div class="panel-mensaje" id="mensajeTratos" role="status" aria-live="polite"></div>
-        </section>
-
-        <section class="panel-caja" aria-labelledby="tituloSaldo">
-          <h2 id="tituloSaldo">Saldo de ventas</h2>
-          <p class="saldo-monto" id="textoSaldo">—</p>
-          <p class="saldo-nota" id="textoReputacion"></p>
-
-          <form class="form-publicar retiro" id="formRetiro" novalidate>
-            <h3>Retirar</h3>
-            <div class="form-fila tres">
-              <div class="campo">
-                <label for="retMonto">Monto (USD)</label>
-                <input type="number" id="retMonto" placeholder="Ej: 20" min="1" step="0.01" inputmode="decimal" required>
-              </div>
-              <div class="campo">
-                <label for="retMetodo">Cómo te pagamos</label>
-                <select id="retMetodo"><option>Pago Móvil</option><option>Binance</option><option>Zinli</option><option>Otro</option></select>
-              </div>
-              <div class="campo">
-                <label for="retDatos">Tus datos de cobro</label>
-                <input type="text" id="retDatos" placeholder="Banco, teléfono y cédula / correo de Binance" maxlength="200" required>
-              </div>
-            </div>
-            <p class="campo-ayuda" id="textoNeto">Se descuenta un 4 % al retirar. Los retiros se pagan los lunes.</p>
-            <button type="submit" class="btn-juego" id="btnRetiro">Pedir retiro</button>
           </form>
-          <div class="panel-mensaje" id="mensajeRetiro" role="status" aria-live="polite"></div>
 
-          <h3 class="subtitulo-caja">Movimientos</h3>
-          <div class="tabla-scroll">
-            <table>
-              <thead><tr><th>Fecha</th><th>Detalle</th><th>Monto</th><th>Saldo</th></tr></thead>
-              <tbody id="tablaMovimientos"></tbody>
-            </table>
-          </div>
-          <h3 class="subtitulo-caja">Retiros</h3>
-          <div class="tabla-scroll">
-            <table>
-              <thead><tr><th>Fecha</th><th>Retiro</th><th>Recibes</th><th>Estado</th></tr></thead>
-              <tbody id="tablaRetiros"></tbody>
-            </table>
-          </div>
-        </section>
+          <div class="grid-cuentas" id="gridCuentas" aria-live="polite"></div>
+          <div id="estadoLista"></div>
+          <div class="centrado-bloque"><button type="button" class="btn btn-borde oculto" id="btnVerMas">Ver más cuentas</button></div>
+        </div>
+      </section>
 
-        <section class="panel-caja" aria-labelledby="tituloMias">
-          <h2 id="tituloMias">Mis publicaciones</h2>
-          <div class="mis-cuentas" id="listaMias"></div>
-          <div class="panel-mensaje" id="mensajeMias" role="status" aria-live="polite"></div>
-        </section>
+      <section class="seccion seccion-alterna" id="como-funciona" aria-labelledby="tituloComo">
+        <div class="contenedor">
+          <div class="seccion-cabecera centrada">
+            <span class="antetitulo">Compra protegida</span>
+            <h2 class="titulo-seccion" id="tituloComo">Así funciona el intermediario</h2>
+            <p class="seccion-texto">Nadie le paga a ciegas a un desconocido. Level Up custodia el dinero y es testigo de toda la entrega.</p>
+          </div>
+          <ol class="pasos-grandes">
+            <li class="paso-grande"><span class="icono-caja"><svg class="icono"><use href="#i-candado"/></svg></span><h3>Pagas a Level Up</h3><p>Reservas la cuenta, pagas por Pago Móvil o Binance e informas la referencia. El dinero queda retenido.</p></li>
+            <li class="paso-grande"><span class="icono-caja"><svg class="icono"><use href="#i-chat"/></svg></span><h3>Recibes los datos</h3><p>El vendedor te entrega el acceso en el chat del trato, con Level Up como testigo. Nadie ve el número del otro.</p></li>
+            <li class="paso-grande"><span class="icono-caja"><svg class="icono"><use href="#i-video"/></svg></span><h3>Revisas grabando</h3><p>Graba la pantalla sin cortes, revisa la cuenta y cambia correo, clave y vinculaciones a tu nombre.</p></li>
+            <li class="paso-grande"><span class="icono-caja"><svg class="icono"><use href="#i-check"/></svg></span><h3>Finalizas</h3><p>Si todo está bien, finalizas y el vendedor cobra. Si hay un problema, reclamas con tu video.</p></li>
+          </ol>
+
+          <div class="vendedores" id="vender-info">
+            <div>
+              <span class="antetitulo">Para vendedores</span>
+              <h3>Vende tu cuenta sin miedo a que no te paguen</h3>
+              <p>El comprador paga antes de que entregues nada. Tú solo entregas cuando Level Up confirma que el dinero llegó.</p>
+              <div class="hero-botones"><button type="button" class="btn btn-principal" data-vista="vender"><svg class="icono"><use href="#i-mas"/></svg>Publicar mi cuenta</button></div>
+            </div>
+            <ul class="ventajas-vendedor">
+              <li><svg class="icono"><use href="#i-check"/></svg><span><strong>Publicar y vender es gratis.</strong> Recibes el precio completo en tu saldo.</span></li>
+              <li><svg class="icono"><use href="#i-check"/></svg><span><strong>Solo <span data-comision>4 %</span> al retirar</strong> tu dinero, nada más.</span></li>
+              <li><svg class="icono"><use href="#i-check"/></svg><span><strong>Retiros todos los lunes</strong> por Pago Móvil, Binance o Zinli.</span></li>
+              <li><svg class="icono"><use href="#i-check"/></svg><span><strong>Tu WhatsApp es privado:</strong> solo lo ve Level Up.</span></li>
+            </ul>
+          </div>
+        </div>
+      </section>
+
+      <section class="seccion" aria-labelledby="tituloFaq">
+        <div class="contenedor">
+          <div class="seccion-cabecera centrada">
+            <span class="antetitulo">Dudas</span>
+            <h2 class="titulo-seccion" id="tituloFaq">Preguntas frecuentes</h2>
+          </div>
+          <div class="preguntas">
+            <details><summary>¿Cómo sé que no me van a estafar?<svg class="icono"><use href="#i-mas"/></svg></summary><p>Tu dinero no va al vendedor: lo retiene Level Up. El vendedor solo cobra cuando tú tocas "Todo bien, finalizar", o cuando pasan <span data-horas>24</span> horas desde la entrega sin que hayas reclamado.</p></details>
+            <details><summary>¿Qué pasa si la cuenta no es como la publicaron?<svg class="icono"><use href="#i-mas"/></svg></summary><p>Tocas "Tengo un problema" y adjuntas el enlace de tu video sin cortes, grabado desde que usaste los datos. Level Up revisa el caso y, si el reclamo es válido, te devuelve el dinero.</p></details>
+            <details><summary>¿Por qué tengo que grabar la pantalla?<svg class="icono"><use href="#i-mas"/></svg></summary><p>Es la prueba que protege a las dos partes: demuestra si la cuenta llegó bien o no. Sin video continuo (que empiece como máximo 5 minutos después de la entrega) no se puede reclamar.</p></details>
+            <details><summary>¿Cuánto cuesta vender?<svg class="icono"><use href="#i-mas"/></svg></summary><p>Publicar y vender es gratis y recibes el precio completo en tu saldo. Solo se descuenta un <span data-comision>4 %</span> cuando retiras tu dinero. Los retiros se pagan los lunes.</p></details>
+            <details><summary>¿Cómo pago?<svg class="icono"><use href="#i-mas"/></svg></summary><p>Por Pago Móvil (al cambio del día), Binance o Zinli. Al comprar ves los datos de pago y escribes tu referencia; Level Up la confirma en el chat del trato.</p></details>
+            <details><summary>¿Garena puede suspender una cuenta comprada?<svg class="icono"><use href="#i-mas"/></svg></summary><p>Las reglas de Garena no permiten vender cuentas, así que el riesgo existe. Level Up responde por la entrega de la cuenta tal como se publicó, pero no por sanciones que Garena aplique después de cerrado el trato.</p></details>
+          </div>
+        </div>
+      </section>
+
+      <section class="seccion" aria-label="Vende tu cuenta">
+        <div class="contenedor">
+          <div class="llamado">
+            <h2>¿Tienes una cuenta que ya no juegas?</h2>
+            <p>Publícala gratis en minutos. La revisamos, la mostramos a compradores y cobras sin riesgo.</p>
+            <button type="button" class="btn btn-principal" data-vista="vender"><svg class="icono"><use href="#i-etiqueta"/></svg>Vender mi cuenta</button>
+          </div>
+        </div>
+      </section>
+    </div>
+
+    <!-- ================= APP (acceso / vender / mi panel) ================= -->
+    <div class="oculto" id="vistaApp">
+      <div class="contenedor app-cabecera">
+        <h1 id="tituloApp">Mi panel</h1>
+        <p id="subtituloApp"></p>
+      </div>
+      <div class="contenedor app-cuerpo">
+        <div class="mercado">
+          <section class="panel-caja acceso-caja oculto" id="cajaAcceso" aria-labelledby="tituloAcceso">
+            <h2 id="tituloAcceso"><svg class="icono"><use href="#i-usuario"/></svg>Entra a tu cuenta</h2>
+            <p>Usa tu correo y una contraseña.</p>
+            <ul class="acceso-ventajas">
+              <li><svg class="icono"><use href="#i-check"/></svg>Compra con el dinero retenido por Level Up</li>
+              <li><svg class="icono"><use href="#i-check"/></svg>Publica tus cuentas gratis</li>
+              <li><svg class="icono"><use href="#i-check"/></svg>Sigue tus tratos y tu saldo en un solo lugar</li>
+            </ul>
+            <div class="pestanas" role="tablist" id="pestanasAcceso">
+              <button type="button" class="pestana" role="tab" aria-selected="true" data-modo="entrar">Entrar</button>
+              <button type="button" class="pestana" role="tab" aria-selected="false" data-modo="crear">Crear cuenta</button>
+            </div>
+            <form id="formAcceso" novalidate>
+              <div class="consulta-campos">
+                <div class="campo">
+                  <label for="inputCorreo">Correo</label>
+                  <input type="email" id="inputCorreo" placeholder="tucorreo@gmail.com" autocomplete="email" maxlength="120" required>
+                </div>
+                <div class="campo">
+                  <label for="inputClave">Contraseña</label>
+                  <input type="password" id="inputClave" placeholder="Mínimo 8 caracteres" autocomplete="current-password" minlength="8" maxlength="72" required>
+                </div>
+              </div>
+              <button type="submit" class="btn-juego espacio-arriba" id="btnAcceso">Entrar</button>
+            </form>
+            <button type="button" class="enlace-texto" id="btnOlvide">¿Olvidaste tu contraseña?</button>
+            <div class="panel-mensaje" id="mensajeAcceso" role="status" aria-live="polite"></div>
+          </section>
+
+          <section class="panel-caja acceso-caja oculto" id="cajaNuevaClave" aria-labelledby="tituloNuevaClave">
+            <h2 id="tituloNuevaClave"><svg class="icono"><use href="#i-candado"/></svg>Nueva contraseña</h2>
+            <form id="formNuevaClave" novalidate>
+              <div class="campo">
+                <label for="inputNuevaClave">Nueva contraseña</label>
+                <input type="password" id="inputNuevaClave" placeholder="Mínimo 8 caracteres" autocomplete="new-password" minlength="8" maxlength="72" required>
+              </div>
+              <button type="submit" class="btn-juego espacio-arriba" id="btnNuevaClave">Guardar</button>
+            </form>
+            <div class="panel-mensaje" id="mensajeNuevaClave" role="status" aria-live="polite"></div>
+          </section>
+
+          <!-- VENDER -->
+          <div class="vender-layout oculto" id="vistaVender">
+            <section class="panel-caja" aria-labelledby="tituloVender">
+              <h2 id="tituloVender"><svg class="icono"><use href="#i-etiqueta"/></svg>Datos de la cuenta</h2>
+              <p>La revisamos antes de mostrarla. Tu WhatsApp no se publica.</p>
+              <form class="form-publicar" id="formPublicar" novalidate>
+                <div class="campo">
+                  <label for="pubTitulo">Título</label>
+                  <input type="text" id="pubTitulo" placeholder="Ej: Cuenta nivel 72 con Cobra MP40 y 5 pases élite" minlength="8" maxlength="80" required>
+                </div>
+                <div class="form-fila tres">
+                  <div class="campo">
+                    <label for="pubNivel">Nivel</label>
+                    <input type="number" id="pubNivel" placeholder="Ej: 65" min="1" max="100" inputmode="numeric" required>
+                  </div>
+                  <div class="campo">
+                    <label for="pubRegion">Región</label>
+                    <select id="pubRegion" required>
+                      <option>LATAM</option><option>Brasil</option><option>EE. UU.</option><option>Europa</option><option>Asia</option><option>Otra</option>
+                    </select>
+                  </div>
+                  <div class="campo">
+                    <label for="pubVinculacion">Vinculada a</label>
+                    <select id="pubVinculacion" required>
+                      <option>Facebook</option><option>Google</option><option>VK</option><option>X (Twitter)</option><option>Apple</option><option>Huawei</option><option>Otra</option>
+                    </select>
+                  </div>
+                </div>
+                <div class="form-fila">
+                  <div class="campo">
+                    <label for="pubPrecio">Precio (USD)</label>
+                    <input type="number" id="pubPrecio" placeholder="Ej: 25" min="1" max="5000" step="0.01" inputmode="decimal" required>
+                  </div>
+                  <div class="campo">
+                    <label for="pubWhatsapp">Tu WhatsApp (privado)</label>
+                    <div class="campo-telefono">
+                      <span>+58</span>
+                      <input type="tel" id="pubWhatsapp" placeholder="4141234567" inputmode="numeric" maxlength="11" autocomplete="tel-national" required>
+                    </div>
+                  </div>
+                </div>
+                <div class="campo">
+                  <label for="pubDestacados">Lo más valioso</label>
+                  <input type="text" id="pubDestacados" placeholder="Ej: Cobra MP40, Angelical, 12 pases élite, M1887 evolutiva" maxlength="300">
+                </div>
+                <div class="campo">
+                  <label for="pubDescripcion">Descripción</label>
+                  <textarea id="pubDescripcion" placeholder="Cuéntale al comprador lo que trae la cuenta y desde cuándo la tienes." maxlength="1500"></textarea>
+                </div>
+                <div class="campo">
+                  <span class="campo-ayuda" id="ayudaFotos">Fotos de la cuenta (1 a 6). La primera es la portada. No muestres tu ID ni datos de inicio de sesión.</span>
+                  <label class="fotos-elegir">
+                    <svg class="icono"><use href="#i-camara"/></svg>
+                    <strong>Elegir fotos</strong>
+                    <span>Capturas del perfil, armario y armas</span>
+                    <input type="file" id="pubFotos" accept="image/*" multiple aria-describedby="ayudaFotos">
+                  </label>
+                  <div class="fotos-vista" id="fotosVista"></div>
+                </div>
+                <label class="casilla">
+                  <input type="checkbox" id="pubAcepto" required>
+                  <span>Acepto las <a href="reglas-cuentas.html" target="_blank" rel="noopener">Reglas del Intermediario</a>: entrego los datos solo en el chat del trato, retiro mi dinero con un <span data-comision>4 %</span> de comisión y no recupero la cuenta después de venderla.</span>
+                </label>
+                <button type="submit" class="btn-juego" id="btnPublicar">Publicar cuenta</button>
+              </form>
+              <div class="panel-mensaje" id="mensajePublicar" role="status" aria-live="polite"></div>
+            </section>
+
+            <aside class="lateral">
+              <div class="lateral-caja">
+                <h3><svg class="icono"><use href="#i-dinero"/></svg>Cuánto recibes</h3>
+                <div class="calculadora">
+                  <div><span>Precio de venta</span><strong id="calcPrecio">—</strong></div>
+                  <div><span>Comisión por vender</span><strong>0 USD</strong></div>
+                  <div><span>Comisión al retirar (<span data-comision>4 %</span>)</span><strong id="calcComision">—</strong></div>
+                  <div class="total"><span>Te llega al retirar</span><strong id="calcNeto">—</strong></div>
+                </div>
+              </div>
+              <div class="lateral-caja">
+                <h3><svg class="icono"><use href="#i-reloj"/></svg>Vende más rápido</h3>
+                <ul class="consejos">
+                  <li><svg class="icono"><use href="#i-check"/></svg>Pon en el título el nivel y lo más raro que tenga.</li>
+                  <li><svg class="icono"><use href="#i-check"/></svg>Sube capturas del perfil, armario, armas y pases.</li>
+                  <li><svg class="icono"><use href="#i-check"/></svg>Un precio justo se vende en días, no en semanas.</li>
+                  <li><svg class="icono"><use href="#i-check"/></svg>Ten a mano el correo de la cuenta para entregar rápido.</li>
+                </ul>
+              </div>
+            </aside>
+          </div>
+
+          <!-- MI PANEL -->
+          <div class="vista-buscar oculto" id="vistaPanel">
+            <div class="tablero">
+              <div class="dato dato-acento"><strong id="textoSaldo">—</strong><span>saldo de ventas</span></div>
+              <div class="dato"><strong id="statVentas">0</strong><span>ventas cerradas</span></div>
+              <div class="dato"><strong id="statTratos">0</strong><span>tratos activos</span></div>
+            </div>
+
+            <section class="panel-caja" aria-labelledby="tituloTratos">
+              <div class="saldo-cabecera">
+                <h2 id="tituloTratos"><svg class="icono"><use href="#i-chat"/></svg>Mis tratos</h2>
+                <button type="button" class="btn-secundario" data-salir>Salir</button>
+              </div>
+              <p class="saldo-cuenta" id="textoCuenta"></p>
+              <div class="lista-tratos" id="listaTratos"></div>
+              <div class="panel-mensaje" id="mensajeTratos" role="status" aria-live="polite"></div>
+            </section>
+
+            <section class="panel-caja" aria-labelledby="tituloSaldo">
+              <h2 id="tituloSaldo"><svg class="icono"><use href="#i-billetera"/></svg>Retirar mi dinero</h2>
+              <p class="saldo-nota" id="textoReputacion"></p>
+              <form class="form-publicar retiro" id="formRetiro" novalidate>
+                <div class="form-fila tres">
+                  <div class="campo">
+                    <label for="retMonto">Monto (USD)</label>
+                    <input type="number" id="retMonto" placeholder="Ej: 20" min="1" step="0.01" inputmode="decimal" required>
+                  </div>
+                  <div class="campo">
+                    <label for="retMetodo">Cómo te pagamos</label>
+                    <select id="retMetodo"><option>Pago Móvil</option><option>Binance</option><option>Zinli</option><option>Otro</option></select>
+                  </div>
+                  <div class="campo">
+                    <label for="retDatos">Tus datos de cobro</label>
+                    <input type="text" id="retDatos" placeholder="Banco, teléfono y cédula / correo de Binance" maxlength="200" required>
+                  </div>
+                </div>
+                <p class="campo-ayuda" id="textoNeto"></p>
+                <button type="submit" class="btn-juego" id="btnRetiro">Pedir retiro</button>
+              </form>
+              <div class="panel-mensaje" id="mensajeRetiro" role="status" aria-live="polite"></div>
+
+              <h3 class="subtitulo-caja">Movimientos</h3>
+              <div class="tabla-scroll">
+                <table>
+                  <thead><tr><th>Fecha</th><th>Detalle</th><th>Monto</th><th>Saldo</th></tr></thead>
+                  <tbody id="tablaMovimientos"></tbody>
+                </table>
+              </div>
+              <h3 class="subtitulo-caja">Retiros</h3>
+              <div class="tabla-scroll">
+                <table>
+                  <thead><tr><th>Fecha</th><th>Retiro</th><th>Recibes</th><th>Estado</th></tr></thead>
+                  <tbody id="tablaRetiros"></tbody>
+                </table>
+              </div>
+            </section>
+
+            <section class="panel-caja" aria-labelledby="tituloMias">
+              <div class="saldo-cabecera">
+                <h2 id="tituloMias"><svg class="icono"><use href="#i-etiqueta"/></svg>Mis publicaciones</h2>
+                <button type="button" class="btn-secundario" data-vista="vender">+ Publicar</button>
+              </div>
+              <div class="mis-cuentas" id="listaMias"></div>
+              <div class="panel-mensaje" id="mensajeMias" role="status" aria-live="polite"></div>
+            </section>
+          </div>
+        </div>
       </div>
     </div>
   </main>
 
   <!-- Detalle de una cuenta -->
   <div class="ventana oculto" id="ventanaDetalle" role="dialog" aria-modal="true" aria-labelledby="detalleTitulo">
-    <div class="ventana-caja">
+    <div class="ventana-caja ventana-detalle">
       <button type="button" class="ventana-cerrar" data-cerrar aria-label="Cerrar">✖</button>
-      <img class="galeria-principal" id="detalleFoto" alt="">
-      <div class="galeria-miniaturas" id="detalleMiniaturas"></div>
-      <div class="detalle-cuerpo">
-        <span class="tarjeta-codigo" id="detalleCodigo"></span>
-        <h2 id="detalleTitulo"></h2>
-        <div class="etiquetas" id="detalleEtiquetas"></div>
-        <p class="vendedor-rep" id="detalleVendedor"></p>
-        <p class="tarjeta-precio" id="detallePrecio"></p>
-        <div class="detalle-bloque" id="bloqueDestacados"><h3>Lo más valioso</h3><p id="detalleDestacados"></p></div>
-        <div class="detalle-bloque" id="bloqueDescripcion"><h3>Descripción</h3><p id="detalleDescripcion"></p></div>
-        <p class="aviso-seguro"><strong>Compra con intermediario:</strong> le pagas a Level Up y el dinero queda retenido hasta que recibes la cuenta. La entrega es en el chat del trato, con Level Up de testigo. <strong>Desde que recibas los datos, graba la pantalla sin cortes:</strong> sin ese video no hay reclamo. <a href="reglas-cuentas.html" target="_blank" rel="noopener">Ver las reglas completas</a></p>
-        <label class="casilla casilla-garantia">
-          <input type="checkbox" id="detalleGarantia">
-          <span><strong>Garantía Extendida (+<span id="textoGarantia">1</span> USD):</strong> un administrador te acompaña a cambiar todos los datos de recuperación para que el vendedor no pueda volver a entrar.</span>
-        </label>
-        <button type="button" class="btn-juego" id="btnComprar">Comprar con intermediario</button>
-        <div class="panel-mensaje" id="mensajeComprar" role="status" aria-live="polite"></div>
-        <a class="enlace-reglas centrado" id="detallePreguntar" target="_blank" rel="noopener noreferrer">¿Dudas? Pregúntanos por WhatsApp</a>
+      <div class="detalle-layout">
+        <div class="detalle-galeria">
+          <img class="galeria-principal" id="detalleFoto" alt="">
+          <div class="galeria-miniaturas" id="detalleMiniaturas"></div>
+        </div>
+        <div class="detalle-cuerpo">
+          <span class="tarjeta-codigo" id="detalleCodigo"></span>
+          <h2 id="detalleTitulo"></h2>
+          <div class="etiquetas" id="detalleEtiquetas"></div>
+          <p class="vendedor-rep" id="detalleVendedor"></p>
+
+          <div class="caja-compra">
+            <p class="tarjeta-precio" id="detallePrecio"></p>
+            <span class="caja-compra-nota"><svg class="icono"><use href="#i-candado"/></svg>Tu dinero queda retenido hasta que confirmes</span>
+            <label class="casilla casilla-garantia">
+              <input type="checkbox" id="detalleGarantia">
+              <span><strong>Garantía Extendida (+<span id="textoGarantia">1</span> USD):</strong> un administrador te acompaña a cambiar todos los datos de recuperación.</span>
+            </label>
+            <button type="button" class="btn-juego" id="btnComprar">Comprar con intermediario</button>
+            <div class="panel-mensaje" id="mensajeComprar" role="status" aria-live="polite"></div>
+          </div>
+
+          <div class="detalle-bloque" id="bloqueDestacados"><h3>Lo más valioso</h3><p id="detalleDestacados"></p></div>
+          <div class="detalle-bloque" id="bloqueDescripcion"><h3>Descripción</h3><p id="detalleDescripcion"></p></div>
+
+          <ul class="garantias">
+            <li><svg class="icono"><use href="#i-chat"/></svg><span>Recibes los datos en el chat del trato, con Level Up como testigo.</span></li>
+            <li><svg class="icono"><use href="#i-video"/></svg><span><strong>Graba la pantalla sin cortes</strong> desde que uses los datos: sin video no hay reclamo.</span></li>
+            <li><svg class="icono"><use href="#i-reloj"/></svg><span>Tienes <span data-horas>24</span> horas para revisar y finalizar. <a href="reglas-cuentas.html" target="_blank" rel="noopener">Ver reglas</a></span></li>
+          </ul>
+          <a class="enlace-reglas centrado" id="detallePreguntar" target="_blank" rel="noopener noreferrer">¿Dudas? Pregúntanos por WhatsApp</a>
+        </div>
       </div>
     </div>
   </div>
@@ -335,12 +513,35 @@
     </div>
   </div>
 
-  <footer class="pie-legal">
-    <div class="pie-legal-enlaces" role="navigation" aria-label="Información legal">
-      <a href="reglas-cuentas.html">Reglas del Intermediario</a>
+  <footer class="pie">
+    <div class="contenedor">
+      <div class="pie-interior">
+        <div class="pie-marca">
+          <a href="index.html" class="nav-marca"><img src="logo-chico.png" alt="" width="36" height="35"><div>LEVEL <span>UP</span><small>Cuentas Free Fire</small></div></a>
+          <p>El mercado de cuentas de Free Fire con intermediario: el dinero queda retenido hasta que la cuenta se entrega.</p>
+        </div>
+        <div class="pie-columna">
+          <h4>Mercado</h4>
+          <ul>
+            <li><button type="button" data-ir="cuentas">Comprar cuentas</button></li>
+            <li><button type="button" data-vista="vender">Vender mi cuenta</button></li>
+            <li><button type="button" data-vista="panel">Mi panel</button></li>
+          </ul>
+        </div>
+        <div class="pie-columna">
+          <h4>Ayuda</h4>
+          <ul>
+            <li><button type="button" data-ir="como-funciona">Cómo funciona</button></li>
+            <li><a href="reglas-cuentas.html">Reglas del Intermediario</a></li>
+            <li><a href="https://wa.me/584228887089" target="_blank" rel="noopener noreferrer">Soporte por WhatsApp</a></li>
+          </ul>
+        </div>
+      </div>
+      <div class="pie-legal-texto">
+        <p>Level Up es un servicio independiente. No está afiliado, patrocinado ni respaldado por Garena (Free Fire). Todas las marcas y logotipos pertenecen a sus respectivos dueños.</p>
+        <p>&copy; 2026 <strong>Level Up</strong>. Todos los derechos reservados.</p>
+      </div>
     </div>
-    <p class="pie-legal-aviso">Level Up es un servicio independiente. No está afiliado, patrocinado ni respaldado por Garena (Free Fire). Todas las marcas y logotipos pertenecen a sus respectivos dueños.</p>
-    <p class="pie-legal-copy">&copy; 2026 <strong>Level Up</strong>. Todos los derechos reservados.</p>
   </footer>
 
   <a href="https://wa.me/584228887089" target="_blank" rel="noopener noreferrer" class="whatsapp-float" aria-label="Escribir a Soporte por WhatsApp">
@@ -350,10 +551,10 @@
   </a>
 
   <script>
-    function toggleMenu() {
+    function toggleMenu(forzar) {
       const sidebar = document.getElementById('sidebarMenu');
       const overlay = document.getElementById('menuOverlay');
-      const abierto = sidebar.classList.toggle('open');
+      const abierto = sidebar.classList.toggle('open', forzar);
       overlay.style.display = abierto ? 'block' : 'none';
       document.body.classList.toggle('no-scroll', abierto);
     }
@@ -386,36 +587,102 @@
       let compraPendiente = null;   // { cuenta, garantia } si tocó "Comprar" sin sesión
       let saldoDisponible = 0;
       const yo = () => sesion?.user?.id || null;
+      const redondear = (n) => Math.round(n * 100) / 100;
+
+      // Icono SVG del sprite de la página
+      function icono(id, clase = 'icono') {
+        const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+        svg.setAttribute('class', clase);
+        svg.setAttribute('aria-hidden', 'true');
+        const use = document.createElementNS('http://www.w3.org/2000/svg', 'use');
+        use.setAttribute('href', `#${id}`);
+        svg.append(use);
+        return svg;
+      }
 
       // Mantenimiento (vence tratos sin pago, cierra los que pasaron la revisión). No se espera.
       cliente.rpc('mercado_mantenimiento').then(() => {}, () => {});
       M.config().then((c) => {
         config = c;
-        $('textoComision').textContent = `${config.comision_retiro} %`;
+        document.querySelectorAll('[data-comision]').forEach((el) => { el.textContent = `${config.comision_retiro} %`; });
+        document.querySelectorAll('[data-horas]').forEach((el) => { el.textContent = String(config.horas_revision); });
+        $('statHoras').textContent = `${config.horas_revision} h`;
         $('textoGarantia').textContent = String(config.garantia_usd);
         actualizarNeto();
+        actualizarCalculadora();
       });
+      cliente.from('cuentas_venta').select('id', { count: 'exact', head: true }).eq('estado', 'publicada')
+        .then(({ count }) => { $('statCuentas').textContent = String(count ?? 0); }, () => {});
 
       // ---------------- Vistas ----------------
+      const TITULOS = {
+        vender: ['Vender mi cuenta', 'Publícala gratis. Recibes el precio completo y solo pagas al retirar.'],
+        panel: ['Mi panel', 'Tus compras, ventas, saldo y publicaciones.'],
+      };
       function mostrarVista(nueva) {
         vista = nueva;
-        document.querySelectorAll('#pestanasMercado .pestana').forEach((b) => b.setAttribute('aria-selected', String(b.dataset.vista === nueva)));
-        const necesitaSesion = nueva !== 'buscar';
+        const app = nueva !== 'buscar';
         const nuevaClave = !$('cajaNuevaClave').classList.contains('oculto');
-        $('vistaBuscar').classList.toggle('oculto', nueva !== 'buscar');
-        $('cajaAcceso').classList.toggle('oculto', !necesitaSesion || !!sesion || nuevaClave);
+        $('vistaInicio').classList.toggle('oculto', app);
+        $('vistaApp').classList.toggle('oculto', !app && !nuevaClave);
+        $('cajaAcceso').classList.toggle('oculto', !app || !!sesion || nuevaClave);
         $('vistaVender').classList.toggle('oculto', nueva !== 'vender' || !sesion);
         $('vistaPanel').classList.toggle('oculto', nueva !== 'panel' || !sesion);
-        $('tituloAcceso').textContent = compraPendiente ? '🔐 Entra para comprar' : nueva === 'panel' ? '🔐 Entra para ver tu panel' : '🔐 Entra para vender';
+        if (app) {
+          const [titulo, subtitulo] = sesion ? TITULOS[nueva] : [compraPendiente ? 'Entra para comprar' : nueva === 'vender' ? 'Entra para vender' : 'Entra a tu panel', 'Crea tu cuenta gratis en un minuto.'];
+          $('tituloApp').textContent = titulo;
+          $('subtituloApp').textContent = subtitulo;
+        }
+        document.querySelectorAll('[data-vista]').forEach((b) => {
+          if (b.classList.contains('nav-enlace')) b.toggleAttribute('aria-current', b.dataset.vista === nueva);
+        });
+        toggleMenu(false);
         if (nueva === 'panel' && sesion) cargarPanel();
-        try { history.replaceState(null, '', nueva === 'buscar' ? location.pathname : `#${nueva}`); } catch (e) { /* sin historial */ }
+        try { history.replaceState(null, '', app ? `#${nueva}` : location.pathname); } catch (e) { /* sin historial */ }
+        window.scrollTo({ top: 0 });
       }
-      document.querySelectorAll('#pestanasMercado .pestana').forEach((b) => b.addEventListener('click', () => mostrarVista(b.dataset.vista)));
+      document.querySelectorAll('[data-vista]').forEach((b) => b.addEventListener('click', () => mostrarVista(b.dataset.vista)));
+      // Enlaces a secciones de la portada (vuelven al inicio si hace falta)
+      document.querySelectorAll('[data-ir]').forEach((b) => b.addEventListener('click', () => {
+        if (vista !== 'buscar') mostrarVista('buscar');
+        toggleMenu(false);
+        $(b.dataset.ir).scrollIntoView({ behavior: 'smooth', block: 'start' });
+      }));
+      function actualizarBotonPanel() {
+        $('textoBotonPanel').textContent = sesion ? 'Mi panel' : 'Entrar';
+      }
 
       // ---------------- Buscar ----------------
+      function esqueletos() {
+        const grid = $('gridCuentas');
+        for (let i = 0; i < 6; i += 1) {
+          const e = crear('div', 'esqueleto');
+          const cuerpo = crear('div', 'e-cuerpo');
+          cuerpo.append(crear('i', 'e-linea e-corta'), crear('i', 'e-linea'), crear('i', 'e-linea e-media'));
+          e.append(crear('i', 'e-foto'), cuerpo);
+          e.setAttribute('aria-hidden', 'true');
+          grid.append(e);
+        }
+      }
+
+      function estadoVacio(titulo, texto, conBoton) {
+        const caja = crear('div', 'vacio');
+        const icon = crear('span', 'icono-caja');
+        icon.append(icono('i-buscar'));
+        caja.append(icon, crear('h3', null, titulo), crear('p', null, texto));
+        if (conBoton) {
+          const b = crear('button', 'btn btn-principal');
+          b.type = 'button';
+          b.append(icono('i-etiqueta'), document.createTextNode('Vender mi cuenta'));
+          b.addEventListener('click', () => mostrarVista('vender'));
+          caja.append(b);
+        }
+        return caja;
+      }
+
       async function buscar(desdeCero = true) {
         const turno = ++busquedaActual;
-        if (desdeCero) { pagina = 0; $('gridCuentas').replaceChildren(); $('estadoLista').textContent = 'Cargando cuentas…'; }
+        if (desdeCero) { pagina = 0; $('gridCuentas').replaceChildren(); $('estadoLista').replaceChildren(); esqueletos(); }
         $('btnVerMas').classList.add('oculto');
 
         // Solo letras, números y espacios: el texto va dentro de un filtro de PostgREST
@@ -424,29 +691,35 @@
         const precioMax = Number($('filtroPrecio').value);
         const orden = $('filtroOrden').value;
 
-        let consulta = cliente.from('cuentas_venta').select(COLUMNAS).eq('estado', 'publicada');
+        let consulta = cliente.from('cuentas_venta').select(COLUMNAS, { count: 'exact' }).eq('estado', 'publicada');
         if (texto) consulta = consulta.or(`titulo.ilike.*${texto}*,destacados.ilike.*${texto}*`);
         if (region) consulta = consulta.eq('region', region);
         if (precioMax > 0) consulta = consulta.lte('precio_usd', precioMax);
         if (orden === 'barato') consulta = consulta.order('precio_usd', { ascending: true });
         else if (orden === 'caro') consulta = consulta.order('precio_usd', { ascending: false });
         else if (orden === 'nivel') consulta = consulta.order('nivel', { ascending: false });
-        consulta = consulta.order('creado', { ascending: false }).range(pagina * POR_PAGINA, pagina * POR_PAGINA + POR_PAGINA); // 1 de más: ¿hay otra página?
+        consulta = consulta.order('creado', { ascending: false }).range(pagina * POR_PAGINA, pagina * POR_PAGINA + POR_PAGINA - 1);
 
-        const { data, error } = await consulta;
+        const { data, error, count } = await consulta;
         if (turno !== busquedaActual) return;
+        $('gridCuentas').querySelectorAll('.esqueleto').forEach((e) => e.remove());
         if (error) {
           console.error('buscar cuentas', error);
-          $('estadoLista').textContent = 'No pudimos cargar las cuentas. Intenta de nuevo en un momento.';
+          $('estadoLista').replaceChildren(estadoVacio('No pudimos cargar las cuentas', 'Revisa tu conexión e intenta de nuevo en un momento.', false));
           return;
         }
-        const filas = data.slice(0, POR_PAGINA);
-        await cargarReputacion(filas.map((c) => c.vendedor));
+        await cargarReputacion(data.map((c) => c.vendedor));
         if (turno !== busquedaActual) return;
-        for (const cuenta of filas) $('gridCuentas').append(tarjeta(cuenta));
-        $('estadoLista').textContent = $('gridCuentas').children.length ? ''
-          : (texto || region || precioMax ? 'No hay cuentas con esos filtros. Prueba con otros.' : 'Todavía no hay cuentas publicadas. ¡Sé el primero en vender la tuya!');
-        $('btnVerMas').classList.toggle('oculto', data.length <= POR_PAGINA);
+        for (const cuenta of data) $('gridCuentas').append(tarjeta(cuenta));
+        const mostradas = $('gridCuentas').children.length;
+        const hayFiltros = texto || region || precioMax;
+        $('conteoCuentas').textContent = count ? `${count} cuenta${count === 1 ? '' : 's'}${hayFiltros ? ' con esos filtros' : ' disponibles'}` : '';
+        if (!mostradas) {
+          $('estadoLista').replaceChildren(hayFiltros
+            ? estadoVacio('No hay cuentas con esos filtros', 'Prueba con otra búsqueda, otra región o un precio más alto.', false)
+            : estadoVacio('Todavía no hay cuentas publicadas', 'Sé el primero en vender: publicar es gratis y cobras sin riesgo.', true));
+        }
+        $('btnVerMas').classList.toggle('oculto', mostradas >= (count || 0));
         pagina += 1;
       }
 
@@ -457,10 +730,12 @@
         for (const v of faltan) reputacion.set(v, 0);
         for (const fila of data || []) reputacion.set(fila.vendedor, fila.ventas);
       }
-      const textoReputacion = (vendedor) => {
+      function lineaReputacion(vendedor, etiqueta = 'span') {
         const n = reputacion.get(vendedor) || 0;
-        return n ? `✔ Vendedor con ${n} venta${n === 1 ? '' : 's'} en Level Up` : 'Vendedor nuevo en Level Up';
-      };
+        const el = crear(etiqueta, `vendedor-rep${n ? '' : ' vendedor-nuevo'}`);
+        el.append(icono(n ? 'i-escudo' : 'i-usuario'), document.createTextNode(n ? `Vendedor con ${n} venta${n === 1 ? '' : 's'}` : 'Vendedor nuevo'));
+        return el;
+      }
 
       function etiquetas(cuenta) {
         const caja = crear('div', 'etiquetas');
@@ -471,20 +746,35 @@
       function tarjeta(cuenta) {
         const boton = crear('button', 'tarjeta-cuenta');
         boton.type = 'button';
+        boton.setAttribute('aria-label', `${cuenta.titulo}, ${usd(cuenta.precio_usd)}`);
+        const medios = crear('div', 'tarjeta-medios');
         const img = crear('img', 'tarjeta-foto');
         img.src = urlFoto(cuenta.fotos[0]);
-        img.alt = `Portada de ${cuenta.titulo}`;
+        img.alt = '';
         img.loading = 'lazy';
         img.decoding = 'async';
+        const region = crear('span', 'insignia-foto insignia-region');
+        region.append(icono('i-globo'), document.createTextNode(cuenta.region));
+        medios.append(img, crear('span', 'insignia-foto insignia-nivel', `NV ${cuenta.nivel}`), region);
+        if (cuenta.fotos.length > 1) {
+          const fotos = crear('span', 'insignia-foto insignia-fotos');
+          fotos.append(icono('i-imagen'), document.createTextNode(String(cuenta.fotos.length)));
+          medios.append(fotos);
+        }
         const cuerpo = crear('div', 'tarjeta-cuerpo');
-        cuerpo.append(
-          crear('span', 'tarjeta-codigo', codigoCuenta(cuenta.id)),
-          crear('span', 'tarjeta-titulo', cuenta.titulo),
-          etiquetas(cuenta),
-          crear('span', 'vendedor-rep', textoReputacion(cuenta.vendedor)),
-          crear('span', 'tarjeta-precio', usd(cuenta.precio_usd)),
-        );
-        boton.append(img, cuerpo);
+        cuerpo.append(crear('span', 'tarjeta-codigo', `${codigoCuenta(cuenta.id)} · ${cuenta.vinculacion}`), crear('span', 'tarjeta-titulo', cuenta.titulo));
+        if (cuenta.destacados) cuerpo.append(crear('span', 'tarjeta-destacados', cuenta.destacados));
+        cuerpo.append(lineaReputacion(cuenta.vendedor));
+        const pie = crear('div', 'tarjeta-pie');
+        const precio = crear('div');
+        const nota = crear('small');
+        nota.append(icono('i-candado'), document.createTextNode('Compra protegida'));
+        precio.append(crear('span', 'tarjeta-precio', usd(cuenta.precio_usd)), nota);
+        const ir = crear('span', 'tarjeta-ir');
+        ir.append(icono('i-flecha'));
+        pie.append(precio, ir);
+        cuerpo.append(pie);
+        boton.append(medios, cuerpo);
         boton.addEventListener('click', () => abrirDetalle(cuenta));
         return boton;
       }
@@ -522,10 +812,10 @@
       let cuentaAbierta = null;
       function abrirDetalle(cuenta) {
         cuentaAbierta = cuenta;
-        $('detalleCodigo').textContent = codigoCuenta(cuenta.id);
+        $('detalleCodigo').textContent = `${codigoCuenta(cuenta.id)} · Publicada el ${fecha(cuenta.creado)}`;
         $('detalleTitulo').textContent = cuenta.titulo;
         $('detalleEtiquetas').replaceWith(Object.assign(etiquetas(cuenta), { id: 'detalleEtiquetas' }));
-        $('detalleVendedor').textContent = textoReputacion(cuenta.vendedor);
+        $('detalleVendedor').replaceWith(Object.assign(lineaReputacion(cuenta.vendedor, 'p'), { id: 'detalleVendedor' }));
         $('detalleDestacados').textContent = cuenta.destacados;
         $('bloqueDestacados').classList.toggle('oculto', !cuenta.destacados);
         $('detalleDescripcion').textContent = cuenta.descripcion;
@@ -568,7 +858,7 @@
         if (!cuentaAbierta) return;
         const garantia = $('detalleGarantia').checked;
         const total = Number(cuentaAbierta.precio_usd) + (garantia ? config.garantia_usd : 0);
-        $('detallePrecio').textContent = garantia ? `${usd(total)} (incluye garantía)` : usd(total);
+        $('detallePrecio').textContent = garantia ? `${usd(total)} con garantía` : usd(total);
       }
       $('detalleGarantia').addEventListener('change', actualizarPrecioDetalle);
 
@@ -579,7 +869,6 @@
           compraPendiente = pedido;
           cerrarVentana('ventanaDetalle');
           mostrarVista('panel');
-          $('cajaAcceso').scrollIntoView({ behavior: 'smooth', block: 'start' });
           return;
         }
         comprar(pedido);
@@ -715,12 +1004,15 @@
       });
 
       $('pubWhatsapp').addEventListener('input', (e) => { e.target.value = e.target.value.replace(/\D/g, '').replace(/^0/, '').slice(0, 10); });
-      $('pubPrecio').addEventListener('input', () => {
+      function actualizarCalculadora() {
         const precio = Number($('pubPrecio').value);
-        $('ayudaPrecio').textContent = precio >= 1
-          ? `Recibes ${usd(precio)} en tu saldo. Al retirarlos: ${usd(Math.round(precio * (100 - config.comision_retiro)) / 100)}.`
-          : 'Recibes el precio completo en tu saldo.';
-      });
+        const valido = precio >= 1;
+        const comision = redondear(precio * config.comision_retiro / 100);
+        $('calcPrecio').textContent = valido ? usd(precio) : '—';
+        $('calcComision').textContent = valido ? `− ${usd(comision)}` : '—';
+        $('calcNeto').textContent = valido ? usd(redondear(precio - comision)) : '—';
+      }
+      $('pubPrecio').addEventListener('input', actualizarCalculadora);
 
       $('formPublicar').addEventListener('submit', async (e) => {
         e.preventDefault();
@@ -730,7 +1022,7 @@
           nivel: Number($('pubNivel').value),
           region: $('pubRegion').value,
           vinculacion: $('pubVinculacion').value,
-          precio_usd: Math.round(Number($('pubPrecio').value) * 100) / 100,
+          precio_usd: redondear(Number($('pubPrecio').value)),
           destacados: $('pubDestacados').value.trim().replace(/\s+/g, ' '),
           descripcion: $('pubDescripcion').value.trim(),
         };
@@ -767,6 +1059,7 @@
           fotosElegidas = [];
           pintarFotos();
           $('formPublicar').reset();
+          actualizarCalculadora();
           M.mensaje(aviso, `¡Listo! Tu cuenta ${codigoCuenta(data.id)} quedó en revisión. Cuando la aprobemos aparecerá en el mercado.`, 'exito');
         } catch (error) {
           console.error('publicar', error);
@@ -821,6 +1114,7 @@
         lista.replaceChildren();
         const pendientes = data.filter(teToca).length;
         $('puntoPanel').classList.toggle('oculto', !pendientes);
+        $('statTratos').textContent = String(data.filter((v) => !['cerrada', 'cancelada'].includes(v.estado)).length);
         if (!data.length) {
           lista.append(crear('p', 'estado-lista', 'Todavía no tienes compras ni ventas. Cuando compres o te compren una cuenta, el trato aparecerá aquí.'));
           return;
@@ -831,7 +1125,7 @@
           fila.type = 'button';
           const izquierda = crear('div', 'trato-fila-datos');
           izquierda.append(
-            crear('span', 'tarjeta-codigo', `${codigoTrato(v.id)} · ${rol === 'comprador' ? 'Compra' : 'Venta'}`),
+            crear('span', 'tarjeta-codigo', `${codigoTrato(v.id)} · ${rol === 'comprador' ? 'Compra' : 'Venta'} · ${fecha(v.creado)}`),
             crear('strong', null, v.titulo),
             crear('span', `estado-trato estado-trato-${v.estado}`, M.TEXTO_ESTADO_TRATO[v.estado] + (teToca(v) ? ' · Te toca' : '')),
           );
@@ -851,7 +1145,10 @@
         saldoDisponible = Number(saldo.data?.disponible || 0);
         const ventas = saldo.data?.ventas || 0;
         $('textoSaldo').textContent = usd(saldoDisponible);
-        $('textoReputacion').textContent = ventas ? `${ventas} venta${ventas === 1 ? '' : 's'} cerrada${ventas === 1 ? '' : 's'} · Los retiros se pagan los lunes.` : 'Aquí se suma el precio de cada cuenta que vendas.';
+        $('statVentas').textContent = String(ventas);
+        $('textoReputacion').textContent = saldoDisponible > 0
+          ? `Tienes ${usd(saldoDisponible)} disponibles. Los retiros se pagan los lunes.`
+          : 'Aquí se suma el precio de cada cuenta que vendas. Los retiros se pagan los lunes.';
         actualizarNeto();
         pintarTabla($('tablaMovimientos'), movimientos.data || [], 'Todavía no hay movimientos.', (m) => [
           [fecha(m.creado)], [m.detalle || m.tipo],
@@ -867,7 +1164,7 @@
       function actualizarNeto() {
         const monto = Number($('retMonto').value);
         $('textoNeto').textContent = monto > 0
-          ? `Pides ${usd(monto)}, se descuenta el ${config.comision_retiro} % (${usd(Math.round(monto * config.comision_retiro) / 100)}) y recibes ${usd(Math.round(monto * (100 - config.comision_retiro)) / 100)}. Se paga el lunes.`
+          ? `Pides ${usd(monto)}, se descuenta el ${config.comision_retiro} % (${usd(redondear(monto * config.comision_retiro / 100))}) y recibes ${usd(redondear(monto * (100 - config.comision_retiro) / 100))}. Se paga el lunes.`
           : `Retiro mínimo: ${usd(config.retiro_minimo)}. Se descuenta un ${config.comision_retiro} % al retirar. Los retiros se pagan los lunes.`;
       }
       $('retMonto').addEventListener('input', actualizarNeto);
@@ -875,12 +1172,12 @@
       $('formRetiro').addEventListener('submit', async (e) => {
         e.preventDefault();
         const aviso = $('mensajeRetiro');
-        const monto = Math.round(Number($('retMonto').value) * 100) / 100;
+        const monto = redondear(Number($('retMonto').value));
         const datos = $('retDatos').value.trim();
         if (!(monto >= config.retiro_minimo)) return M.mensaje(aviso, `El retiro mínimo es ${usd(config.retiro_minimo)}.`);
         if (monto > saldoDisponible) return M.mensaje(aviso, `Tu saldo disponible es ${usd(saldoDisponible)}.`);
         if (datos.length < 5) return M.mensaje(aviso, 'Escribe tus datos de cobro (banco, teléfono y cédula, o tu correo de Binance).');
-        if (!confirm(`¿Retirar ${usd(monto)}? Recibirás ${usd(Math.round(monto * (100 - config.comision_retiro)) / 100)} por ${$('retMetodo').value} el lunes.`)) return;
+        if (!confirm(`¿Retirar ${usd(monto)}? Recibirás ${usd(redondear(monto * (100 - config.comision_retiro) / 100))} por ${$('retMetodo').value} el lunes.`)) return;
         const boton = $('btnRetiro');
         boton.disabled = true;
         try {
@@ -903,7 +1200,7 @@
         lista.replaceChildren();
         if (error) return M.mensaje($('mensajeMias'), 'No pudimos cargar tus publicaciones.');
         $('mensajeMias').textContent = '';
-        if (!data.length) return lista.append(crear('p', 'estado-lista', 'Todavía no has publicado cuentas. Ve a "Vender" para publicar la primera.'));
+        if (!data.length) return lista.append(crear('p', 'estado-lista', 'Todavía no has publicado cuentas. Toca "+ Publicar" para vender la primera.'));
         for (const cuenta of data) lista.append(filaMia(cuenta));
       }
 
@@ -1015,7 +1312,7 @@
             parrafo(`Informaste tu pago por ${v.metodo_pago} (referencia ${v.referencia_pago}). Level Up lo está verificando: te avisamos en el chat.`, 'trato-texto destacado');
           } else {
             parrafo(`Paga ${usd(v.total_usd)}${config.tasa_bs > 0 ? ` (≈ ${M.bs(v.total_usd * config.tasa_bs)} a la tasa de hoy)` : ''} antes del ${limite(v.creado, config.horas_pago)} o el trato se cancela solo.`, 'trato-texto destacado');
-            if (config.instrucciones_pago) parrafo(config.instrucciones_pago);
+            if (config.instrucciones_pago) parrafo(config.instrucciones_pago, 'trato-texto instrucciones-pago');
             const form = crear('form', 'form-publicar');
             form.noValidate = true;
             form.innerHTML = `
@@ -1054,7 +1351,7 @@
           parrafo('Pago confirmado y retenido por Level Up. Espera a que el vendedor escriba los datos en este chat.', 'trato-texto destacado');
           parrafo('Prepara la grabación de pantalla: desde que uses los datos tienes que grabar sin cortes. Sin video no hay reclamo.');
         } else if (v.estado === 'entregada' && rol === 'comprador') {
-          parrafo('🎥 GRABA LA PANTALLA SIN CORTES desde que uses los datos (máximo 5 minutos después de la entrega).', 'trato-texto alerta');
+          parrafo('GRABA LA PANTALLA SIN CORTES desde que uses los datos (máximo 5 minutos después de la entrega).', 'trato-texto alerta');
           parrafo(`Revisa nivel, inventario y región, y cambia el correo, la contraseña y las vinculaciones a tu nombre. Si no haces nada, el trato se cierra solo (${limite(v.entregada_en, config.horas_revision)}).`);
           boton('Todo bien, finalizar', 'btn-juego', async () => {
             if (!confirm('¿Ya cambiaste los datos y la cuenta está como se publicó? Al finalizar, el vendedor recibe el dinero y no se puede reclamar.')) return;
@@ -1089,8 +1386,8 @@
           if (v.reclamo_motivo) parrafo(`Motivo: ${v.reclamo_motivo}`);
         } else if (v.estado === 'cerrada') {
           parrafo(rol === 'comprador'
-            ? '✔ Trato cerrado. La cuenta es tuya: no compartas tus datos con nadie.'
-            : `✔ Trato cerrado. ${usd(v.precio_usd)} ya están en tu saldo de ventas.`, 'trato-texto destacado');
+            ? 'Trato cerrado. La cuenta es tuya: no compartas tus datos con nadie.'
+            : `Trato cerrado. ${usd(v.precio_usd)} ya están en tu saldo de ventas.`, 'trato-texto destacado');
         } else if (v.estado === 'cancelada') {
           parrafo(`Trato cancelado. ${v.resolucion || ''}`, 'trato-texto');
         }
@@ -1099,7 +1396,10 @@
       // ---------------- Arranque ----------------
       cliente.auth.onAuthStateChange((evento, nueva) => {
         sesion = nueva;
+        actualizarBotonPanel();
         if (evento === 'PASSWORD_RECOVERY') {
+          $('vistaInicio').classList.add('oculto');
+          $('vistaApp').classList.remove('oculto');
           $('cajaNuevaClave').classList.remove('oculto');
           $('cajaAcceso').classList.add('oculto');
           return;
@@ -1118,10 +1418,12 @@
       });
       cliente.auth.getSession().then(({ data }) => {
         sesion = data.session;
+        actualizarBotonPanel();
         const inicial = location.hash.replace('#', '');
         const trato = /^trato-(\d+)$/.exec(inicial);
         mostrarVista(trato ? 'panel' : ['vender', 'panel'].includes(inicial) ? inicial : 'buscar');
         if (trato && sesion) abrirTrato(Number(trato[1]));
+        if (['cuentas', 'como-funciona'].includes(inicial)) setTimeout(() => $(inicial).scrollIntoView({ block: 'start' }), 50);
         if (sesion) cargarTratos();   // punto de aviso en "Mi panel"
       });
       buscar(true);

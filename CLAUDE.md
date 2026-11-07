@@ -8,7 +8,7 @@
 - No tocar los remotos `levelups` ni `origin` (level.online).
 
 ## Stack
-- **Frontend estático** en `public/` (Vercel, sin build): `index.html` (tienda: Buscar / Vender / Mi panel), `reglas-cuentas.html`, `admin-cuentas.html`. Utilidades compartidas y chat en `public/js/mercado.js`.
+- **Frontend estático** en `public/` (Vercel, sin build): `index.html` (portada + cuentas + cómo funciona + preguntas; vistas Vender y Mi panel), `reglas-cuentas.html`, `admin-cuentas.html`. Utilidades compartidas y chat en `public/js/mercado.js`. Diseño: `css/tienda.css` (navegación, portada, tarjetas, secciones, pie) va sobre paginas-legales/creadores/billetera/cuentas.css; los iconos son un sprite SVG al inicio de index.html (nada de emojis como iconos). Ojo: creadores.css ya define `.beneficios` y `.faq`; no reutilizar esos nombres.
 - **Supabase** (mismo proyecto que usaba la billetera de recargas): `supabase/cuentas.sql` tiene tablas, RLS y TODAS las funciones del trato. El navegador solo lee; cada cambio (comprar, informar pago, entregar, finalizar, reclamar, retirar, acciones de admin) es una función `security definer` que valida quién llama y el estado. La publishable key de `mercado.js` no es secreta.
 - Ajustes editables desde el admin (tabla `mercado_config`): comisión de retiro, retiro mínimo, garantía, horas de pago y de revisión, tasa Bs, instrucciones de pago.
 
