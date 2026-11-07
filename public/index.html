@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <script>
     // Modo ligero en todos los celulares y tablets (pantalla táctil), con ahorro de datos o "reducir movimiento": sin desenfoque, animaciones ni transiciones (css/ligero.css)
-    (function () { var n = navigator, c = n.connection || {}; if ((n.deviceMemory && n.deviceMemory <= 2) || (n.hardwareConcurrency && n.hardwareConcurrency <= 4) || c.saveData || /(^|\D)2g/.test(c.effectiveType || '') || (window.matchMedia && (matchMedia('(pointer: coarse)').matches || matchMedia('(prefers-reduced-motion: reduce)').matches))) { document.documentElement.classList.add('ligero'); var l = document.createElement('link'); l.rel = 'stylesheet'; l.href = 'css/ligero.css?v=4'; document.head.appendChild(l); } })();
+    (function () { var n = navigator, c = n.connection || {}; if ((n.deviceMemory && n.deviceMemory <= 2) || (n.hardwareConcurrency && n.hardwareConcurrency <= 4) || c.saveData || /(^|\D)2g/.test(c.effectiveType || '') || (window.matchMedia && (matchMedia('(pointer: coarse)').matches || matchMedia('(prefers-reduced-motion: reduce)').matches))) { document.documentElement.classList.add('ligero'); var l = document.createElement('link'); l.rel = 'stylesheet'; l.href = 'css/ligero.css?v=5'; document.head.appendChild(l); } })();
   </script>
   <meta name="description" content="Compra y vende cuentas de Free Fire con Level Up como intermediario: recarga saldo por Binance, PayPal o Pago Móvil y el dinero queda retenido hasta que la cuenta se entrega.">
   <meta name="theme-color" content="#0b1120">
@@ -25,9 +25,9 @@
   <link rel="stylesheet" href="css/creadores.css">
   <link rel="stylesheet" href="css/billetera.css">
   <link rel="stylesheet" href="css/cuentas.css?v=3">
-  <link rel="stylesheet" href="css/tienda.css?v=3">
+  <link rel="stylesheet" href="css/tienda.css?v=4">
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.js" defer></script>
-  <script src="js/mercado.js?v=3" defer></script>
+  <script src="js/mercado.js?v=4" defer></script>
 </head>
 <body class="tienda">
 
@@ -659,11 +659,36 @@
     </div>
   </footer>
 
-  <a href="https://wa.me/584228887089" target="_blank" rel="noopener noreferrer" class="whatsapp-float" aria-label="Escribir a Soporte por WhatsApp">
-    <svg viewBox="0 0 24 24" aria-hidden="true">
-      <path d="M12.031 0C5.385 0 0 5.383 0 12.029c0 2.124.553 4.195 1.605 6.01L.036 24l6.11-1.603c1.737 1.002 3.738 1.531 5.885 1.531 6.643 0 12.028-5.381 12.028-12.027C24.059 5.383 18.675 0 12.031 0zm3.565 17.27c-.54.269-3.187.584-3.557.584-.37 0-1.802-.234-4.225-2.656-2.424-2.425-2.657-3.856-2.657-4.226 0-.37.316-3.018.584-3.557.269-.54.912-.767 1.451-.497.54.269 1.433 3.493 1.433 3.864 0 .37-.197.808-.466 1.077-.466.466.269.269-.538.448-.179 1.077.359.627 1.614 1.882 2.241 2.241.628.359.808.09 1.077-.179.269-.269.808-.466 1.077-.466.37 0 3.595.892 3.864 1.432.27.539.043 1.182-.497 1.451z"/>
-    </svg>
-  </a>
+  <!-- Chat en vivo con Level Up -->
+  <button type="button" class="chat-flotante" id="btnSoporte" aria-label="Chat en vivo con Level Up" aria-expanded="false" aria-controls="soporte">
+    <svg class="icono"><use href="#i-chat"/></svg><span class="chat-flotante-texto">Chat en vivo</span>
+    <span class="chat-flotante-aviso oculto" id="avisoSoporte" aria-label="Tienes un mensaje nuevo"></span>
+  </button>
+  <section class="soporte oculto" id="soporte" role="dialog" aria-labelledby="soporteTitulo">
+    <header class="soporte-cabecera">
+      <img src="logo-chico.png" alt="" width="36" height="35">
+      <div>
+        <h2 id="soporteTitulo">Soporte Level Up</h2>
+        <span class="soporte-estado"><span class="punto-vivo"></span>En vivo · te respondemos aquí</span>
+      </div>
+      <button type="button" class="soporte-cerrar" id="soporteCerrar" aria-label="Cerrar chat">✖</button>
+    </header>
+    <div class="soporte-sin-sesion oculto" id="soporteSinSesion">
+      <span class="icono-caja"><svg class="icono"><use href="#i-chat"/></svg></span>
+      <p>Entra a tu cuenta para chatear en vivo con nosotros. Así vemos tus recargas y compras y te ayudamos más rápido.</p>
+      <button type="button" class="btn-juego" id="soporteEntrar">Entrar o crear cuenta</button>
+      <a class="enlace-reglas" href="https://wa.me/584228887089" target="_blank" rel="noopener noreferrer">O escríbenos por WhatsApp</a>
+    </div>
+    <div class="soporte-chat" id="soporteChat">
+      <div class="chat-lista soporte-lista" id="soporteLista" aria-live="polite"></div>
+      <div class="panel-mensaje" id="soporteAviso" role="status" aria-live="polite"></div>
+      <form class="chat-form soporte-form" id="soporteForm">
+        <label for="soporteTexto" class="solo-lectores">Mensaje</label>
+        <textarea id="soporteTexto" rows="1" maxlength="1000" placeholder="Escribe tu mensaje…"></textarea>
+        <button type="submit" class="btn-juego" id="soporteEnviar" aria-label="Enviar"><svg class="icono"><use href="#i-flecha"/></svg></button>
+      </form>
+    </div>
+  </section>
 
   <script>
     function toggleMenu(forzar) {
@@ -936,6 +961,7 @@
         if (e.key !== 'Escape') return;
         const abierta = [...document.querySelectorAll('.ventana:not(.oculto)')].pop();
         if (abierta) cerrarVentana(abierta.id);
+        else if (soporteAbierto) cerrarSoporte();
       });
 
       // ---------------- Detalle y compra ----------------
@@ -1632,6 +1658,75 @@
         $('recargaCapturaEnlace').href = url || '#';
       }
 
+      // ---------------- Chat en vivo con soporte ----------------
+      let soporteAbierto = false;
+      let cortarVigilancia = () => {};
+      const claveVisto = () => `soporte_visto_${yo()}`;
+      function marcarVisto() {
+        try { localStorage.setItem(claveVisto(), new Date().toISOString()); } catch (e) { /* sin almacenamiento */ }
+        $('avisoSoporte').classList.add('oculto');
+        $('btnSoporte').classList.remove('llamando');
+      }
+      function avisarSoporte() {
+        if (soporteAbierto) return;
+        $('avisoSoporte').classList.remove('oculto');
+        const b = $('btnSoporte');
+        b.classList.remove('llamando'); void b.offsetWidth; b.classList.add('llamando');
+      }
+      const chatSoporte = M.crearChat({
+        lista: $('soporteLista'), form: $('soporteForm'), input: $('soporteTexto'), boton: $('soporteEnviar'), aviso: $('soporteAviso'), yo,
+        tabla: 'mensajes_soporte', campo: 'usuario', funcion: 'soporte_mensaje', parametro: 'p_usuario',
+        alNuevo: () => { if (soporteAbierto) marcarVisto(); },
+      });
+      function pintarSoporte() {
+        $('soporteSinSesion').classList.toggle('oculto', !!sesion);
+        $('soporteChat').classList.toggle('oculto', !sesion);
+        if (sesion && soporteAbierto && chatSoporte.abierto() !== yo()) {
+          chatSoporte.abrir(yo());
+          // Mensaje de bienvenida (no se guarda): solo se ve mientras la conversación está vacía
+          const hola = crear('div', 'msg msg-sistema soporte-hola');
+          hola.append(crear('span', 'msg-autor', 'Level Up'), crear('p', 'msg-texto', '¡Hola! Escríbenos tu duda sobre recargas, compras o ventas y te respondemos aquí mismo.'));
+          $('soporteLista').prepend(hola);
+        }
+      }
+      function abrirSoporte() {
+        soporteAbierto = true;
+        $('soporte').classList.remove('oculto');
+        $('btnSoporte').setAttribute('aria-expanded', 'true');
+        $('btnSoporte').classList.add('activo');
+        document.body.classList.add('soporte-abierto');
+        pintarSoporte();
+        if (sesion) { marcarVisto(); setTimeout(() => $('soporteTexto').focus({ preventScroll: true }), 80); }
+      }
+      function cerrarSoporte() {
+        soporteAbierto = false;
+        $('soporte').classList.add('oculto');
+        $('btnSoporte').setAttribute('aria-expanded', 'false');
+        $('btnSoporte').classList.remove('activo');
+        document.body.classList.remove('soporte-abierto');
+        chatSoporte.cerrar();
+      }
+      $('btnSoporte').addEventListener('click', () => (soporteAbierto ? cerrarSoporte() : abrirSoporte()));
+      $('soporteCerrar').addEventListener('click', cerrarSoporte);
+      $('soporteEntrar').addEventListener('click', () => { cerrarSoporte(); mostrarVista('panel'); });
+
+      // Mientras hay sesión: aviso de respuestas de soporte y recargas aprobadas/rechazadas EN VIVO
+      async function vigilar() {
+        cortarVigilancia();
+        cortarVigilancia = () => {};
+        if (!sesion) return;
+        const uid = yo();
+        const { data } = await cliente.from('soporte_chats').select('msg_admin').eq('usuario', uid).maybeSingle();
+        let visto = '';
+        try { visto = localStorage.getItem(claveVisto()) || ''; } catch (e) { /* sin almacenamiento */ }
+        if (data?.msg_admin && new Date(data.msg_admin) > new Date(visto || 0)) avisarSoporte();
+        const cortes = [
+          M.enVivo('aviso-soporte', ['mensajes_soporte'], (m) => { if (m.rol === 'admin') { if (soporteAbierto) marcarVisto(); else avisarSoporte(); } }, { filtro: `usuario=eq.${uid}` }),
+          M.enVivo('mis-recargas', ['ordenes_recarga'], () => { cargarRecargas(); cargarSaldo(); }, { filtro: `usuario=eq.${uid}`, eventos: 'UPDATE' }),
+        ];
+        cortarVigilancia = () => cortes.forEach((c) => c());
+      }
+
       // ---------------- Trato ----------------
       let tratoAbierto = null;
       const chat = M.crearChat({
@@ -1797,8 +1892,8 @@
         if (evento === 'SIGNED_IN' || evento === 'SIGNED_OUT') {
           setTimeout(() => {
             mostrarVista(vista);
-            if (evento === 'SIGNED_IN') cargarSaldo();
-            if (evento === 'SIGNED_OUT') { saldoDisponible = 0; saldoRecargado = 0; }
+            if (evento === 'SIGNED_IN') { cargarSaldo(); vigilar(); pintarSoporte(); }
+            if (evento === 'SIGNED_OUT') { saldoDisponible = 0; saldoRecargado = 0; cortarVigilancia(); chatSoporte.cerrar(); pintarSoporte(); }
             if (evento === 'SIGNED_IN' && compraPendiente) {
               const pedido = compraPendiente;
               compraPendiente = null;
@@ -1817,7 +1912,8 @@
         if (trato && sesion) abrirTrato(Number(trato[1]));
         if (recarga && sesion) abrirRecarga(Number(recarga[1]));
         if (['cuentas', 'como-funciona'].includes(inicial)) setTimeout(() => $(inicial).scrollIntoView({ block: 'start' }), 50);
-        if (sesion) { cargarTratos(); cargarSaldo(); }   // punto de aviso en "Mi panel" y saldo en la barra
+        if (sesion) { cargarTratos(); cargarSaldo(); vigilar(); }   // punto de aviso en "Mi panel", saldo en la barra y avisos en vivo
+        if (inicial === 'soporte') abrirSoporte();
       });
       buscar(true);
     });

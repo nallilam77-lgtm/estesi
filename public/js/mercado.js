@@ -171,19 +171,36 @@
       }
     },
 
+    // EN VIVO (Supabase Realtime): llama a fn(fila, tabla) cada vez que se inserta/cambia una fila en esas tablas.
+    // filtro opcional, p. ej. 'orden=eq.12'. Solo llegan filas que el usuario puede leer (RLS). Devuelve una función para cortar.
+    enVivo(nombre, tablas, fn, { filtro, eventos = 'INSERT' } = {}) {
+      const c = Mercado.cliente();
+      if (!c?.channel) return () => {};
+      let canal = c.channel(`${nombre}-${Math.random().toString(36).slice(2, 8)}`);
+      for (const tabla of tablas) {
+        canal = canal.on('postgres_changes', { event: eventos, schema: 'public', table: tabla, ...(filtro ? { filter: filtro } : {}) },
+          (cambio) => fn(cambio.new, tabla, cambio.eventType));
+      }
+      canal.subscribe();
+      return () => { try { c.removeChannel(canal); } catch (e) { /* ya cerrado */ } };
+    },
+
     mensaje(el, texto, tipo = 'error') {
       el.className = `panel-mensaje ${tipo}`;
       el.textContent = texto;
     },
 
-    // Chat de un trato (o de una orden de recarga): trae los mensajes nuevos cada 5 s mientras está abierto
-    // (y la pestaña visible). alNuevo(mensajes) avisa cuando llegan (los del sistema = cambió de estado).
-    // Para recargas: tabla 'mensajes_recarga', campo 'orden', funcion 'recarga_mensaje', parametro 'p_orden'.
+    // Chat de un trato, de una recarga o de soporte. Los mensajes llegan EN VIVO (Realtime) y, por si la
+    // conexión en vivo falla, también se revisa cada 15 s. alNuevo(mensajes) avisa cuando llegan (los del sistema = cambió de estado).
+    // Recargas: tabla 'mensajes_recarga', campo 'orden', funcion 'recarga_mensaje', parametro 'p_orden'.
+    // Soporte: tabla 'mensajes_soporte', campo 'usuario', funcion 'soporte_mensaje', parametro 'p_usuario'.
     crearChat({ lista, form, input, boton, aviso, yo, alNuevo, tabla = 'mensajes_venta', campo = 'venta', funcion = 'mensaje_enviar', parametro = 'p_venta' }) {
       let venta = null;
       let ultimo = 0;
       let temporizador = null;
       let ocupado = false;
+      let otraVez = false;
+      let cortarVivo = () => {};
 
       function burbuja(m) {
         const propio = m.autor && m.autor === yo();
@@ -194,18 +211,22 @@
       }
 
       async function traer() {
-        if (!venta || ocupado) return;
+        if (!venta) return;
+        if (ocupado) { otraVez = true; return; }
         ocupado = true;
         const pedido = venta;
         const { data, error } = await Mercado.cliente().from(tabla)
           .select('id,autor,rol,texto,creado').eq(campo, pedido).gt('id', ultimo).order('id').limit(200);
         ocupado = false;
+        if (otraVez) { otraVez = false; setTimeout(traer, 0); }
         if (error || pedido !== venta || !data.length) return;
         const alFinal = lista.scrollHeight - lista.scrollTop - lista.clientHeight < 80 || ultimo === 0;
-        for (const m of data) lista.append(burbuja(m));
-        ultimo = data[data.length - 1].id;
+        const nuevos = data.filter((m) => m.id > ultimo);
+        if (!nuevos.length) return;
+        for (const m of nuevos) lista.append(burbuja(m));
+        ultimo = nuevos[nuevos.length - 1].id;
         if (alFinal) lista.scrollTop = lista.scrollHeight;
-        alNuevo?.(data);
+        alNuevo?.(nuevos);
       }
 
       form.addEventListener('submit', async (e) => {
@@ -226,20 +247,33 @@
         }
       });
 
+      // Enter envía (Shift+Enter = nueva línea), como en cualquier chat
+      input.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter' && !e.shiftKey && !e.isComposing && window.matchMedia('(pointer: fine)').matches) {
+          e.preventDefault();
+          form.requestSubmit();
+        }
+      });
+
       return {
         abrir(id) {
           clearInterval(temporizador);
+          cortarVivo();
           venta = id;
           ultimo = 0;
           lista.replaceChildren();
           aviso.textContent = '';
           traer();
-          temporizador = setInterval(() => { if (!document.hidden) traer(); }, 5000);
+          cortarVivo = Mercado.enVivo(`chat-${tabla}`, [tabla], () => traer(), { filtro: `${campo}=eq.${id}` });
+          temporizador = setInterval(() => { if (!document.hidden) traer(); }, 15000);
         },
         cerrar() {
           clearInterval(temporizador);
+          cortarVivo();
+          cortarVivo = () => {};
           venta = null;
         },
+        abierto: () => venta,
         habilitar(si) {
           input.disabled = !si;
           boton.disabled = !si;

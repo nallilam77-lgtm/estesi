@@ -599,3 +599,74 @@ body.tienda { background: var(--bg-deep); }
   .chip-saldo:not(.oculto) ~ .btn-nav #textoBotonPanel { display: none; }
   .chip-saldo:not(.oculto) ~ .btn-nav { padding: 0 12px; }
 }
+
+/* =====================================================================
+   Chat en vivo con soporte (index.html) y bandeja de chats (admin)
+   ===================================================================== */
+@keyframes llamando { 0%, 100% { transform: none; } 20% { transform: rotate(-8deg) scale(1.06); } 40% { transform: rotate(8deg) scale(1.06); } 60% { transform: rotate(-4deg); } 80% { transform: rotate(4deg); } }
+@keyframes subir-chat { from { opacity: 0; transform: translateY(16px) scale(0.98); } to { opacity: 1; transform: none; } }
+
+.chat-flotante {
+  position: fixed; right: 16px; bottom: 16px; z-index: 1050; display: inline-flex; align-items: center; gap: 8px;
+  min-height: 52px; padding: 0 18px 0 16px; border: none; border-radius: 999px; cursor: pointer;
+  font-family: 'Montserrat', sans-serif; font-weight: 900; font-size: 13px;
+  background: var(--game-gradient); color: var(--game-on); box-shadow: var(--game-glow-fuerte);
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+.chat-flotante:hover, .chat-flotante:focus-visible { transform: translateY(-2px); box-shadow: var(--game-glow-hover), var(--game-glow-fuerte); outline: none; }
+.chat-flotante .icono { width: 22px; height: 22px; }
+.chat-flotante.llamando { animation: llamando 0.8s ease 2; }
+.chat-flotante-aviso { position: absolute; top: -2px; right: -2px; width: 14px; height: 14px; border-radius: 50%; background: var(--danger); border: 2px solid var(--bg-deep); }
+
+.soporte {
+  position: fixed; z-index: 1060; inset: 0; display: flex; flex-direction: column; overflow: hidden;
+  background: var(--bg-base); border: 1px solid var(--game-borde); box-shadow: var(--shadow-lg), var(--game-glow);
+  animation: subir-chat 0.28s cubic-bezier(0.2, 0.7, 0.2, 1) both;
+}
+.soporte-cabecera { display: flex; align-items: center; gap: 12px; text-align: left; padding: 14px 14px 14px 16px; background: var(--fondo-tarjeta); border-bottom: 1px solid var(--linea); }
+.soporte-cabecera img { border-radius: 50%; }
+.soporte-cabecera > div { flex: 1 1 auto; min-width: 0; }
+.soporte-cabecera h2 { font-family: 'Montserrat', sans-serif; font-weight: 900; font-size: 15px; color: var(--text-main); }
+.soporte-estado { display: inline-flex; align-items: center; gap: 6px; font-size: 11px; color: var(--accent-neon); }
+.soporte-cerrar { flex: 0 0 auto; width: 40px; height: 40px; border-radius: 50%; cursor: pointer; background: var(--fondo-hundido); border: 1px solid var(--linea); color: var(--text-main); font-size: 15px; }
+.soporte-chat { flex: 1 1 auto; display: flex; flex-direction: column; min-height: 0; }
+.soporte .soporte-lista { flex: 1 1 auto; max-height: none; min-height: 0; margin: 0; padding: 16px; border: none; border-radius: 0; background: transparent; }
+.soporte .panel-mensaje { margin: 0 16px; }
+.soporte .panel-mensaje:empty { display: none; }
+.soporte-form { padding: 12px; border-top: 1px solid var(--linea); background: var(--fondo-tarjeta); }
+.soporte-form textarea { min-height: 46px; max-height: 120px; }
+.soporte-form .btn-juego { width: 50px; padding: 0; display: grid; place-items: center; }
+.soporte-form .btn-juego .icono { width: 20px; height: 20px; }
+.soporte-hola { align-self: flex-start; max-width: 90%; border-style: solid; background: var(--fondo-hundido); }
+.soporte-sin-sesion { flex: 1 1 auto; display: grid; align-content: center; justify-items: center; gap: 14px; padding: 24px; text-align: center; }
+.soporte-sin-sesion p { font-size: 14px; line-height: 1.6; color: var(--text-muted); }
+body.soporte-abierto .chat-flotante { display: none; }
+
+@media (min-width: 600px) {
+  .soporte { inset: auto 20px 20px auto; width: 380px; height: min(600px, calc(100vh - 40px)); border-radius: 20px; }
+}
+@media (max-width: 599px) {
+  .chat-flotante { width: 56px; height: 56px; padding: 0; justify-content: center; }
+  .chat-flotante-texto { display: none; }
+}
+
+/* Admin: bandeja de chats */
+.en-vivo { display: inline-flex; align-items: center; gap: 6px; padding: 4px 10px; border-radius: 999px; font-size: 11px; font-weight: 700; color: var(--accent-neon); background: var(--ok-soft); border: 1px solid rgba(57, 255, 20, 0.25); }
+.en-vivo.desconectado { color: var(--text-muted); background: var(--fondo-hundido); border-color: var(--linea); }
+.en-vivo.desconectado .punto-vivo { background: var(--text-muted); animation: none; }
+.bandeja { display: grid; gap: 10px; }
+.bandeja-fila { align-items: center; }
+.bandeja-fila .trato-fila-datos p { font-size: 13px; color: var(--text-muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.bandeja-tipo { display: inline-flex; align-items: center; justify-content: center; width: 40px; height: 40px; flex: 0 0 auto; border-radius: 12px; background: var(--fondo-hundido); border: 1px solid var(--linea); color: var(--primary); }
+.bandeja-fila.trato-fila-toca .bandeja-tipo { color: var(--game-text); border-color: var(--game-line); background: var(--game-soft); }
+.bandeja-izquierda { display: flex; align-items: center; gap: 12px; min-width: 0; }
+.pastilla-sin-responder { color: var(--game-text); border-color: var(--game-line); background: var(--game-soft); }
+.aviso-vivo {
+  position: fixed; left: 16px; right: 16px; bottom: 16px; z-index: 1300; display: flex; align-items: center; gap: 12px; max-width: 420px; margin-left: auto;
+  padding: 14px 16px; border-radius: 16px; cursor: pointer; text-align: left; font: inherit; color: var(--text-main);
+  background: var(--bg-base); border: 1px solid var(--game-line); box-shadow: var(--shadow-lg), var(--game-glow); animation: subir-chat 0.3s ease both;
+}
+.aviso-vivo .icono { flex: 0 0 auto; color: var(--game-text); }
+.aviso-vivo span { display: grid; gap: 2px; min-width: 0; font-size: 13px; }
+.aviso-vivo small { color: var(--text-muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+@media (prefers-reduced-motion: reduce) { .soporte, .chat-flotante.llamando, .aviso-vivo { animation: none; } }

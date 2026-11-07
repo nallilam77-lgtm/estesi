@@ -6,7 +6,7 @@
   <meta name="robots" content="noindex, nofollow">
   <script>
     // Modo ligero (css/ligero.css): mismo script que el resto de las páginas
-    (function () { var n = navigator, c = n.connection || {}; if ((n.deviceMemory && n.deviceMemory <= 2) || (n.hardwareConcurrency && n.hardwareConcurrency <= 4) || c.saveData || /(^|\D)2g/.test(c.effectiveType || '') || (window.matchMedia && (matchMedia('(pointer: coarse)').matches || matchMedia('(prefers-reduced-motion: reduce)').matches))) { document.documentElement.classList.add('ligero'); var l = document.createElement('link'); l.rel = 'stylesheet'; l.href = 'css/ligero.css?v=4'; document.head.appendChild(l); } })();
+    (function () { var n = navigator, c = n.connection || {}; if ((n.deviceMemory && n.deviceMemory <= 2) || (n.hardwareConcurrency && n.hardwareConcurrency <= 4) || c.saveData || /(^|\D)2g/.test(c.effectiveType || '') || (window.matchMedia && (matchMedia('(pointer: coarse)').matches || matchMedia('(prefers-reduced-motion: reduce)').matches))) { document.documentElement.classList.add('ligero'); var l = document.createElement('link'); l.rel = 'stylesheet'; l.href = 'css/ligero.css?v=5'; document.head.appendChild(l); } })();
   </script>
   <meta name="theme-color" content="#0b1120">
   <title>Admin · Level Up Cuentas</title>
@@ -18,9 +18,9 @@
   <link rel="stylesheet" href="css/creadores.css">
   <link rel="stylesheet" href="css/billetera.css">
   <link rel="stylesheet" href="css/cuentas.css?v=3">
-  <link rel="stylesheet" href="css/tienda.css?v=3">
+  <link rel="stylesheet" href="css/tienda.css?v=4">
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.js" defer></script>
-  <script src="js/mercado.js?v=3" defer></script>
+  <script src="js/mercado.js?v=4" defer></script>
 </head>
 <body class="tienda">
 
@@ -41,6 +41,7 @@
     <symbol id="i-video" viewBox="0 0 24 24"><rect x="3" y="6" width="13" height="12" rx="2"/><path d="m16 10 5-3v10l-5-3"/></symbol>
     <symbol id="i-basura" viewBox="0 0 24 24"><path d="M4 7h16M10 11v6M14 11v6"/><path d="M6 7l1 13h10l1-13M9 7V4h6v3"/></symbol>
     <symbol id="i-recarga" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 8v8M8 12h8"/></symbol>
+    <symbol id="i-soporte" viewBox="0 0 24 24"><path d="M4 13v-1a8 8 0 0 1 16 0v1"/><rect x="3" y="13" width="4" height="6" rx="1.5"/><rect x="17" y="13" width="4" height="6" rx="1.5"/><path d="M19 19a3 3 0 0 1-3 3h-3"/></symbol>
     <symbol id="i-whatsapp" viewBox="0 0 24 24"><path d="M3 21l1.6-4.8A8.5 8.5 0 1 1 8 19.6L3 21z"/><path d="M9 9.5c.5 2 2.5 4 4.5 4.5l1-1.2 2 1-.5 1.7c-3.5.3-7.3-3.5-7-7l1.7-.5 1 2L9 9.5z"/></symbol>
   </svg>
 
@@ -87,6 +88,7 @@
         <div>
           <h1>Panel de administración</h1>
           <p id="textoAdmin"></p>
+          <span class="en-vivo desconectado" id="enVivo" title="Los mensajes y recargas nuevas aparecen solos"><span class="punto-vivo"></span><span id="enVivoTexto">Conectando…</span></span>
         </div>
         <button type="button" class="btn btn-borde btn-chico" id="btnRefrescar"><svg class="icono"><use href="#i-recargar"/></svg>Actualizar</button>
       </div>
@@ -101,6 +103,7 @@
 
         <div class="admin-pestanas" role="tablist" id="pestanasAdmin">
           <button type="button" role="tab" aria-selected="true" data-vista="recargas"><svg class="icono"><use href="#i-recarga"/></svg>Recargas<span class="contador" data-cuenta="recargasTotal"></span></button>
+          <button type="button" role="tab" aria-selected="false" data-vista="chats"><svg class="icono"><use href="#i-chat"/></svg>Chats<span class="contador" data-cuenta="chats"></span></button>
           <button type="button" role="tab" aria-selected="false" data-vista="revision"><svg class="icono"><use href="#i-revision"/></svg>Revisión<span class="contador" data-cuenta="revision"></span></button>
           <button type="button" role="tab" aria-selected="false" data-vista="tratos"><svg class="icono"><use href="#i-chat"/></svg>Tratos<span class="contador" data-cuenta="abiertos"></span></button>
           <button type="button" role="tab" aria-selected="false" data-vista="retiros"><svg class="icono"><use href="#i-billetera"/></svg>Retiros<span class="contador" data-cuenta="retiros"></span></button>
@@ -122,6 +125,22 @@
             <button type="button" class="chip" data-filtro="todas" aria-pressed="false">Todas</button>
           </div>
           <div class="admin-lista" id="listaRecargas"></div>
+        </section>
+
+        <!-- Chats -->
+        <section class="admin-seccion oculto" id="vistaChats" aria-labelledby="tituloChats">
+          <div class="admin-seccion-cabecera">
+            <h2 id="tituloChats">Chats en vivo</h2>
+            <p>Todas las conversaciones: soporte, recargas y tratos. Los mensajes nuevos aparecen solos y te avisamos abajo.</p>
+          </div>
+          <div class="chips" id="filtroChats" role="group" aria-label="Filtrar chats">
+            <button type="button" class="chip" data-filtro="todos" aria-pressed="true">Todos</button>
+            <button type="button" class="chip" data-filtro="sin_responder" aria-pressed="false">Sin responder</button>
+            <button type="button" class="chip" data-filtro="soporte" aria-pressed="false">Soporte</button>
+            <button type="button" class="chip" data-filtro="recarga" aria-pressed="false">Recargas</button>
+            <button type="button" class="chip" data-filtro="trato" aria-pressed="false">Tratos</button>
+          </div>
+          <div class="bandeja" id="listaChats"></div>
         </section>
 
         <!-- Revisión -->
@@ -252,6 +271,28 @@
             <button type="submit" class="btn-juego" id="chatEnviar">Enviar</button>
           </form>
           <div class="panel-mensaje" id="chatAviso" role="status" aria-live="polite"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Chat de soporte con un cliente -->
+  <div class="ventana oculto" id="ventanaSoporte" role="dialog" aria-modal="true" aria-labelledby="soporteTitulo">
+    <div class="ventana-caja ventana-trato">
+      <button type="button" class="ventana-cerrar" data-cerrar aria-label="Cerrar">✖</button>
+      <div class="detalle-cuerpo">
+        <span class="tarjeta-codigo">Soporte · chat en vivo</span>
+        <h2 id="soporteTitulo"></h2>
+        <dl class="ficha" id="soporteDatos"></dl>
+        <div class="chat">
+          <h3>Conversación <span class="chat-nota">· escribes como Level Up</span></h3>
+          <div class="chat-lista" id="sopChatLista" aria-live="polite"></div>
+          <form class="chat-form" id="sopChatForm">
+            <label for="sopChatTexto" class="solo-lectores">Mensaje</label>
+            <textarea id="sopChatTexto" rows="2" maxlength="1000" placeholder="Escribe como Level Up… (Enter envía)"></textarea>
+            <button type="submit" class="btn-juego" id="sopChatEnviar">Enviar</button>
+          </form>
+          <div class="panel-mensaje" id="sopChatAviso" role="status" aria-live="polite"></div>
         </div>
       </div>
     </div>
@@ -433,10 +474,11 @@
         $('btnSalir').classList.remove('oculto');
         $('textoAdmin').textContent = `Conectado como ${sesion.user.email}`;
         cliente.rpc('mercado_mantenimiento').then(cargarTodo, cargarTodo);
+        conectarVivo();
       }
 
       // ---------------- Navegación ----------------
-      const VISTAS = { recargas: 'vistaRecargas', revision: 'vistaRevision', tratos: 'vistaTratos', retiros: 'vistaRetiros', ajustes: 'vistaAjustes' };
+      const VISTAS = { recargas: 'vistaRecargas', chats: 'vistaChats', revision: 'vistaRevision', tratos: 'vistaTratos', retiros: 'vistaRetiros', ajustes: 'vistaAjustes' };
       function irA(nueva, filtro, filtroRec) {
         vista = nueva;
         if (filtro) cambiarFiltro(filtro, false);
@@ -453,6 +495,7 @@
       function cargarTodo() {
         cargarResumen();
         if (vista === 'recargas') cargarRecargas();
+        if (vista === 'chats') cargarChats();
         if (vista === 'revision') cargarRevision();
         if (vista === 'tratos') cargarTratos();
         if (vista === 'retiros') cargarRetiros();
@@ -471,7 +514,9 @@
           cliente.from('retiros').select('neto_usd').eq('estado', 'pendiente').then(({ data }) => data || [], () => []),
         ]);
         const totalRetiros = retiros.reduce((s, r) => s + Number(r.neto_usd), 0);
-        const valores = { revision, recargas, recargasTotal: recargas + chats, reclamos, abiertos, retiros: retiros.length };
+        const bandeja = await cliente.rpc('admin_bandeja', { p_limite: 200 }).then(({ data }) => data || [], () => []);
+        const chatsTotal = bandeja.filter((c) => c.sin_responder).length;
+        const valores = { revision, recargas, recargasTotal: recargas + chats, chats: chatsTotal, reclamos, abiertos, retiros: retiros.length };
         document.querySelectorAll('[data-cuenta]').forEach((el) => {
           const n = valores[el.dataset.cuenta];
           el.textContent = el.classList.contains('contador') ? (n ? String(n) : '') : String(n);
@@ -483,7 +528,7 @@
           const clave = b.querySelector('[data-cuenta]').dataset.cuenta;
           b.classList.toggle('urgente', (urgentes[clave] || 0) > 0);
         });
-        const pendientes = revision + recargas + chats + reclamos;
+        const pendientes = revision + recargas + chatsTotal + reclamos;
         document.title = pendientes ? `(${pendientes}) Admin · Level Up Cuentas` : 'Admin · Level Up Cuentas';
       }
 
@@ -633,6 +678,138 @@
         $('recargaCapturaEnlace').href = url || '#';
       }
 
+      // ---------------- Chats (bandeja en vivo) ----------------
+      let filtroChats = 'todos';
+      let soporteAbierto = null;   // id del cliente
+      const TIPO_CHAT = { soporte: ['Soporte', 'i-soporte'], recarga: ['Recarga', 'i-recarga'], trato: ['Trato', 'i-chat'] };
+      const TEXTO_ULTIMO = { cliente: 'Cliente', comprador: 'Comprador', vendedor: 'Vendedor', admin: 'Tú' };
+      function cambiarFiltroChats(filtro) {
+        filtroChats = filtro;
+        document.querySelectorAll('#filtroChats .chip').forEach((b) => b.setAttribute('aria-pressed', String(b.dataset.filtro === filtro)));
+        cargarChats();
+      }
+      document.querySelectorAll('#filtroChats .chip').forEach((b) => b.addEventListener('click', () => cambiarFiltroChats(b.dataset.filtro)));
+      function abrirChat(c) {
+        if (c.tipo === 'soporte') abrirSoporte(c.usuario);
+        else if (c.tipo === 'recarga') abrirRecarga(Number(c.ref));
+        else abrirTrato(Number(c.ref));
+      }
+      async function cargarChats() {
+        const { data, error } = await cliente.rpc('admin_bandeja', { p_limite: 120 });
+        if (error) return aviso('No pudimos cargar los chats. ¿Corriste el SQL nuevo?');
+        const filas = data.filter((c) => filtroChats === 'todos' || (filtroChats === 'sin_responder' ? c.sin_responder : c.tipo === filtroChats));
+        await traerCorreos(filas.map((c) => c.usuario));
+        const lista = $('listaChats');
+        lista.replaceChildren();
+        if (!filas.length) return lista.append(vacio(filtroChats === 'sin_responder' ? 'Todo respondido. Bien hecho.' : 'Todavía no hay conversaciones.'));
+        for (const c of filas) {
+          const fila = crear('button', `trato-fila bandeja-fila${c.sin_responder ? ' trato-fila-toca' : ''}`);
+          fila.type = 'button';
+          const [tipoTexto, tipoIcono] = TIPO_CHAT[c.tipo];
+          const izq = crear('div', 'bandeja-izquierda');
+          const ic = crear('span', 'bandeja-tipo');
+          ic.append(icono(tipoIcono));
+          const datos = crear('div', 'trato-fila-datos');
+          datos.append(
+            crear('span', 'tarjeta-codigo', `${tipoTexto} · ${fecha(c.ultimo_en)}`),
+            crear('strong', null, c.tipo === 'soporte' ? correo(c.usuario) : `${c.titulo} · ${correo(c.usuario)}`),
+            crear('p', null, `${TEXTO_ULTIMO[c.ultimo_rol] || 'Level Up'}: ${c.ultimo_texto || ''}`),
+          );
+          izq.append(ic, datos);
+          const der = crear('div', 'trato-fila-derecha');
+          if (c.sin_responder) der.append(crear('span', 'pastilla pastilla-sin-responder', 'Sin responder'));
+          fila.append(izq, der);
+          fila.addEventListener('click', () => abrirChat(c));
+          lista.append(fila);
+        }
+      }
+
+      const chatSoporte = M.crearChat({
+        lista: $('sopChatLista'), form: $('sopChatForm'), input: $('sopChatTexto'), boton: $('sopChatEnviar'), aviso: $('sopChatAviso'), yo,
+        tabla: 'mensajes_soporte', campo: 'usuario', funcion: 'soporte_mensaje', parametro: 'p_usuario',
+      });
+      function cerrarSoporte() {
+        $('ventanaSoporte').classList.add('oculto');
+        document.body.classList.remove('no-scroll');
+        chatSoporte.cerrar();
+        soporteAbierto = null;
+        cargarTodo();
+      }
+      $('ventanaSoporte').querySelector('[data-cerrar]').addEventListener('click', cerrarSoporte);
+      $('ventanaSoporte').addEventListener('click', (e) => { if (e.target === $('ventanaSoporte')) cerrarSoporte(); });
+      async function abrirSoporte(usuario) {
+        soporteAbierto = usuario;
+        await traerCorreos([usuario]);
+        $('soporteTitulo').textContent = correo(usuario);
+        $('soporteDatos').replaceChildren();
+        $('ventanaSoporte').classList.remove('oculto');
+        document.body.classList.add('no-scroll');
+        chatSoporte.abrir(usuario);
+        chatSoporte.habilitar(true);
+        setTimeout(() => $('sopChatTexto').focus({ preventScroll: true }), 60);
+        const [saldo, recargas, tratos] = await Promise.all([
+          cliente.from('saldos_vendedor').select('disponible,recargado,ventas').eq('vendedor', usuario).maybeSingle(),
+          cliente.from('ordenes_recarga').select('id,estado', { count: 'exact' }).eq('usuario', usuario).order('id', { ascending: false }).limit(1),
+          cliente.from('ventas_cuentas').select('id', { count: 'exact', head: true }).or(`comprador.eq.${usuario},vendedor.eq.${usuario}`),
+        ]);
+        if (soporteAbierto !== usuario) return;
+        const s = saldo.data;
+        const ultima = recargas.data?.[0];
+        $('soporteDatos').replaceWith(Object.assign(ficha([
+          ['Saldo', s ? `${usd(Number(s.recargado) + Number(s.disponible))} (recargado ${usd(s.recargado)} · ventas ${usd(s.disponible)})` : '0 USD'],
+          ['Recargas', `${recargas.count || 0}${ultima ? ` · última ${codigoRecarga(ultima.id)} ${M.TEXTO_ESTADO_RECARGA[ultima.estado].toLowerCase()}` : ''}`],
+          ['Tratos', `${tratos.count || 0}${s?.ventas ? ` · ${s.ventas} ventas cerradas` : ''}`],
+        ]), { id: 'soporteDatos' }));
+      }
+
+      // ---------------- EN VIVO: avisos al instante ----------------
+      let temporizadorVivo = null;
+      let avisoTemporal = null;
+      const tituloBase = () => document.title.replace(/^● /, '');
+      function refrescarPronto() {
+        clearTimeout(temporizadorVivo);
+        temporizadorVivo = setTimeout(() => { if (!tratoAbierto && !recargaAbierta && !soporteAbierto) cargarTodo(); else cargarResumen(); }, 700);
+      }
+      function avisoVivo(titulo, texto, alTocar) {
+        document.querySelector('.aviso-vivo')?.remove();
+        const b = crear('button', 'aviso-vivo');
+        b.type = 'button';
+        const t = crear('span');
+        t.append(crear('strong', null, titulo), crear('small', null, texto));
+        b.append(icono('i-chat'), t);
+        b.addEventListener('click', () => { b.remove(); alTocar?.(); });
+        document.body.append(b);
+        clearTimeout(avisoTemporal);
+        avisoTemporal = setTimeout(() => b.remove(), 9000);
+        if (document.hidden) document.title = `● ${tituloBase()}`;
+      }
+      document.addEventListener('visibilitychange', () => { if (!document.hidden) document.title = tituloBase(); });
+      let cortarVivo = () => {};
+      function conectarVivo() {
+        cortarVivo();
+        const estado = (ok) => { $('enVivo').classList.toggle('desconectado', !ok); $('enVivoTexto').textContent = ok ? 'En vivo' : 'Sin conexión en vivo'; };
+        const c = cliente;
+        let canal = c.channel(`admin-vivo-${Date.now()}`);
+        const al = (tabla, eventos, fn) => { canal = canal.on('postgres_changes', { event: eventos, schema: 'public', table: tabla }, (x) => fn(x.new, x.eventType)); };
+        al('mensajes_soporte', 'INSERT', (m) => {
+          refrescarPronto();
+          if (m.rol === 'cliente' && soporteAbierto !== m.usuario) {
+            traerCorreos([m.usuario]).then(() => avisoVivo(`Soporte · ${correo(m.usuario)}`, m.texto, () => abrirSoporte(m.usuario)));
+          }
+        });
+        al('mensajes_recarga', 'INSERT', (m) => {
+          refrescarPronto();
+          if (m.rol === 'cliente' && recargaAbierta !== m.orden) avisoVivo(`Mensaje en ${codigoRecarga(m.orden)}`, m.texto, () => abrirRecarga(m.orden));
+        });
+        al('mensajes_venta', 'INSERT', (m) => { if (m.rol !== 'admin') refrescarPronto(); });
+        al('ordenes_recarga', '*', (o, tipo) => {
+          refrescarPronto();
+          if (tipo === 'INSERT') avisoVivo(`Nueva recarga ${codigoRecarga(o.id)}`, `${usd(o.monto_usd)} por ${M.METODOS_RECARGA[o.metodo]?.nombre || o.metodo} · ref. ${o.referencia}`, () => abrirRecarga(o.id));
+        });
+        canal.subscribe((s) => estado(s === 'SUBSCRIBED'));
+        cortarVivo = () => { try { c.removeChannel(canal); } catch (e) { /* ya cerrado */ } };
+      }
+
       // ---------------- Revisión ----------------
       async function cargarRevision() {
         const lista = $('listaRevision');
@@ -747,6 +924,7 @@
         if (e.key !== 'Escape') return;
         if (!$('dialogo').classList.contains('oculto')) cerrarDialogo(null);
         else if (recargaAbierta) cerrarRecarga();
+        else if (soporteAbierto) cerrarSoporte();
         else if (tratoAbierto) cerrarTrato();
       });
 
@@ -910,14 +1088,14 @@
       cliente.auth.onAuthStateChange((evento, nueva) => {
         sesion = nueva;
         if (evento === 'SIGNED_IN') setTimeout(entrar, 0);
-        if (evento === 'SIGNED_OUT') pantallaAcceso('');
+        if (evento === 'SIGNED_OUT') { cortarVivo(); pantallaAcceso(''); }
       });
       cliente.auth.getSession().then(({ data }) => {
         sesion = data.session;
         if (sesion) entrar(); else pantallaAcceso('');
       });
       // Se actualiza solo cada 30 s (recargas nuevas, chats, reclamos)
-      setInterval(() => { if (sesion && !document.hidden && !tratoAbierto && !recargaAbierta && $('dialogo').classList.contains('oculto') && !$('vistaAdmin').classList.contains('oculto')) cargarTodo(); }, 30000);
+      setInterval(() => { if (sesion && !document.hidden && !tratoAbierto && !recargaAbierta && !soporteAbierto && $('dialogo').classList.contains('oculto') && !$('vistaAdmin').classList.contains('oculto')) cargarTodo(); }, 30000);
     });
   </script>
 </body>

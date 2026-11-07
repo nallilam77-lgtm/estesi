@@ -621,6 +621,79 @@ begin
   return m_id;
 end $$;
 
+-- ---------------------------------------------------------------------
+-- CHAT DE SOPORTE EN VIVO: una conversación por usuario con Level Up (botón de chat de la tienda).
+-- Los mensajes llegan al instante con Supabase Realtime (ver el final del archivo).
+-- ---------------------------------------------------------------------
+create table if not exists public.soporte_chats (
+  usuario       uuid primary key references auth.users (id) on delete cascade,
+  ultimo_texto  text,
+  ultimo_rol    text,
+  msg_cliente   timestamptz,     -- último mensaje del cliente
+  msg_admin     timestamptz,     -- última respuesta de Level Up
+  actualizado   timestamptz not null default now()
+);
+create index if not exists soporte_chats_recientes on public.soporte_chats (actualizado desc);
+
+create table if not exists public.mensajes_soporte (
+  id       bigint generated always as identity primary key,
+  usuario  uuid not null references auth.users (id) on delete cascade,   -- dueño de la conversación
+  autor    uuid references auth.users (id) on delete set null,
+  rol      text not null check (rol in ('cliente', 'admin', 'sistema')),
+  texto    text not null check (char_length(texto) between 1 and 1000),
+  creado   timestamptz not null default now()
+);
+create index if not exists mensajes_soporte_por_usuario on public.mensajes_soporte (usuario, id);
+
+-- El cliente escribe en SU conversación (p_usuario = su id o null); un admin responde en la de p_usuario.
+create or replace function public.soporte_mensaje(p_usuario uuid, p_texto text)
+returns bigint language plpgsql security definer set search_path = public as $$
+declare conv uuid := coalesce(p_usuario, auth.uid()); rol text; m_id bigint; texto text := trim(coalesce(p_texto, ''));
+begin
+  if auth.uid() is null then raise exception 'SIN_SESION'; end if;
+  rol := case when conv = auth.uid() then 'cliente' when public.es_admin() then 'admin' end;
+  if rol is null then raise exception 'NO_PERMITIDO'; end if;
+  if char_length(texto) not between 1 and 1000 then raise exception 'DATO_INVALIDO'; end if;
+  if (select count(*) from mensajes_soporte where autor = auth.uid() and creado > now() - interval '1 minute') >= 20 then
+    raise exception 'DEMASIADOS_MENSAJES';
+  end if;
+  insert into mensajes_soporte (usuario, autor, rol, texto) values (conv, auth.uid(), rol, texto) returning id into m_id;
+  insert into soporte_chats (usuario) values (conv) on conflict (usuario) do nothing;
+  update soporte_chats
+     set ultimo_texto = left(texto, 200), ultimo_rol = rol, actualizado = now(),
+         msg_cliente = case when rol = 'cliente' then now() else msg_cliente end,
+         msg_admin = case when rol = 'admin' then now() else msg_admin end
+   where usuario = conv;
+  return m_id;
+end $$;
+
+-- Bandeja del admin: todas las conversaciones (soporte, recargas y tratos) ordenadas por el último mensaje.
+-- sin_responder = el último en escribir fue el cliente (en tratos: solo si hay un reclamo abierto y Level Up no fue el último).
+create or replace function public.admin_bandeja(p_limite int default 80)
+returns table (tipo text, ref bigint, usuario uuid, titulo text, ultimo_texto text, ultimo_rol text, ultimo_en timestamptz, sin_responder boolean)
+language plpgsql stable security definer set search_path = public as $$
+begin
+  perform _exigir_admin();
+  return query
+  select * from (
+    select 'soporte'::text, null::bigint, s.usuario, 'Soporte'::text, s.ultimo_texto, s.ultimo_rol, s.actualizado,
+           coalesce(s.msg_cliente > coalesce(s.msg_admin, '-infinity'::timestamptz), false)
+      from soporte_chats s
+    union all
+    select 'recarga', o.id, o.usuario, format('Recarga RC-%s · %s USD', o.id, o.monto_usd), m.texto, m.rol, m.creado,
+           coalesce(o.msg_cliente > coalesce(o.msg_admin, '-infinity'::timestamptz), false)
+      from ordenes_recarga o
+      join lateral (select x.texto, x.rol, x.creado from mensajes_recarga x where x.orden = o.id and x.rol <> 'sistema' order by x.id desc limit 1) m on true
+    union all
+    select 'trato', v.id, v.comprador, format('Trato T-%s · %s', v.id, v.titulo), m.texto, m.rol, m.creado,
+           v.estado = 'en_reclamo' and m.rol <> 'admin'
+      from ventas_cuentas v
+      join lateral (select x.texto, x.rol, x.creado from mensajes_venta x where x.venta = v.id and x.rol <> 'sistema' order by x.id desc limit 1) m on true
+  ) b
+  order by 7 desc
+  limit least(greatest(coalesce(p_limite, 80), 1), 200);
+end $$;
+
 -- Reputación pública: ventas cerradas de cada vendedor (sin datos personales)
 create or replace function public.mercado_reputacion(p_vendedores uuid[])
 returns table (vendedor uuid, ventas int) language sql stable security definer set search_path = public as $$
@@ -794,6 +867,8 @@ alter table public.retiros enable row level security;
 alter table public.movimientos_vendedor enable row level security;
 alter table public.ordenes_recarga enable row level security;
 alter table public.mensajes_recarga enable row level security;
+alter table public.soporte_chats enable row level security;
+alter table public.mensajes_soporte enable row level security;
 
 drop policy if exists "soy admin" on public.mercado_admins;
 create policy "soy admin" on public.mercado_admins for select to authenticated using (usuario = auth.uid());
@@ -840,6 +915,10 @@ create policy "recargas propias" on public.ordenes_recarga for select to authent
 drop policy if exists "mensajes de mis recargas" on public.mensajes_recarga;
 create policy "mensajes de mis recargas" on public.mensajes_recarga for select to authenticated
   using (public.es_admin() or exists (select 1 from ordenes_recarga o where o.id = orden and o.usuario = auth.uid()));
+drop policy if exists "soporte propio" on public.soporte_chats;
+create policy "soporte propio" on public.soporte_chats for select to authenticated using (usuario = auth.uid() or public.es_admin());
+drop policy if exists "mensajes de soporte propios" on public.mensajes_soporte;
+create policy "mensajes de soporte propios" on public.mensajes_soporte for select to authenticated using (usuario = auth.uid() or public.es_admin());
 
 -- Permisos de tabla (además del RLS)
 grant select on public.cuentas_venta, public.mercado_config to anon, authenticated;
@@ -851,6 +930,11 @@ revoke insert, update, delete on public.ventas_cuentas, public.mensajes_venta, p
                public.movimientos_vendedor, public.mercado_admins, public.mercado_config,
                public.ordenes_recarga, public.mensajes_recarga from anon, authenticated;
 revoke select on public.ordenes_recarga, public.mensajes_recarga from anon;
+grant select on public.soporte_chats, public.mensajes_soporte to authenticated;
+revoke insert, update, delete on public.soporte_chats, public.mensajes_soporte from anon, authenticated;
+revoke select on public.soporte_chats, public.mensajes_soporte from anon;
+revoke execute on function public.soporte_mensaje(uuid, text), public.admin_bandeja(int) from public, anon;
+grant execute on function public.soporte_mensaje(uuid, text), public.admin_bandeja(int) to authenticated;
 
 -- Funciones internas: nadie las llama desde la API
 revoke execute on function public._mensaje_sistema(bigint, text) from public, anon, authenticated;
@@ -916,6 +1000,22 @@ create policy "comprobantes borrar" on storage.objects for delete to authenticat
   using (bucket_id = 'comprobantes' and (public.es_admin() or (
     (storage.foldername(name))[1] = auth.uid()::text
     and not exists (select 1 from public.ordenes_recarga o where o.captura = name))));
+
+-- ---------------------------------------------------------------------
+-- Chat EN VIVO: estas tablas avisan al navegador apenas cambian (Supabase Realtime respeta el RLS de arriba:
+-- cada quien solo recibe lo que puede leer).
+-- ---------------------------------------------------------------------
+do $$
+declare t text;
+begin
+  if exists (select 1 from pg_publication where pubname = 'supabase_realtime') then
+    foreach t in array array['mensajes_venta', 'mensajes_recarga', 'mensajes_soporte', 'ordenes_recarga'] loop
+      if not exists (select 1 from pg_publication_tables where pubname = 'supabase_realtime' and schemaname = 'public' and tablename = t) then
+        execute format('alter publication supabase_realtime add table public.%I', t);
+      end if;
+    end loop;
+  end if;
+end $$;
 
 -- ---------------------------------------------------------------------
 -- Tarea automática cada 10 min (si activas pg_cron en Database → Extensions; si no, la página

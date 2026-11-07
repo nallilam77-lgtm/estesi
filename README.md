@@ -28,6 +28,7 @@ Es un sitio estático (Vercel) que habla directo con **Supabase**. La publishabl
 
 - Saldo de cada usuario: `saldos_vendedor` (`recargado` = solo para comprar; `disponible` = ganado vendiendo, se retira). Historial: `movimientos_vendedor`.
 - Órdenes de recarga: `ordenes_recarga`; su chat: `mensajes_recarga`.
+- Chat de soporte en vivo: `soporte_chats` (una conversación por usuario) y `mensajes_soporte`. Los chats llegan al instante con Supabase Realtime (el SQL agrega las tablas de mensajes y `ordenes_recarga` a la publicación `supabase_realtime`).
 - Capturas de pago: Storage, bucket **privado** `comprobantes/<id del usuario>/…` (solo el dueño y los admins, con enlaces de 1 h).
 - Fotos de las cuentas: Storage, bucket público `cuentas-fotos`.
 
