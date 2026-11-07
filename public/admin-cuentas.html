@@ -18,7 +18,7 @@
   <link rel="stylesheet" href="css/creadores.css">
   <link rel="stylesheet" href="css/billetera.css">
   <link rel="stylesheet" href="css/cuentas.css?v=3">
-  <link rel="stylesheet" href="css/tienda.css?v=5">
+  <link rel="stylesheet" href="css/tienda.css?v=6">
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.js" defer></script>
   <script src="js/mercado.js?v=4" defer></script>
 </head>
@@ -192,15 +192,16 @@
           </div>
           <form class="ajustes" id="formAjustes" novalidate>
             <fieldset class="ajustes-grupo">
-              <legend><svg class="icono"><use href="#i-dinero"/></svg>Binance</legend>
+              <legend><svg class="icono"><use href="#i-dinero"/></svg>Binance<span class="pastilla estado-metodo" data-metodo="binance"></span></legend>
               <p class="campo-ayuda">Deja vacío el ID para no ofrecer Binance.</p>
               <div class="form-fila">
                 <div class="campo"><label for="cfg_binance_pay_id">ID de Binance Pay (o correo)</label><input type="text" id="cfg_binance_pay_id" maxlength="120" autocomplete="off"></div>
                 <div class="campo"><label for="cfg_binance_nombre">Nombre en Binance</label><input type="text" id="cfg_binance_nombre" maxlength="120" autocomplete="off"></div>
               </div>
+              <div class="guardar-grupo"><button type="button" class="btn-juego" data-grupo="binance">Guardar Binance</button><div class="panel-mensaje" data-mensaje-grupo="binance" role="status" aria-live="polite"></div></div>
             </fieldset>
             <fieldset class="ajustes-grupo">
-              <legend><svg class="icono"><use href="#i-dinero"/></svg>Pago Móvil</legend>
+              <legend><svg class="icono"><use href="#i-dinero"/></svg>Pago Móvil<span class="pastilla estado-metodo" data-metodo="pago_movil"></span></legend>
               <p class="campo-ayuda">Deja vacío el teléfono para no ofrecer Pago Móvil.</p>
               <div class="form-fila">
                 <div class="campo"><label for="cfg_pm_banco">Banco</label><input type="text" id="cfg_pm_banco" maxlength="120" placeholder="Ej: Banesco (0134)" autocomplete="off"></div>
@@ -215,9 +216,10 @@
                 <input type="text" id="cfg_tasa_bs" inputmode="decimal" placeholder="Ej: 45.50 · vacío = no calcular Bs">
                 <p class="campo-ayuda">Con la tasa, la tienda le dice al cliente cuántos Bs enviar.</p>
               </div>
+              <div class="guardar-grupo"><button type="button" class="btn-juego" data-grupo="pago_movil">Guardar Pago Móvil</button><div class="panel-mensaje" data-mensaje-grupo="pago_movil" role="status" aria-live="polite"></div></div>
             </fieldset>
             <fieldset class="ajustes-grupo">
-              <legend><svg class="icono"><use href="#i-dinero"/></svg>PayPal</legend>
+              <legend><svg class="icono"><use href="#i-dinero"/></svg>PayPal<span class="pastilla estado-metodo" data-metodo="paypal"></span></legend>
               <p class="campo-ayuda">Deja vacío el correo para no ofrecer PayPal.</p>
               <div class="form-fila tres">
                 <div class="campo"><label for="cfg_paypal_correo">Correo de PayPal</label><input type="text" id="cfg_paypal_correo" maxlength="120" inputmode="email" autocomplete="off"></div>
@@ -225,6 +227,7 @@
                 <div class="campo"><label for="cfg_paypal_recargo">Recargo PayPal (%)</label><input type="text" id="cfg_paypal_recargo" inputmode="decimal" placeholder="Ej: 5.4"></div>
               </div>
               <p class="campo-ayuda">El recargo cubre la comisión de PayPal: si recargan 10 USD con 5 %, envían 10,50 USD y reciben 10 USD de saldo.</p>
+              <div class="guardar-grupo"><button type="button" class="btn-juego" data-grupo="paypal">Guardar PayPal</button><div class="panel-mensaje" data-mensaje-grupo="paypal" role="status" aria-live="polite"></div></div>
             </fieldset>
             <fieldset class="ajustes-grupo">
               <legend><svg class="icono"><use href="#i-recarga"/></svg>Recargas</legend>
@@ -247,7 +250,7 @@
               <legend><svg class="icono"><use href="#i-revision"/></svg>Plazos</legend>
               <div class="campo"><label for="cfg_horas_revision">Horas de revisión</label><input type="text" id="cfg_horas_revision" inputmode="numeric"><p class="campo-ayuda">Tras la entrega, el comprador tiene este tiempo para reclamar; si no, el trato se cierra solo y el vendedor cobra.</p></div>
             </fieldset>
-            <button type="submit" class="btn-juego" id="btnAjustes">Guardar ajustes</button>
+            <button type="submit" class="btn-juego" id="btnAjustes">Guardar todos los ajustes</button>
             <div class="panel-mensaje" id="mensajeAjustes" role="status" aria-live="polite"></div>
           </form>
         </section>
@@ -1074,23 +1077,66 @@
         'paypal_correo', 'paypal_nombre', 'paypal_recargo', 'recarga_minima', 'instrucciones_pago',
         'comision_retiro', 'retiro_minimo', 'garantia_usd', 'horas_revision'];
       const TEXTOS = ['instrucciones_pago', 'binance_pay_id', 'binance_nombre', 'pm_banco', 'pm_telefono', 'pm_cedula', 'pm_titular', 'paypal_correo', 'paypal_nombre'];
-      async function cargarAjustes() {
-        const { data } = await cliente.from('mercado_config').select('clave,valor');
-        for (const { clave, valor } of data || []) if ($(`cfg_${clave}`)) $(`cfg_${clave}`).value = valor;
+      const GRUPOS = {
+        binance: ['binance_pay_id', 'binance_nombre'],
+        pago_movil: ['pm_banco', 'pm_telefono', 'pm_cedula', 'pm_titular', 'tasa_bs'],
+        paypal: ['paypal_correo', 'paypal_nombre', 'paypal_recargo'],
+      };
+      // Lo que escribes no se pisa: la actualización automática solo recarga el formulario si no hay cambios sin guardar
+      let ajustesSucios = false;
+      $('formAjustes').addEventListener('input', () => { ajustesSucios = true; });
+      window.addEventListener('beforeunload', (e) => { if (ajustesSucios) { e.preventDefault(); e.returnValue = ''; } });
+      function pintarEstados(config) {
+        const activos = M.metodosActivos(config);
+        document.querySelectorAll('.estado-metodo').forEach((el) => {
+          const si = activos.includes(el.dataset.metodo);
+          el.className = `pastilla estado-metodo ${si ? 'pastilla-recarga-aprobada' : 'pastilla-recarga-rechazada'}`;
+          el.textContent = si ? 'Activo en la tienda' : 'Sin configurar';
+        });
       }
+      async function cargarAjustes(forzar = false) {
+        if (ajustesSucios && !forzar) return;
+        const { data } = await cliente.from('mercado_config').select('clave,valor');
+        if (ajustesSucios && !forzar) return;
+        for (const { clave, valor } of data || []) if ($(`cfg_${clave}`)) $(`cfg_${clave}`).value = valor;
+        ajustesSucios = false;
+        pintarEstados(await M.config());
+      }
+      async function guardarClaves(claves) {
+        for (const clave of claves) {
+          const campo = $(`cfg_${clave}`);
+          const valor = campo.value.trim();
+          await M.rpc('admin_config', { p_clave: clave, p_valor: TEXTOS.includes(clave) ? valor : valor.replace(',', '.') }, `Revisa el valor de "${campo.labels[0].textContent}".`);
+        }
+      }
+      document.querySelectorAll('[data-grupo]').forEach((b) => b.addEventListener('click', async () => {
+        const grupo = b.dataset.grupo;
+        const msj = document.querySelector(`[data-mensaje-grupo="${grupo}"]`);
+        const nombre = M.METODOS_RECARGA[grupo].nombre;
+        b.disabled = true;
+        b.textContent = 'Guardando…';
+        try {
+          await guardarClaves(GRUPOS[grupo]);
+          const config = await revisarMetodos();
+          pintarEstados(config);
+          const activo = M.metodosActivos(config).includes(grupo);
+          M.mensaje(msj, activo ? `${nombre} guardado: ya aparece en la tienda para recargar.` : `${nombre} guardado, pero sin datos no aparece en la tienda.`, activo ? 'exito' : 'aviso');
+        } catch (error) {
+          M.mensaje(msj, `No se guardó: ${error.message}`);
+        } finally {
+          b.disabled = false;
+          b.textContent = `Guardar ${nombre}`;
+        }
+      }));
       $('formAjustes').addEventListener('submit', async (e) => {
         e.preventDefault();
         const b = $('btnAjustes');
         b.disabled = true;
         b.textContent = 'Guardando…';
         try {
-          for (const clave of CLAVES) {
-            const campo = $(`cfg_${clave}`);
-            const valor = campo.value.trim();
-            await M.rpc('admin_config', { p_clave: clave, p_valor: TEXTOS.includes(clave) ? valor : valor.replace(',', '.') }, `Revisa el valor de "${campo.labels[0].textContent}".`);
-          }
+          await guardarClaves(CLAVES);
           const config = await revisarMetodos();
-          await cargarAjustes();
+          await cargarAjustes(true);
           const activos = M.metodosActivos(config).map((m) => M.METODOS_RECARGA[m].nombre);
           M.mensaje($('mensajeAjustes'), activos.length
             ? `Guardado. Tus clientes ya pueden recargar por: ${activos.join(', ')}.`
@@ -1099,7 +1145,7 @@
           M.mensaje($('mensajeAjustes'), `No se guardó todo: ${error.message}`);
         } finally {
           b.disabled = false;
-          b.textContent = 'Guardar ajustes';
+          b.textContent = 'Guardar todos los ajustes';
         }
       });
 

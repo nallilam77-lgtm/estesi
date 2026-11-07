@@ -686,3 +686,8 @@ body.soporte-abierto .chat-flotante { display: none; }
 }
 .alerta-metodos .icono { flex: 0 0 auto; color: var(--danger); margin-top: 2px; }
 .alerta-metodos strong { color: var(--danger); }
+
+/* Ajustes: estado y botón por método de pago */
+.estado-metodo { margin-left: 4px; font-size: 10px; }
+.guardar-grupo { display: grid; gap: 8px; padding-top: 4px; }
+.guardar-grupo .panel-mensaje:empty { display: none; }
