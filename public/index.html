@@ -941,7 +941,7 @@
         for (const cuenta of data) $('gridCuentas').append(tarjeta(cuenta));
         const mostradas = $('gridCuentas').children.length;
         const hayFiltros = texto || region || precioMax || filtroVendedor;
-        $('conteoCuentas').textContent = count ? `${count} cuenta${count === 1 ? '' : 's'}${hayFiltros ? ' con esos filtros' : ' disponibles'}` : '';
+        $('conteoCuentas').textContent = count ? `${count} cuenta${count === 1 ? '' : 's'}${hayFiltros ? ' con esos filtros' : count === 1 ? ' disponible' : ' disponibles'}` : '';
         if (!mostradas) {
           $('estadoLista').replaceChildren(hayFiltros
             ? estadoVacio('No hay cuentas con esos filtros', 'Prueba con otra búsqueda, otra región o un precio más alto.', false)
