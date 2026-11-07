@@ -24,6 +24,10 @@ Es un sitio estático (Vercel) que habla directo con **Supabase**. La publishabl
 5. **Vercel**: importar este repositorio (sin build; la carpeta publicada es `public/`).
 6. En `admin-cuentas.html` → **Ajustes**: escribir en "Instrucciones de pago" tus datos de Pago Móvil / Binance y la tasa en Bs.
 
+## Panel de administración
+
+Entrar en `/admin-cuentas.html` (por ejemplo https://estesi-blond.vercel.app/admin-cuentas.html) con el correo y la contraseña de la tienda. Solo funciona para usuarios de la tabla `mercado_admins`; en la tienda, a esos usuarios les aparece el enlace "Admin" arriba.
+
 ## Valores que se cambian desde Ajustes (tabla `mercado_config`)
 
 `comision_retiro` (4), `retiro_minimo` (5 USD), `garantia_usd` (1), `horas_pago` (2), `horas_revision` (24), `tasa_bs`, `instrucciones_pago`.

@@ -8,8 +8,8 @@
     // Modo ligero (css/ligero.css): mismo script que el resto de las páginas
     (function () { var n = navigator, c = n.connection || {}; if ((n.deviceMemory && n.deviceMemory <= 2) || (n.hardwareConcurrency && n.hardwareConcurrency <= 4) || c.saveData || /(^|\D)2g/.test(c.effectiveType || '') || (window.matchMedia && (matchMedia('(pointer: coarse)').matches || matchMedia('(prefers-reduced-motion: reduce)').matches))) { document.documentElement.classList.add('ligero'); var l = document.createElement('link'); l.rel = 'stylesheet'; l.href = 'css/ligero.css?v=3'; document.head.appendChild(l); } })();
   </script>
-  <meta name="theme-color" content="#0f172a">
-  <title>Admin Mercado - Level Up</title>
+  <meta name="theme-color" content="#0b1120">
+  <title>Admin · Level Up Cuentas</title>
   <link rel="icon" type="image/png" href="logo.png">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -17,27 +17,51 @@
   <link rel="stylesheet" href="css/paginas-legales.css">
   <link rel="stylesheet" href="css/creadores.css">
   <link rel="stylesheet" href="css/billetera.css">
-  <link rel="stylesheet" href="css/cuentas.css">
+  <link rel="stylesheet" href="css/cuentas.css?v=2">
+  <link rel="stylesheet" href="css/tienda.css?v=2">
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.js" defer></script>
-  <script src="js/mercado.js?v=1" defer></script>
+  <script src="js/mercado.js?v=2" defer></script>
 </head>
-<body>
+<body class="tienda">
 
-  <div class="barra-superior">
-    <a href="index.html" class="nav-logo">
-      <img src="logo-chico.png" alt="Logo Level Up" width="36" height="35"> LEVEL<span>UP</span>
-    </a>
-  </div>
+  <svg width="0" height="0" style="position:absolute" aria-hidden="true">
+    <symbol id="i-revision" viewBox="0 0 24 24"><path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7S2 12 2 12z"/><circle cx="12" cy="12" r="3"/></symbol>
+    <symbol id="i-dinero" viewBox="0 0 24 24"><rect x="2" y="6" width="20" height="12" rx="2"/><circle cx="12" cy="12" r="3"/><path d="M6 12h.01M18 12h.01"/></symbol>
+    <symbol id="i-alerta" viewBox="0 0 24 24"><path d="M12 3 2 20h20L12 3z"/><path d="M12 10v4M12 17h.01"/></symbol>
+    <symbol id="i-billetera" viewBox="0 0 24 24"><path d="M3 7a2 2 0 0 1 2-2h13v4"/><rect x="3" y="7" width="18" height="13" rx="2"/><path d="M16 13h2"/></symbol>
+    <symbol id="i-chat" viewBox="0 0 24 24"><path d="M21 12a8 8 0 0 1-11.6 7.1L4 20l1-4.6A8 8 0 1 1 21 12z"/></symbol>
+    <symbol id="i-ajustes" viewBox="0 0 24 24"><path d="M4 6h10M18 6h2M4 12h4M12 12h8M4 18h12"/><circle cx="16" cy="6" r="2"/><circle cx="10" cy="12" r="2"/><circle cx="18" cy="18" r="2"/></symbol>
+    <symbol id="i-check" viewBox="0 0 24 24"><path d="m5 12 5 5 9-10"/></symbol>
+    <symbol id="i-x" viewBox="0 0 24 24"><path d="M6 6l12 12M18 6 6 18"/></symbol>
+    <symbol id="i-copiar" viewBox="0 0 24 24"><rect x="9" y="9" width="12" height="12" rx="2"/><path d="M5 15V5a2 2 0 0 1 2-2h10"/></symbol>
+    <symbol id="i-recargar" viewBox="0 0 24 24"><path d="M20 11a8 8 0 1 0-2.3 5.7"/><path d="M20 4v7h-7"/></symbol>
+    <symbol id="i-tienda" viewBox="0 0 24 24"><path d="M3 9 5 4h14l2 5"/><path d="M4 9v11h16V9"/><path d="M3 9h18"/><path d="M9 20v-6h6v6"/></symbol>
+    <symbol id="i-usuario" viewBox="0 0 24 24"><circle cx="12" cy="8" r="4"/><path d="M4 21a8 8 0 0 1 16 0"/></symbol>
+    <symbol id="i-candado" viewBox="0 0 24 24"><rect x="5" y="11" width="14" height="10" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></symbol>
+    <symbol id="i-video" viewBox="0 0 24 24"><rect x="3" y="6" width="13" height="12" rx="2"/><path d="m16 10 5-3v10l-5-3"/></symbol>
+    <symbol id="i-whatsapp" viewBox="0 0 24 24"><path d="M3 21l1.6-4.8A8.5 8.5 0 1 1 8 19.6L3 21z"/><path d="M9 9.5c.5 2 2.5 4 4.5 4.5l1-1.2 2 1-.5 1.7c-3.5.3-7.3-3.5-7-7l1.7-.5 1 2L9 9.5z"/></symbol>
+  </svg>
+
+  <header class="nav">
+    <div class="contenedor nav-interior">
+      <a href="admin-cuentas.html" class="nav-marca" aria-label="Panel de administración">
+        <img src="logo-chico.png" alt="" width="36" height="35">
+        <div>LEVEL <span>UP</span><small>Administración</small></div>
+      </a>
+      <div class="nav-acciones">
+        <a class="nav-enlace" href="index.html" target="_blank" rel="noopener"><svg class="icono"><use href="#i-tienda"/></svg><span class="solo-escritorio">Ver tienda</span></a>
+        <button type="button" class="btn-nav oculto" id="btnSalir"><svg class="icono"><use href="#i-usuario"/></svg>Salir</button>
+      </div>
+    </div>
+  </header>
 
   <main>
-    <header>
-      <h1 class="titulo-principal">Admin · Mercado de cuentas</h1>
-      <p class="subtitulo">Aprueba publicaciones, confirma pagos, resuelve reclamos y paga los retiros de los lunes.</p>
-    </header>
-
-    <div class="mercado">
-      <section class="panel-caja oculto" id="cajaAcceso" aria-labelledby="tituloAcceso">
-        <h2 id="tituloAcceso">Entrar como administrador</h2>
+    <!-- Acceso -->
+    <div class="contenedor app-cuerpo oculto" id="cajaAcceso">
+      <section class="panel-caja acceso-caja" aria-labelledby="tituloAcceso">
+        <span class="icono-caja icono-caja-grande"><svg class="icono"><use href="#i-candado"/></svg></span>
+        <h2 id="tituloAcceso">Entrar al panel</h2>
+        <p>Solo para administradores de Level Up. Usa el mismo correo y contraseña de la tienda.</p>
         <form id="formAcceso" novalidate>
           <div class="consulta-campos">
             <div class="campo">
@@ -49,73 +73,112 @@
               <input type="password" id="inputClave" autocomplete="current-password" maxlength="72" required>
             </div>
           </div>
-          <button type="submit" class="btn-consultar-panel" id="btnAcceso">Entrar</button>
+          <button type="submit" class="btn-juego espacio-arriba" id="btnAcceso">Entrar</button>
         </form>
         <div class="panel-mensaje" id="mensajeAcceso" role="status" aria-live="polite"></div>
       </section>
+    </div>
 
-      <div class="vista-buscar oculto" id="vistaAdmin">
-        <div class="resumen-admin" id="resumenAdmin"></div>
+    <!-- Panel -->
+    <div class="oculto" id="vistaAdmin">
+      <div class="contenedor app-cabecera admin-cabecera">
+        <div>
+          <h1>Panel de administración</h1>
+          <p id="textoAdmin"></p>
+        </div>
+        <button type="button" class="btn btn-borde btn-chico" id="btnRefrescar"><svg class="icono"><use href="#i-recargar"/></svg>Actualizar</button>
+      </div>
 
-        <div class="pestanas mercado-pestanas admin-pestanas" role="tablist" id="pestanasAdmin">
-          <button type="button" class="pestana" role="tab" aria-selected="true" data-vista="revision">Revisión</button>
-          <button type="button" class="pestana" role="tab" aria-selected="false" data-vista="tratos">Tratos</button>
-          <button type="button" class="pestana" role="tab" aria-selected="false" data-vista="retiros">Retiros</button>
-          <button type="button" class="pestana" role="tab" aria-selected="false" data-vista="ajustes">Ajustes</button>
+      <div class="contenedor app-cuerpo">
+        <div class="admin-resumen" id="resumenAdmin">
+          <button type="button" class="admin-dato" data-ir="revision"><span class="icono-caja"><svg class="icono"><use href="#i-revision"/></svg></span><span><strong data-cuenta="revision">—</strong>Publicaciones por revisar</span></button>
+          <button type="button" class="admin-dato" data-ir="tratos" data-filtro="por_confirmar"><span class="icono-caja"><svg class="icono"><use href="#i-dinero"/></svg></span><span><strong data-cuenta="pagos">—</strong>Pagos por confirmar</span></button>
+          <button type="button" class="admin-dato" data-ir="tratos" data-filtro="en_reclamo"><span class="icono-caja"><svg class="icono"><use href="#i-alerta"/></svg></span><span><strong data-cuenta="reclamos">—</strong>Reclamos abiertos</span></button>
+          <button type="button" class="admin-dato" data-ir="retiros"><span class="icono-caja"><svg class="icono"><use href="#i-billetera"/></svg></span><span><strong data-cuenta="retiros">—</strong><em id="textoRetirosResumen">Retiros pendientes</em></span></button>
+        </div>
+
+        <div class="admin-pestanas" role="tablist" id="pestanasAdmin">
+          <button type="button" role="tab" aria-selected="true" data-vista="revision"><svg class="icono"><use href="#i-revision"/></svg>Revisión<span class="contador" data-cuenta="revision"></span></button>
+          <button type="button" role="tab" aria-selected="false" data-vista="tratos"><svg class="icono"><use href="#i-chat"/></svg>Tratos<span class="contador" data-cuenta="abiertos"></span></button>
+          <button type="button" role="tab" aria-selected="false" data-vista="retiros"><svg class="icono"><use href="#i-billetera"/></svg>Retiros<span class="contador" data-cuenta="retiros"></span></button>
+          <button type="button" role="tab" aria-selected="false" data-vista="ajustes"><svg class="icono"><use href="#i-ajustes"/></svg>Ajustes</button>
         </div>
         <div class="panel-mensaje" id="mensajeAdmin" role="status" aria-live="polite"></div>
 
-        <section class="panel-caja" id="vistaRevision" aria-labelledby="tituloRevision">
-          <div class="saldo-cabecera">
+        <!-- Revisión -->
+        <section class="admin-seccion" id="vistaRevision" aria-labelledby="tituloRevision">
+          <div class="admin-seccion-cabecera">
             <h2 id="tituloRevision">Publicaciones por revisar</h2>
-            <button type="button" class="btn-secundario" id="btnSalir">Salir</button>
+            <p>Revisa que las fotos sean reales y no muestren datos de acceso. El WhatsApp del vendedor solo lo ves tú.</p>
           </div>
-          <p>Revisa que las fotos sean reales y que no muestren datos de acceso. El WhatsApp del vendedor solo lo ves tú.</p>
-          <div class="mis-cuentas" id="listaRevision"></div>
+          <div class="admin-lista" id="listaRevision"></div>
         </section>
 
-        <section class="panel-caja oculto" id="vistaTratos" aria-labelledby="tituloTratosAdmin">
-          <div class="saldo-cabecera">
+        <!-- Tratos -->
+        <section class="admin-seccion oculto" id="vistaTratos" aria-labelledby="tituloTratosAdmin">
+          <div class="admin-seccion-cabecera">
             <h2 id="tituloTratosAdmin">Tratos</h2>
-            <select id="filtroTratos" aria-label="Filtrar tratos">
-              <option value="abiertos">Abiertos</option>
-              <option value="pendiente_pago">Esperando pago</option>
-              <option value="pagada">Pago retenido</option>
-              <option value="entregada">Entregados</option>
-              <option value="en_reclamo">En reclamo</option>
-              <option value="cerrada">Cerrados</option>
-              <option value="cancelada">Cancelados</option>
-            </select>
+            <p>Confirma pagos, mira el chat y resuelve reclamos.</p>
+          </div>
+          <div class="chips" id="filtroTratos" role="group" aria-label="Filtrar tratos">
+            <button type="button" class="chip" data-filtro="abiertos" aria-pressed="true">Abiertos</button>
+            <button type="button" class="chip" data-filtro="por_confirmar" aria-pressed="false">Pagos por confirmar</button>
+            <button type="button" class="chip" data-filtro="pagada" aria-pressed="false">Pago retenido</button>
+            <button type="button" class="chip" data-filtro="entregada" aria-pressed="false">Entregados</button>
+            <button type="button" class="chip" data-filtro="en_reclamo" aria-pressed="false">Reclamos</button>
+            <button type="button" class="chip" data-filtro="cerrada" aria-pressed="false">Cerrados</button>
+            <button type="button" class="chip" data-filtro="cancelada" aria-pressed="false">Cancelados</button>
           </div>
           <div class="lista-tratos" id="listaTratosAdmin"></div>
         </section>
 
-        <section class="panel-caja oculto" id="vistaRetiros" aria-labelledby="tituloRetiros">
-          <h2 id="tituloRetiros">Retiros pendientes</h2>
-          <p id="totalRetiros"></p>
-          <div class="mis-cuentas" id="listaRetiros"></div>
+        <!-- Retiros -->
+        <section class="admin-seccion oculto" id="vistaRetiros" aria-labelledby="tituloRetiros">
+          <div class="admin-seccion-cabecera">
+            <h2 id="tituloRetiros">Retiros pendientes</h2>
+            <p>Se pagan los lunes. Copia los datos, paga y marca cada retiro con su referencia.</p>
+          </div>
+          <div class="admin-total oculto" id="totalRetiros"></div>
+          <div class="admin-lista" id="listaRetiros"></div>
         </section>
 
-        <section class="panel-caja oculto" id="vistaAjustes" aria-labelledby="tituloAjustes">
-          <h2 id="tituloAjustes">Ajustes del mercado</h2>
-          <form class="form-publicar" id="formAjustes" novalidate>
-            <div class="form-fila tres">
-              <div class="campo"><label for="cfg_tasa_bs">Tasa Bs por 1 USD</label><input type="text" id="cfg_tasa_bs" inputmode="decimal" placeholder="Vacío = no mostrar Bs"></div>
-              <div class="campo"><label for="cfg_comision_retiro">Comisión al retirar (%)</label><input type="text" id="cfg_comision_retiro" inputmode="decimal"></div>
-              <div class="campo"><label for="cfg_retiro_minimo">Retiro mínimo (USD)</label><input type="text" id="cfg_retiro_minimo" inputmode="decimal"></div>
-            </div>
-            <div class="form-fila tres">
-              <div class="campo"><label for="cfg_garantia_usd">Garantía Extendida (USD)</label><input type="text" id="cfg_garantia_usd" inputmode="decimal"></div>
-              <div class="campo"><label for="cfg_horas_pago">Horas para pagar</label><input type="text" id="cfg_horas_pago" inputmode="numeric"></div>
-              <div class="campo"><label for="cfg_horas_revision">Horas de revisión</label><input type="text" id="cfg_horas_revision" inputmode="numeric"></div>
-            </div>
-            <div class="campo">
-              <label for="cfg_instrucciones_pago">Instrucciones de pago (las ve el comprador)</label>
-              <textarea id="cfg_instrucciones_pago" maxlength="600"></textarea>
-            </div>
+        <!-- Ajustes -->
+        <section class="admin-seccion oculto" id="vistaAjustes" aria-labelledby="tituloAjustes">
+          <div class="admin-seccion-cabecera">
+            <h2 id="tituloAjustes">Ajustes del mercado</h2>
+            <p>Los cambios se aplican al momento en la tienda.</p>
+          </div>
+          <form class="ajustes" id="formAjustes" novalidate>
+            <fieldset class="ajustes-grupo">
+              <legend><svg class="icono"><use href="#i-dinero"/></svg>Pagos del comprador</legend>
+              <div class="campo">
+                <label for="cfg_instrucciones_pago">Instrucciones de pago</label>
+                <textarea id="cfg_instrucciones_pago" maxlength="600" placeholder="Pago Móvil: banco, teléfono y cédula. Binance: correo o ID."></textarea>
+                <p class="campo-ayuda">Las ve el comprador al pagar. Escribe tus datos de Pago Móvil y Binance.</p>
+              </div>
+              <div class="campo">
+                <label for="cfg_tasa_bs">Tasa del día (Bs por 1 USD)</label>
+                <input type="text" id="cfg_tasa_bs" inputmode="decimal" placeholder="Vacío = no mostrar el monto en Bs">
+              </div>
+            </fieldset>
+            <fieldset class="ajustes-grupo">
+              <legend><svg class="icono"><use href="#i-billetera"/></svg>Comisiones y retiros</legend>
+              <div class="form-fila tres">
+                <div class="campo"><label for="cfg_comision_retiro">Comisión al retirar (%)</label><input type="text" id="cfg_comision_retiro" inputmode="decimal"></div>
+                <div class="campo"><label for="cfg_retiro_minimo">Retiro mínimo (USD)</label><input type="text" id="cfg_retiro_minimo" inputmode="decimal"></div>
+                <div class="campo"><label for="cfg_garantia_usd">Garantía Extendida (USD)</label><input type="text" id="cfg_garantia_usd" inputmode="decimal"></div>
+              </div>
+            </fieldset>
+            <fieldset class="ajustes-grupo">
+              <legend><svg class="icono"><use href="#i-revision"/></svg>Plazos</legend>
+              <div class="form-fila">
+                <div class="campo"><label for="cfg_horas_pago">Horas para pagar</label><input type="text" id="cfg_horas_pago" inputmode="numeric"><p class="campo-ayuda">Si no informa el pago, el trato se cancela solo.</p></div>
+                <div class="campo"><label for="cfg_horas_revision">Horas de revisión</label><input type="text" id="cfg_horas_revision" inputmode="numeric"><p class="campo-ayuda">Sin reclamo, el trato se cierra solo y el vendedor cobra.</p></div>
+              </div>
+            </fieldset>
             <button type="submit" class="btn-juego" id="btnAjustes">Guardar ajustes</button>
+            <div class="panel-mensaje" id="mensajeAjustes" role="status" aria-live="polite"></div>
           </form>
-          <div class="panel-mensaje" id="mensajeAjustes" role="status" aria-live="polite"></div>
         </section>
       </div>
     </div>
@@ -128,11 +191,12 @@
       <div class="detalle-cuerpo">
         <span class="tarjeta-codigo" id="tratoCodigo"></span>
         <h2 id="tratoTitulo"></h2>
-        <div class="datos-pago" id="tratoDatos"></div>
-        <div class="trato-acciones" id="tratoAcciones"></div>
+        <span class="pastilla" id="tratoEstado"></span>
+        <dl class="ficha" id="tratoDatos"></dl>
+        <div class="admin-acciones" id="tratoAcciones"></div>
         <div class="panel-mensaje" id="mensajeTrato" role="status" aria-live="polite"></div>
         <div class="chat">
-          <h3>Chat del trato (escribes como Level Up)</h3>
+          <h3>Chat del trato <span class="chat-nota">· escribes como Level Up</span></h3>
           <div class="chat-lista" id="chatLista" aria-live="polite"></div>
           <form class="chat-form" id="chatForm">
             <label for="chatTexto" class="solo-lectores">Mensaje</label>
@@ -145,10 +209,27 @@
     </div>
   </div>
 
+  <!-- Diálogo propio (reemplaza prompt/confirm del navegador) -->
+  <div class="ventana oculto" id="dialogo" role="alertdialog" aria-modal="true" aria-labelledby="dialogoTitulo" aria-describedby="dialogoTexto">
+    <form class="ventana-caja dialogo-caja" id="dialogoForm" novalidate>
+      <h2 id="dialogoTitulo"></h2>
+      <p id="dialogoTexto"></p>
+      <div class="campo oculto" id="dialogoCampo">
+        <label for="dialogoInput" id="dialogoEtiqueta"></label>
+        <input type="text" id="dialogoInput" maxlength="200" autocomplete="off">
+      </div>
+      <label class="casilla oculto" id="dialogoCasilla"><input type="checkbox" id="dialogoCheck"><span id="dialogoCheckTexto"></span></label>
+      <div class="dialogo-botones">
+        <button type="button" class="btn-secundario" id="dialogoCancelar">Cancelar</button>
+        <button type="submit" class="btn-juego" id="dialogoAceptar">Aceptar</button>
+      </div>
+    </form>
+  </div>
+
   <script>
     // =========================================================================
     // ADMIN DEL MERCADO. Solo funciona para usuarios en la tabla mercado_admins (supabase/cuentas.sql):
-    // cada función admin_* lo comprueba en la base de datos, esta página solo dibuja.
+    // cada función admin_* lo comprueba en la base de datos; esta página solo dibuja.
     // =========================================================================
     window.addEventListener('DOMContentLoaded', () => {
       const $ = (id) => document.getElementById(id);
@@ -158,11 +239,79 @@
       const { crear, usd, fecha, codigoCuenta, codigoTrato, codigoRetiro, urlFoto } = M;
       let sesion = null;
       let vista = 'revision';
+      let filtroTratos = 'abiertos';
       let tratoAbierto = null;
       const correos = new Map();
       const yo = () => sesion?.user?.id || null;
 
+      function icono(id) {
+        const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+        svg.setAttribute('class', 'icono');
+        svg.setAttribute('aria-hidden', 'true');
+        const use = document.createElementNS('http://www.w3.org/2000/svg', 'use');
+        use.setAttribute('href', `#${id}`);
+        svg.append(use);
+        return svg;
+      }
+      const conIcono = (etiqueta, clase, idIcono, texto) => {
+        const el = crear(etiqueta, clase);
+        el.append(icono(idIcono), crear('span', null, texto));
+        return el;
+      };
       const aviso = (texto, tipo = 'error') => M.mensaje($('mensajeAdmin'), texto, tipo);
+      const correo = (id) => correos.get(id) || id?.slice(0, 8) || '—';
+      async function traerCorreos(ids) {
+        const faltan = [...new Set(ids.filter(Boolean))].filter((id) => !correos.has(id));
+        if (!faltan.length) return;
+        const { data } = await cliente.rpc('admin_correos', { p_ids: faltan });
+        for (const fila of data || []) correos.set(fila.id, fila.email);
+      }
+      function vacio(texto) {
+        const caja = crear('div', 'vacio');
+        const ic = crear('span', 'icono-caja');
+        ic.append(icono('i-check'));
+        caja.append(ic, crear('p', null, texto));
+        return caja;
+      }
+      function ficha(pares) {
+        const dl = crear('dl', 'ficha');
+        for (const [k, v] of pares) dl.append(crear('dt', null, k), crear('dd', null, v || '—'));
+        return dl;
+      }
+
+      // ---------------- Diálogo propio ----------------
+      // dialogo({ titulo, texto, etiqueta?, valor?, casilla?, aceptar, peligro?, obligatorio? }) → { texto, marcado } | null
+      let resolverDialogo = null;
+      function dialogo({ titulo, texto, etiqueta, valor = '', casilla, aceptar = 'Aceptar', peligro = false, obligatorio = false }) {
+        $('dialogoTitulo').textContent = titulo;
+        $('dialogoTexto').textContent = texto || '';
+        $('dialogoCampo').classList.toggle('oculto', !etiqueta);
+        $('dialogoEtiqueta').textContent = etiqueta || '';
+        $('dialogoInput').value = valor;
+        $('dialogoInput').dataset.obligatorio = obligatorio ? '1' : '';
+        $('dialogoCasilla').classList.toggle('oculto', !casilla);
+        $('dialogoCheckTexto').textContent = casilla?.texto || '';
+        $('dialogoCheck').checked = !!casilla?.marcado;
+        $('dialogoAceptar').textContent = aceptar;
+        $('dialogoAceptar').className = peligro ? 'btn-secundario btn-peligro btn-fuerte' : 'btn-juego';
+        $('dialogo').classList.remove('oculto');
+        (etiqueta ? $('dialogoInput') : $('dialogoAceptar')).focus();
+        return new Promise((r) => { resolverDialogo = r; });
+      }
+      function cerrarDialogo(resultado) {
+        $('dialogo').classList.add('oculto');
+        resolverDialogo?.(resultado);
+        resolverDialogo = null;
+      }
+      $('dialogoForm').addEventListener('submit', (e) => {
+        e.preventDefault();
+        const texto = $('dialogoInput').value.trim();
+        if ($('dialogoInput').dataset.obligatorio && !$('dialogoCampo').classList.contains('oculto') && !texto) { $('dialogoInput').focus(); return; }
+        cerrarDialogo({ texto, marcado: $('dialogoCheck').checked });
+      });
+      $('dialogoCancelar').addEventListener('click', () => cerrarDialogo(null));
+      $('dialogo').addEventListener('click', (e) => { if (e.target === $('dialogo')) cerrarDialogo(null); });
+
       async function accion(nombre, parametros, exito) {
         try {
           await M.rpc(nombre, parametros);
@@ -173,50 +322,54 @@
           return false;
         }
       }
-      async function traerCorreos(ids) {
-        const faltan = [...new Set(ids.filter(Boolean))].filter((id) => !correos.has(id));
-        if (!faltan.length) return;
-        const { data } = await cliente.rpc('admin_correos', { p_ids: faltan });
-        for (const fila of data || []) correos.set(fila.id, fila.email);
-      }
-      const correo = (id) => correos.get(id) || id?.slice(0, 8) || '—';
-      const botonAccion = (contenedor, texto, clase, fn) => {
-        const b = crear('button', clase, texto);
+      const boton = (contenedor, texto, clase, idIcono, fn) => {
+        const b = idIcono ? conIcono('button', clase, idIcono, texto) : crear('button', clase, texto);
         b.type = 'button';
-        b.addEventListener('click', async () => { b.disabled = true; try { await fn(); } finally { b.disabled = false; } });
+        b.addEventListener('click', async () => { b.disabled = true; try { await fn(b); } finally { b.disabled = false; } });
         contenedor.append(b);
+        return b;
       };
 
       // ---------------- Acceso ----------------
       $('formAcceso').addEventListener('submit', async (e) => {
         e.preventDefault();
+        $('btnAcceso').disabled = true;
         const { error } = await cliente.auth.signInWithPassword({ email: $('inputCorreo').value.trim().toLowerCase(), password: $('inputClave').value });
-        if (error) M.mensaje($('mensajeAcceso'), 'Correo o contraseña incorrectos.');
+        $('btnAcceso').disabled = false;
+        if (error) M.mensaje($('mensajeAcceso'), /not confirmed/i.test(error.message) ? 'Primero activa la cuenta con el enlace del correo.' : 'Correo o contraseña incorrectos.');
       });
       $('btnSalir').addEventListener('click', () => cliente.auth.signOut());
 
-      async function entrar() {
-        const { data: admin } = await cliente.rpc('es_admin');
-        if (!admin) {
-          $('vistaAdmin').classList.add('oculto');
-          $('cajaAcceso').classList.remove('oculto');
-          M.mensaje($('mensajeAcceso'), 'Esta cuenta no es administradora. Agrégala a mercado_admins en Supabase (ver supabase/cuentas.sql).');
-          return;
-        }
-        $('cajaAcceso').classList.add('oculto');
-        $('vistaAdmin').classList.remove('oculto');
-        cliente.rpc('mercado_mantenimiento').then(() => cargarTodo(), () => cargarTodo());
+      function pantallaAcceso(texto) {
+        $('vistaAdmin').classList.add('oculto');
+        $('cajaAcceso').classList.remove('oculto');
+        $('btnSalir').classList.toggle('oculto', !sesion);
+        if (texto) M.mensaje($('mensajeAcceso'), texto);
       }
 
-      // ---------------- Pestañas ----------------
+      async function entrar() {
+        const { data: admin } = await cliente.rpc('es_admin');
+        if (!admin) return pantallaAcceso(`${sesion.user.email} no es administrador. Agrega tu usuario a mercado_admins en Supabase (ver README).`);
+        $('cajaAcceso').classList.add('oculto');
+        $('vistaAdmin').classList.remove('oculto');
+        $('btnSalir').classList.remove('oculto');
+        $('textoAdmin').textContent = `Conectado como ${sesion.user.email}`;
+        cliente.rpc('mercado_mantenimiento').then(cargarTodo, cargarTodo);
+      }
+
+      // ---------------- Navegación ----------------
       const VISTAS = { revision: 'vistaRevision', tratos: 'vistaTratos', retiros: 'vistaRetiros', ajustes: 'vistaAjustes' };
-      document.querySelectorAll('#pestanasAdmin .pestana').forEach((b) => b.addEventListener('click', () => {
-        vista = b.dataset.vista;
-        document.querySelectorAll('#pestanasAdmin .pestana').forEach((x) => x.setAttribute('aria-selected', String(x === b)));
-        for (const [clave, id] of Object.entries(VISTAS)) $(id).classList.toggle('oculto', clave !== vista);
+      function irA(nueva, filtro) {
+        vista = nueva;
+        if (filtro) cambiarFiltro(filtro, false);
+        document.querySelectorAll('#pestanasAdmin [data-vista]').forEach((b) => b.setAttribute('aria-selected', String(b.dataset.vista === nueva)));
+        for (const [clave, id] of Object.entries(VISTAS)) $(id).classList.toggle('oculto', clave !== nueva);
         $('mensajeAdmin').textContent = '';
         cargarTodo();
-      }));
+      }
+      document.querySelectorAll('#pestanasAdmin [data-vista]').forEach((b) => b.addEventListener('click', () => irA(b.dataset.vista)));
+      document.querySelectorAll('.admin-dato').forEach((b) => b.addEventListener('click', () => irA(b.dataset.ir, b.dataset.filtro)));
+      $('btnRefrescar').addEventListener('click', () => cliente.rpc('mercado_mantenimiento').then(cargarTodo, cargarTodo));
 
       function cargarTodo() {
         cargarResumen();
@@ -228,19 +381,27 @@
 
       async function cargarResumen() {
         const contar = (consulta) => consulta.then(({ count }) => count || 0, () => 0);
-        const [revision, porConfirmar, reclamos, retiros] = await Promise.all([
+        const [revision, pagos, reclamos, abiertos, retiros] = await Promise.all([
           contar(cliente.from('cuentas_venta').select('id', { count: 'exact', head: true }).eq('estado', 'revision')),
           contar(cliente.from('ventas_cuentas').select('id', { count: 'exact', head: true }).eq('estado', 'pendiente_pago').not('pago_informado_en', 'is', null)),
           contar(cliente.from('ventas_cuentas').select('id', { count: 'exact', head: true }).eq('estado', 'en_reclamo')),
-          contar(cliente.from('retiros').select('id', { count: 'exact', head: true }).eq('estado', 'pendiente')),
+          contar(cliente.from('ventas_cuentas').select('id', { count: 'exact', head: true }).in('estado', ['pendiente_pago', 'pagada', 'entregada', 'en_reclamo'])),
+          cliente.from('retiros').select('neto_usd').eq('estado', 'pendiente').then(({ data }) => data || [], () => []),
         ]);
-        const caja = $('resumenAdmin');
-        caja.replaceChildren();
-        for (const [numero, texto, urgente] of [[revision, 'por revisar', revision > 0], [porConfirmar, 'pagos por confirmar', porConfirmar > 0], [reclamos, 'reclamos', reclamos > 0], [retiros, 'retiros pendientes', false]]) {
-          const tarjeta = crear('div', `resumen-tarjeta${urgente ? ' urgente' : ''}`);
-          tarjeta.append(crear('strong', null, String(numero)), crear('span', null, texto));
-          caja.append(tarjeta);
-        }
+        const totalRetiros = retiros.reduce((s, r) => s + Number(r.neto_usd), 0);
+        const valores = { revision, pagos, reclamos, abiertos, retiros: retiros.length };
+        document.querySelectorAll('[data-cuenta]').forEach((el) => {
+          const n = valores[el.dataset.cuenta];
+          el.textContent = el.classList.contains('contador') ? (n ? String(n) : '') : String(n);
+        });
+        $('textoRetirosResumen').textContent = retiros.length ? `Retiros · pagar ${usd(totalRetiros)}` : 'Retiros pendientes';
+        const urgentes = { revision, pagos, reclamos };
+        document.querySelectorAll('.admin-dato').forEach((b) => {
+          const clave = b.querySelector('[data-cuenta]').dataset.cuenta;
+          b.classList.toggle('urgente', (urgentes[clave] || 0) > 0);
+        });
+        const pendientes = revision + pagos + reclamos;
+        document.title = pendientes ? `(${pendientes}) Admin · Level Up Cuentas` : 'Admin · Level Up Cuentas';
       }
 
       // ---------------- Revisión ----------------
@@ -248,13 +409,13 @@
         const lista = $('listaRevision');
         const { data, error } = await cliente.from('cuentas_venta').select('*').eq('estado', 'revision').order('creado').limit(50);
         if (error) return aviso('No pudimos cargar las publicaciones.');
-        const { data: contactos } = await cliente.from('cuentas_contacto').select('cuenta,whatsapp').in('cuenta', data.map((c) => c.id));
+        const { data: contactos } = data.length ? await cliente.from('cuentas_contacto').select('cuenta,whatsapp').in('cuenta', data.map((c) => c.id)) : { data: [] };
         await traerCorreos(data.map((c) => c.vendedor));
         const whatsapp = new Map((contactos || []).map((c) => [c.cuenta, c.whatsapp]));
         lista.replaceChildren();
-        if (!data.length) return lista.append(crear('p', 'estado-lista', 'No hay publicaciones por revisar.'));
+        if (!data.length) return lista.append(vacio('No hay publicaciones por revisar. Todo al día.'));
         for (const c of data) {
-          const fila = crear('article', 'mi-cuenta revision-fila');
+          const tarjeta = crear('article', 'admin-tarjeta');
           const fotos = crear('div', 'revision-fotos');
           for (const ruta of c.fotos) {
             const a = crear('a');
@@ -263,59 +424,78 @@
             a.rel = 'noopener';
             const img = crear('img');
             img.src = urlFoto(ruta);
-            img.alt = 'Foto de la cuenta';
+            img.alt = 'Foto de la cuenta (abrir en grande)';
             img.loading = 'lazy';
             a.append(img);
             fotos.append(a);
           }
-          const datos = crear('div', 'mi-cuenta-datos');
-          datos.append(
-            crear('span', 'tarjeta-codigo', `${codigoCuenta(c.id)} · ${fecha(c.creado)}`),
-            crear('strong', null, c.titulo),
-            crear('span', 'tarjeta-precio', usd(c.precio_usd)),
-            crear('span', 'trato-texto', `Nivel ${c.nivel} · ${c.region} · ${c.vinculacion}`),
-            crear('span', 'trato-texto', `Destacados: ${c.destacados || '—'}`),
-            crear('p', 'trato-texto', c.descripcion || 'Sin descripción'),
-            crear('span', 'trato-texto', `Vendedor: ${correo(c.vendedor)} · WhatsApp: ${whatsapp.get(c.id) || '—'}`),
+          const cuerpo = crear('div', 'admin-tarjeta-cuerpo');
+          const cabecera = crear('div', 'admin-tarjeta-cabecera');
+          const titulo = crear('div');
+          titulo.append(crear('span', 'tarjeta-codigo', `${codigoCuenta(c.id)} · ${fecha(c.creado)}`), crear('h3', null, c.titulo));
+          cabecera.append(titulo, crear('span', 'tarjeta-precio', usd(c.precio_usd)));
+          const tel = whatsapp.get(c.id);
+          const acciones = crear('div', 'admin-acciones');
+          boton(acciones, 'Aprobar y publicar', 'btn-juego', 'i-check', async () => {
+            if (await accion('admin_moderar_cuenta', { p_cuenta: c.id, p_aprobar: true }, `${codigoCuenta(c.id)} publicada en la tienda.`)) cargarTodo();
+          });
+          boton(acciones, 'Rechazar', 'btn-secundario btn-peligro', 'i-x', async () => {
+            const r = await dialogo({ titulo: `Rechazar ${codigoCuenta(c.id)}`, texto: 'El vendedor verá este motivo en "Mis publicaciones".', etiqueta: 'Motivo', valor: 'Las fotos no muestran la cuenta', aceptar: 'Rechazar', peligro: true, obligatorio: true });
+            if (r && await accion('admin_moderar_cuenta', { p_cuenta: c.id, p_aprobar: false, p_motivo: r.texto }, `${codigoCuenta(c.id)} rechazada.`)) cargarTodo();
+          });
+          if (tel) {
+            const a = conIcono('a', 'btn-secundario', 'i-whatsapp', 'Escribir al vendedor');
+            a.href = `https://wa.me/${tel.replace('+', '')}?text=${encodeURIComponent(`Hola, te escribimos de Level Up por tu cuenta ${codigoCuenta(c.id)}.`)}`;
+            a.target = '_blank';
+            a.rel = 'noopener noreferrer';
+            acciones.append(a);
+          }
+          cuerpo.append(
+            cabecera,
+            ficha([['Nivel', String(c.nivel)], ['Región', c.region], ['Vinculada a', c.vinculacion], ['Lo más valioso', c.destacados], ['Vendedor', correo(c.vendedor)], ['WhatsApp', tel]]),
+            crear('p', 'admin-descripcion', c.descripcion || 'Sin descripción.'),
+            acciones,
           );
-          const acciones = crear('div', 'mi-cuenta-acciones');
-          botonAccion(acciones, 'Aprobar', 'btn-secundario', async () => {
-            if (await accion('admin_moderar_cuenta', { p_cuenta: c.id, p_aprobar: true }, `${codigoCuenta(c.id)} publicada.`)) cargarTodo();
-          });
-          botonAccion(acciones, 'Rechazar', 'btn-secundario btn-peligro', async () => {
-            const motivo = prompt('Motivo del rechazo (lo ve el vendedor):', 'Las fotos no muestran la cuenta');
-            if (motivo === null) return;
-            if (await accion('admin_moderar_cuenta', { p_cuenta: c.id, p_aprobar: false, p_motivo: motivo }, `${codigoCuenta(c.id)} rechazada.`)) cargarTodo();
-          });
-          fila.append(fotos, datos, acciones);
-          lista.append(fila);
+          tarjeta.append(fotos, cuerpo);
+          lista.append(tarjeta);
         }
       }
 
       // ---------------- Tratos ----------------
-      $('filtroTratos').addEventListener('change', cargarTratos);
+      function cambiarFiltro(filtro, recargar = true) {
+        filtroTratos = filtro;
+        document.querySelectorAll('#filtroTratos .chip').forEach((b) => b.setAttribute('aria-pressed', String(b.dataset.filtro === filtro)));
+        if (recargar) cargarTratos();
+      }
+      document.querySelectorAll('#filtroTratos .chip').forEach((b) => b.addEventListener('click', () => cambiarFiltro(b.dataset.filtro)));
+
+      const porConfirmar = (v) => v.estado === 'pendiente_pago' && !!v.pago_informado_en;
+      const pastilla = (v) => crear('span', `pastilla pastilla-${porConfirmar(v) ? 'confirmar' : v.estado}`,
+        porConfirmar(v) ? `Confirmar pago · ${v.metodo_pago} ${v.referencia_pago}` : M.TEXTO_ESTADO_TRATO[v.estado]);
+
       async function cargarTratos() {
-        const filtro = $('filtroTratos').value;
         let consulta = cliente.from('ventas_cuentas').select('*').order('actualizado', { ascending: false }).limit(100);
-        consulta = filtro === 'abiertos' ? consulta.in('estado', ['pendiente_pago', 'pagada', 'entregada', 'en_reclamo']) : consulta.eq('estado', filtro);
+        if (filtroTratos === 'abiertos') consulta = consulta.in('estado', ['pendiente_pago', 'pagada', 'entregada', 'en_reclamo']);
+        else if (filtroTratos === 'por_confirmar') consulta = consulta.eq('estado', 'pendiente_pago').not('pago_informado_en', 'is', null);
+        else consulta = consulta.eq('estado', filtroTratos);
         const { data, error } = await consulta;
         if (error) return aviso('No pudimos cargar los tratos.');
         await traerCorreos(data.flatMap((v) => [v.comprador, v.vendedor]));
         const lista = $('listaTratosAdmin');
         lista.replaceChildren();
-        if (!data.length) return lista.append(crear('p', 'estado-lista', 'No hay tratos con ese filtro.'));
+        if (!data.length) return lista.append(vacio('No hay tratos con ese filtro.'));
         for (const v of data) {
-          const urgente = (v.estado === 'pendiente_pago' && v.pago_informado_en) || v.estado === 'en_reclamo';
-          const fila = crear('button', `trato-fila${urgente ? ' trato-fila-toca' : ''}`);
+          const fila = crear('button', `trato-fila${porConfirmar(v) || v.estado === 'en_reclamo' ? ' trato-fila-toca' : ''}`);
           fila.type = 'button';
           const datos = crear('div', 'trato-fila-datos');
           datos.append(
             crear('span', 'tarjeta-codigo', `${codigoTrato(v.id)} · ${codigoCuenta(v.cuenta ?? '?')} · ${fecha(v.creado)}`),
             crear('strong', null, v.titulo),
-            crear('span', `estado-trato estado-trato-${v.estado}`, M.TEXTO_ESTADO_TRATO[v.estado]
-              + (v.estado === 'pendiente_pago' && v.pago_informado_en ? ` · ${v.metodo_pago} ref. ${v.referencia_pago} · CONFIRMAR` : '')),
+            crear('span', 'trato-personas', `${correo(v.comprador)} → ${correo(v.vendedor)}`),
           );
-          fila.append(datos, crear('span', 'tarjeta-precio', usd(v.total_usd)));
+          const derecha = crear('div', 'trato-fila-derecha');
+          derecha.append(pastilla(v), crear('span', 'tarjeta-precio', usd(v.total_usd)));
+          fila.append(datos, derecha);
           fila.addEventListener('click', () => abrirTrato(v.id));
           lista.append(fila);
         }
@@ -333,7 +513,12 @@
         cargarTodo();
       }
       $('ventanaTrato').querySelector('[data-cerrar]').addEventListener('click', cerrarTrato);
-      document.addEventListener('keydown', (e) => { if (e.key === 'Escape' && tratoAbierto) cerrarTrato(); });
+      $('ventanaTrato').addEventListener('click', (e) => { if (e.target === $('ventanaTrato')) cerrarTrato(); });
+      document.addEventListener('keydown', (e) => {
+        if (e.key !== 'Escape') return;
+        if (!$('dialogo').classList.contains('oculto')) cerrarDialogo(null);
+        else if (tratoAbierto) cerrarTrato();
+      });
 
       async function abrirTrato(id) {
         tratoAbierto = id;
@@ -350,25 +535,27 @@
         if (!v || id !== tratoAbierto) return;
         await traerCorreos([v.comprador, v.vendedor]);
         const { data: contacto } = v.cuenta ? await cliente.from('cuentas_contacto').select('whatsapp').eq('cuenta', v.cuenta).maybeSingle() : { data: null };
-        $('tratoCodigo').textContent = `${codigoTrato(v.id)} · ${codigoCuenta(v.cuenta ?? '?')} · ${M.TEXTO_ESTADO_TRATO[v.estado]}`;
+        $('tratoCodigo').textContent = `${codigoTrato(v.id)} · ${codigoCuenta(v.cuenta ?? '?')} · ${fecha(v.creado)}`;
         $('tratoTitulo').textContent = v.titulo;
+        $('tratoEstado').replaceWith(Object.assign(pastilla(v), { id: 'tratoEstado' }));
 
-        const datos = $('tratoDatos');
-        datos.replaceChildren();
-        const dato = (etiqueta, valor) => { const d = crear('div', null, etiqueta); d.append(crear('strong', null, valor || '—')); datos.append(d); };
-        dato('Comprador', correo(v.comprador));
-        dato('Vendedor', `${correo(v.vendedor)}${contacto?.whatsapp ? ` · ${contacto.whatsapp}` : ''}`);
-        dato('Cobrar al comprador', `${usd(v.total_usd)}${v.garantia ? ' (con garantía)' : ''}`);
-        dato('Para el vendedor', usd(v.precio_usd));
-        dato('Pago informado', v.pago_informado_en ? `${v.metodo_pago} · ref. ${v.referencia_pago} · ${fecha(v.pago_informado_en)}` : 'Todavía no');
-        if (v.entregada_en) dato('Entregada', fecha(v.entregada_en));
-        if (v.reclamo_motivo) dato('Reclamo', v.reclamo_motivo);
-        if (v.resolucion) dato('Resolución', v.resolucion);
+        const pares = [
+          ['Comprador', correo(v.comprador)],
+          ['Vendedor', `${correo(v.vendedor)}${contacto?.whatsapp ? ` · ${contacto.whatsapp}` : ''}`],
+          ['Cobrar al comprador', `${usd(v.total_usd)}${v.garantia ? ' (con garantía)' : ''}`],
+          ['Para el vendedor', usd(v.precio_usd)],
+          ['Pago informado', v.pago_informado_en ? `${v.metodo_pago} · ref. ${v.referencia_pago} · ${fecha(v.pago_informado_en)}` : 'Todavía no'],
+        ];
+        if (v.pagada_en) pares.push(['Pago confirmado', fecha(v.pagada_en)]);
+        if (v.entregada_en) pares.push(['Datos entregados', fecha(v.entregada_en)]);
+        if (v.reclamo_motivo) pares.push(['Reclamo', v.reclamo_motivo]);
+        if (v.resolucion) pares.push(['Resolución', v.resolucion]);
+        $('tratoDatos').replaceWith(Object.assign(ficha(pares), { id: 'tratoDatos' }));
 
         const caja = $('tratoAcciones');
         caja.replaceChildren();
         if (v.reclamo_video) {
-          const a = crear('a', 'btn-secundario', 'Ver video del reclamo');
+          const a = conIcono('a', 'btn-secundario', 'i-video', 'Ver video del reclamo');
           a.href = v.reclamo_video;
           a.target = '_blank';
           a.rel = 'noopener noreferrer';
@@ -385,29 +572,25 @@
           chat.traer();
         };
         if (v.estado === 'pendiente_pago') {
-          botonAccion(caja, `Confirmar pago recibido (${usd(v.total_usd)})`, 'btn-juego', async () => {
-            if (!confirm(`¿Verificaste en tu banco/Binance que llegaron ${usd(v.total_usd)}${v.referencia_pago ? ` con la referencia ${v.referencia_pago}` : ''}?`)) return;
-            await ejecutar('admin_confirmar_pago', { p_venta: v.id }, 'Pago confirmado. El vendedor ya puede entregar.');
+          boton(caja, `Confirmar pago (${usd(v.total_usd)})`, 'btn-juego', 'i-check', async () => {
+            const r = await dialogo({ titulo: 'Confirmar pago', texto: `¿Verificaste en tu banco o Binance que llegaron ${usd(v.total_usd)}${v.referencia_pago ? ` con la referencia ${v.referencia_pago}` : ''}? El dinero quedará retenido y el vendedor deberá entregar.`, aceptar: 'Sí, llegó el pago' });
+            if (r) await ejecutar('admin_confirmar_pago', { p_venta: v.id }, 'Pago confirmado. El vendedor ya puede entregar.');
           });
         }
         if (['pagada', 'entregada', 'en_reclamo'].includes(v.estado)) {
-          botonAccion(caja, 'Resolver a favor del VENDEDOR (cerrar y pagarle)', 'btn-secundario', async () => {
-            const nota = prompt('Nota para el chat (por qué se resuelve así):', v.estado === 'en_reclamo' ? 'El video no muestra el problema' : '');
-            if (nota === null) return;
-            await ejecutar('admin_resolver', { p_venta: v.id, p_favor: 'vendedor', p_nota: nota }, 'Cerrado a favor del vendedor.');
+          boton(caja, 'A favor del vendedor', 'btn-secundario', 'i-check', async () => {
+            const r = await dialogo({ titulo: 'Resolver a favor del vendedor', texto: `Se cierra el trato y ${usd(v.precio_usd)} pasan a su saldo. La nota se publica en el chat.`, etiqueta: 'Nota', valor: v.estado === 'en_reclamo' ? 'El video no muestra el problema' : '', aceptar: 'Cerrar y pagar' });
+            if (r) await ejecutar('admin_resolver', { p_venta: v.id, p_favor: 'vendedor', p_nota: r.texto }, 'Cerrado a favor del vendedor.');
           });
-          botonAccion(caja, 'Resolver a favor del COMPRADOR (reembolsar)', 'btn-secundario btn-peligro', async () => {
-            const nota = prompt('Nota para el chat. Recuerda hacer el reembolso tú:', 'El video muestra que la cuenta no es la publicada');
-            if (nota === null) return;
-            await ejecutar('admin_resolver', { p_venta: v.id, p_favor: 'comprador', p_nota: nota }, 'Resuelto a favor del comprador: haz el reembolso.');
+          boton(caja, 'A favor del comprador', 'btn-secundario btn-peligro', 'i-x', async () => {
+            const r = await dialogo({ titulo: 'Resolver a favor del comprador', texto: `Se cancela el trato y la cuenta queda rechazada. El reembolso de ${usd(v.total_usd)} lo haces tú.`, etiqueta: 'Nota', valor: 'El video muestra que la cuenta no es la publicada', aceptar: 'Reembolsar', peligro: true, obligatorio: true });
+            if (r) await ejecutar('admin_resolver', { p_venta: v.id, p_favor: 'comprador', p_nota: r.texto }, 'Resuelto a favor del comprador: haz el reembolso.');
           });
         }
         if (['pendiente_pago', 'pagada', 'entregada', 'en_reclamo'].includes(v.estado)) {
-          botonAccion(caja, 'Cancelar trato', 'btn-secundario btn-peligro', async () => {
-            const motivo = prompt('Motivo (lo ven los dos). Si el comprador ya pagó, el reembolso lo haces tú:', 'El pago no llegó');
-            if (motivo === null) return;
-            const volver = confirm('¿La cuenta vuelve al mercado? (Aceptar = sí, Cancelar = queda pausada)');
-            await ejecutar('admin_cancelar', { p_venta: v.id, p_motivo: motivo, p_devolver_al_mercado: volver }, 'Trato cancelado.');
+          boton(caja, 'Cancelar trato', 'btn-secundario btn-peligro', 'i-x', async () => {
+            const r = await dialogo({ titulo: 'Cancelar trato', texto: 'Lo ven el comprador y el vendedor. Si el comprador ya pagó, el reembolso lo haces tú.', etiqueta: 'Motivo', valor: 'El pago no llegó', casilla: { texto: 'Devolver la cuenta al mercado', marcado: true }, aceptar: 'Cancelar trato', peligro: true, obligatorio: true });
+            if (r) await ejecutar('admin_cancelar', { p_venta: v.id, p_motivo: r.texto, p_devolver_al_mercado: r.marcado }, 'Trato cancelado.');
           });
         }
         chat.habilitar(true);
@@ -420,55 +603,71 @@
         await traerCorreos(data.map((r) => r.vendedor));
         const total = data.reduce((s, r) => s + Number(r.neto_usd), 0);
         const comision = data.reduce((s, r) => s + Number(r.comision_usd), 0);
-        $('totalRetiros').textContent = data.length ? `${data.length} retiro(s): pagar ${usd(total)} en total · tu comisión: ${usd(comision)}.` : '';
+        const totalCaja = $('totalRetiros');
+        totalCaja.classList.toggle('oculto', !data.length);
+        totalCaja.replaceChildren();
+        for (const [k, val, clase] of [['Retiros', String(data.length), ''], ['Total a pagar', usd(total), 'acento'], ['Tu comisión', usd(comision), 'ok']]) {
+          const d = crear('div', `admin-total-dato ${clase}`);
+          d.append(crear('span', null, k), crear('strong', null, val));
+          totalCaja.append(d);
+        }
         const lista = $('listaRetiros');
         lista.replaceChildren();
-        if (!data.length) return lista.append(crear('p', 'estado-lista', 'No hay retiros pendientes.'));
+        if (!data.length) return lista.append(vacio('No hay retiros pendientes.'));
         for (const r of data) {
-          const fila = crear('article', 'mi-cuenta revision-fila');
-          const datos = crear('div', 'mi-cuenta-datos');
-          datos.append(
-            crear('span', 'tarjeta-codigo', `${codigoRetiro(r.id)} · ${fecha(r.creado)}`),
-            crear('strong', null, correo(r.vendedor)),
-            crear('span', 'tarjeta-precio', `Pagar ${usd(r.neto_usd)}`),
-            crear('span', 'trato-texto', `Pidió ${usd(r.monto_usd)} − ${usd(r.comision_usd)} de comisión`),
-            crear('span', 'trato-texto destacado', `${r.metodo}: ${r.datos}`),
-          );
-          const acciones = crear('div', 'mi-cuenta-acciones');
-          botonAccion(acciones, 'Marcar pagado', 'btn-secundario', async () => {
-            const referencia = prompt(`Referencia del pago de ${usd(r.neto_usd)}:`);
-            if (referencia === null) return;
-            if (await accion('admin_resolver_retiro', { p_retiro: r.id, p_pagado: true, p_texto: referencia }, `${codigoRetiro(r.id)} pagado.`)) cargarTodo();
+          const tarjeta = crear('article', 'admin-tarjeta');
+          const cuerpo = crear('div', 'admin-tarjeta-cuerpo');
+          const cabecera = crear('div', 'admin-tarjeta-cabecera');
+          const titulo = crear('div');
+          titulo.append(crear('span', 'tarjeta-codigo', `${codigoRetiro(r.id)} · ${fecha(r.creado)}`), crear('h3', null, correo(r.vendedor)));
+          const monto = crear('div', 'admin-monto');
+          monto.append(crear('span', 'tarjeta-precio', usd(r.neto_usd)), crear('small', null, `pidió ${usd(r.monto_usd)} − ${usd(r.comision_usd)}`));
+          cabecera.append(titulo, monto);
+          const datos = crear('div', 'datos-cobro');
+          datos.append(crear('span', 'pastilla', r.metodo), crear('p', null, r.datos));
+          const acciones = crear('div', 'admin-acciones');
+          boton(acciones, 'Copiar datos', 'btn-secundario', 'i-copiar', async (b) => {
+            try {
+              await navigator.clipboard.writeText(`${r.metodo}: ${r.datos} · Monto: ${usd(r.neto_usd)}`);
+              b.lastChild.textContent = 'Copiado';
+              setTimeout(() => { b.lastChild.textContent = 'Copiar datos'; }, 1500);
+            } catch (e) { aviso('No se pudo copiar: selecciona el texto a mano.'); }
           });
-          botonAccion(acciones, 'Rechazar (devolver al saldo)', 'btn-secundario btn-peligro', async () => {
-            const motivo = prompt('Motivo (lo ve el vendedor):', 'Datos de cobro incorrectos');
-            if (motivo === null) return;
-            if (await accion('admin_resolver_retiro', { p_retiro: r.id, p_pagado: false, p_texto: motivo }, `${codigoRetiro(r.id)} rechazado y devuelto al saldo.`)) cargarTodo();
+          boton(acciones, 'Marcar pagado', 'btn-juego', 'i-check', async () => {
+            const res = await dialogo({ titulo: `Pagar ${codigoRetiro(r.id)}`, texto: `Envía ${usd(r.neto_usd)} por ${r.metodo} y escribe la referencia. El vendedor la verá en su panel.`, etiqueta: 'Referencia del pago', aceptar: 'Marcar pagado', obligatorio: true });
+            if (res && await accion('admin_resolver_retiro', { p_retiro: r.id, p_pagado: true, p_texto: res.texto }, `${codigoRetiro(r.id)} pagado.`)) cargarTodo();
           });
-          fila.append(datos, acciones);
-          lista.append(fila);
+          boton(acciones, 'Rechazar', 'btn-secundario btn-peligro', 'i-x', async () => {
+            const res = await dialogo({ titulo: `Rechazar ${codigoRetiro(r.id)}`, texto: `${usd(r.monto_usd)} vuelven al saldo del vendedor.`, etiqueta: 'Motivo', valor: 'Datos de cobro incorrectos', aceptar: 'Rechazar', peligro: true, obligatorio: true });
+            if (res && await accion('admin_resolver_retiro', { p_retiro: r.id, p_pagado: false, p_texto: res.texto }, `${codigoRetiro(r.id)} rechazado y devuelto al saldo.`)) cargarTodo();
+          });
+          cuerpo.append(cabecera, datos, acciones);
+          tarjeta.append(cuerpo);
+          lista.append(tarjeta);
         }
       }
 
       // ---------------- Ajustes ----------------
-      const CLAVES = ['tasa_bs', 'comision_retiro', 'retiro_minimo', 'garantia_usd', 'horas_pago', 'horas_revision', 'instrucciones_pago'];
+      const CLAVES = ['instrucciones_pago', 'tasa_bs', 'comision_retiro', 'retiro_minimo', 'garantia_usd', 'horas_pago', 'horas_revision'];
       async function cargarAjustes() {
         const { data } = await cliente.from('mercado_config').select('clave,valor');
         for (const { clave, valor } of data || []) if ($(`cfg_${clave}`)) $(`cfg_${clave}`).value = valor;
       }
       $('formAjustes').addEventListener('submit', async (e) => {
         e.preventDefault();
-        const boton = $('btnAjustes');
-        boton.disabled = true;
+        const b = $('btnAjustes');
+        b.disabled = true;
         try {
           for (const clave of CLAVES) {
-            await M.rpc('admin_config', { p_clave: clave, p_valor: $(`cfg_${clave}`).value.trim().replace(',', '.') }, `Revisa el valor de "${clave}".`);
+            const campo = $(`cfg_${clave}`);
+            const valor = campo.value.trim();
+            await M.rpc('admin_config', { p_clave: clave, p_valor: clave === 'instrucciones_pago' ? valor : valor.replace(',', '.') }, `Revisa el valor de "${campo.labels[0].textContent}".`);
           }
-          M.mensaje($('mensajeAjustes'), 'Ajustes guardados.', 'exito');
+          M.mensaje($('mensajeAjustes'), 'Ajustes guardados. Ya se aplican en la tienda.', 'exito');
         } catch (error) {
           M.mensaje($('mensajeAjustes'), error.message);
         } finally {
-          boton.disabled = false;
+          b.disabled = false;
         }
       });
 
@@ -476,14 +675,14 @@
       cliente.auth.onAuthStateChange((evento, nueva) => {
         sesion = nueva;
         if (evento === 'SIGNED_IN') setTimeout(entrar, 0);
-        if (evento === 'SIGNED_OUT') { $('vistaAdmin').classList.add('oculto'); $('cajaAcceso').classList.remove('oculto'); }
+        if (evento === 'SIGNED_OUT') pantallaAcceso('');
       });
       cliente.auth.getSession().then(({ data }) => {
         sesion = data.session;
-        if (sesion) entrar(); else $('cajaAcceso').classList.remove('oculto');
+        if (sesion) entrar(); else pantallaAcceso('');
       });
       // Se actualiza solo cada minuto (pagos nuevos, reclamos)
-      setInterval(() => { if (sesion && !document.hidden && !tratoAbierto && !$('vistaAdmin').classList.contains('oculto')) cargarTodo(); }, 60000);
+      setInterval(() => { if (sesion && !document.hidden && !tratoAbierto && $('dialogo').classList.contains('oculto') && !$('vistaAdmin').classList.contains('oculto')) cargarTodo(); }, 60000);
     });
   </script>
 </body>

@@ -312,7 +312,7 @@ body.tienda { background: var(--bg-deep); }
   .pie-interior { grid-template-columns: 2fr 1fr 1fr; }
 }
 @media (min-width: 900px) {
-  .contenedor { padding: 0 24px; }
+  .contenedor { padding-left: 24px; padding-right: 24px; }
   .nav-enlaces { display: flex; }
   .nav-menu { display: none; }
   .hero { padding: 80px 0 88px; }
@@ -328,4 +328,117 @@ body.tienda { background: var(--bg-deep); }
   .detalle-layout { grid-template-columns: 1.1fr 1fr; }
   .detalle-galeria { position: sticky; top: 0; align-self: start; }
   .ventana-detalle .detalle-cuerpo { padding: 32px; }
+}
+
+/* =====================================================================
+   Panel de administración (admin-cuentas.html)
+   ===================================================================== */
+.solo-escritorio { display: none; }
+.btn-chico { min-height: 44px; padding: 0 16px; font-size: 12px; }
+.icono-caja-grande { width: 56px; height: 56px; border-radius: 16px; margin-bottom: 16px; }
+.icono-caja-grande .icono { width: 26px; height: 26px; }
+.admin-cabecera { display: flex; flex-wrap: wrap; align-items: flex-end; justify-content: space-between; gap: 16px; }
+.admin-resumen { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; margin-bottom: 24px; }
+@media (max-width: 599px) {
+  .admin-dato { padding: 14px; }
+  .admin-dato .icono-caja { display: none; }
+  .admin-total { grid-template-columns: 1fr 1fr; }
+  .admin-total-dato:first-child { display: none; }
+}
+.admin-dato {
+  display: flex; align-items: center; gap: 14px; padding: 18px; border-radius: 16px; cursor: pointer; text-align: left;
+  font: inherit; font-size: 12px; color: var(--text-muted); background: var(--fondo-tarjeta); border: 1px solid var(--linea);
+  transition: border-color 0.2s ease, box-shadow 0.2s ease, transform 0.2s ease;
+}
+.admin-dato:hover, .admin-dato:focus-visible { border-color: var(--game-line); outline: none; transform: translateY(-2px); }
+.admin-dato strong { display: block; font-family: 'Montserrat', sans-serif; font-weight: 900; font-size: 26px; color: var(--text-main); line-height: 1.1; }
+.admin-dato em { font-style: normal; }
+.admin-dato .icono-caja { background: var(--fondo-hundido); border-color: var(--linea); color: var(--text-muted); }
+.admin-dato.urgente { border-color: var(--game-line); box-shadow: var(--game-glow); }
+.admin-dato.urgente strong { color: var(--game-text); }
+.admin-dato.urgente .icono-caja { background: var(--game-soft); border-color: var(--game-line); color: var(--game-text); }
+
+.admin-pestanas { display: flex; gap: 4px; overflow-x: auto; padding: 4px; margin-bottom: 8px; border-radius: 14px; background: var(--fondo-hundido); border: 1px solid var(--linea); }
+.admin-pestanas button {
+  flex: 1 0 auto; display: inline-flex; align-items: center; justify-content: center; gap: 8px; min-height: 44px; padding: 0 14px;
+  border: none; border-radius: 10px; cursor: pointer; background: transparent; color: var(--text-muted);
+  font-family: 'Montserrat', sans-serif; font-weight: 900; font-size: 12px; letter-spacing: 0.3px; text-transform: uppercase; transition: background 0.2s ease, color 0.2s ease;
+}
+.admin-pestanas button .icono { width: 16px; height: 16px; }
+.admin-pestanas button[aria-selected="true"] { background: var(--game-gradient); color: var(--game-on); box-shadow: var(--game-glow); }
+.contador:empty { display: none; }
+.contador { min-width: 20px; height: 20px; padding: 0 6px; border-radius: 999px; display: inline-grid; place-items: center; font-size: 11px; background: var(--danger); color: var(--text-main); }
+.admin-pestanas button[aria-selected="true"] .contador { background: var(--game-on); color: var(--game-text); }
+
+.admin-seccion { margin-top: 24px; }
+.admin-seccion-cabecera { margin-bottom: 20px; }
+.admin-seccion-cabecera h2 { font-family: 'Montserrat', sans-serif; font-weight: 900; font-size: 22px; }
+.admin-seccion-cabecera p { margin-top: 6px; color: var(--text-muted); font-size: 13px; line-height: 1.6; }
+.admin-lista { display: grid; gap: 16px; }
+.admin-tarjeta { display: grid; overflow: hidden; border-radius: 18px; background: var(--fondo-tarjeta); border: 1px solid var(--linea); box-shadow: var(--shadow-lg); }
+.admin-tarjeta .revision-fotos { padding: 12px; background: var(--fondo-hundido); }
+.admin-tarjeta .revision-fotos img { width: 140px; border-radius: 10px; }
+.admin-tarjeta-cuerpo { display: grid; gap: 16px; padding: 20px; min-width: 0; }
+.admin-tarjeta-cabecera { display: flex; align-items: flex-start; justify-content: space-between; gap: 16px; }
+.admin-tarjeta-cabecera h3 { margin-top: 4px; font-size: 16px; line-height: 1.35; overflow-wrap: anywhere; }
+.admin-descripcion { font-size: 13px; line-height: 1.6; color: var(--text-muted); white-space: pre-line; overflow-wrap: anywhere; }
+.admin-acciones { display: flex; flex-wrap: wrap; gap: 8px; }
+.admin-acciones > * { flex: 1 1 160px; display: inline-flex; align-items: center; justify-content: center; gap: 8px; text-decoration: none; width: auto; }
+.admin-acciones .icono { width: 16px; height: 16px; }
+.admin-monto { display: grid; justify-items: end; gap: 2px; text-align: right; }
+.admin-monto small { font-size: 11px; color: var(--text-muted); }
+
+.ficha { display: grid; grid-template-columns: auto 1fr; gap: 8px 16px; margin: 0; padding: 16px; border-radius: 14px; background: var(--fondo-hundido); border: 1px solid var(--linea); font-size: 13px; }
+.ficha dt { color: var(--text-muted); font-weight: 600; }
+.ficha dd { margin: 0; color: var(--text-main); overflow-wrap: anywhere; }
+
+.chips { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 16px; }
+.chip {
+  min-height: 40px; padding: 0 14px; border-radius: 999px; cursor: pointer; font: inherit; font-size: 13px; font-weight: 600;
+  background: var(--fondo-hundido); color: var(--text-muted); border: 1px solid var(--linea); transition: background 0.2s ease, color 0.2s ease, border-color 0.2s ease;
+}
+.chip:hover { border-color: var(--game-line); color: var(--text-main); }
+.chip[aria-pressed="true"] { background: var(--game-soft); border-color: var(--game-line); color: var(--game-text); }
+.trato-personas { font-size: 12px; color: var(--text-muted); overflow-wrap: anywhere; }
+.trato-fila-derecha { display: grid; justify-items: end; gap: 8px; text-align: right; flex: 0 0 auto; }
+
+.pastilla { display: inline-flex; align-items: center; width: fit-content; padding: 5px 10px; border-radius: 999px; font-size: 11px; font-weight: 700; background: var(--fondo-hundido); border: 1px solid var(--linea); color: var(--text-muted); }
+.pastilla-confirmar, .pastilla-pendiente_pago, .pastilla-entregada { color: var(--warning); border-color: var(--warning); }
+.pastilla-pagada { color: var(--primary); border-color: var(--cyan-line); }
+.pastilla-en_reclamo { color: var(--danger); border-color: var(--danger); }
+.pastilla-cerrada { color: var(--accent-neon); border-color: var(--accent-neon); }
+.pastilla-confirmar { background: var(--game-soft); }
+
+.admin-total { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; margin-bottom: 16px; }
+.admin-total-dato { padding: 16px; border-radius: 14px; background: var(--fondo-tarjeta); border: 1px solid var(--linea); }
+.admin-total-dato span { display: block; font-size: 11px; color: var(--text-muted); }
+.admin-total-dato strong { font-family: 'Montserrat', sans-serif; font-weight: 900; font-size: clamp(16px, 4.5vw, 22px); }
+.admin-total-dato.acento strong { color: var(--game-text); }
+.admin-total-dato.ok strong { color: var(--accent-neon); }
+.datos-cobro { display: grid; gap: 8px; padding: 14px 16px; border-radius: 12px; background: var(--fondo-hundido); border: 1px dashed var(--cyan-line); }
+.datos-cobro p { font-size: 14px; color: var(--text-main); overflow-wrap: anywhere; user-select: all; }
+
+.ajustes { display: grid; gap: 20px; }
+.ajustes-grupo { display: grid; gap: 16px; margin: 0; padding: 20px; border-radius: 18px; background: var(--fondo-tarjeta); border: 1px solid var(--linea); min-width: 0; }
+.ajustes-grupo legend { display: flex; align-items: center; gap: 8px; padding: 0 8px; font-family: 'Montserrat', sans-serif; font-weight: 900; font-size: 14px; color: var(--text-main); }
+.ajustes-grupo legend .icono { color: var(--game-text); }
+.ajustes .campo input, .ajustes .campo textarea { background: var(--fondo-hundido); }
+
+.dialogo-caja { max-width: 460px; display: grid; gap: 14px; padding: 28px 24px; }
+.dialogo-caja h2 { font-family: 'Montserrat', sans-serif; font-weight: 900; font-size: 18px; }
+.dialogo-caja > p { font-size: 14px; line-height: 1.6; color: var(--text-muted); }
+.dialogo-caja > p:empty { display: none; }
+.dialogo-botones { display: flex; gap: 8px; margin-top: 4px; }
+.dialogo-botones > * { flex: 1 1 0; }
+.btn-fuerte { background: var(--danger); color: var(--text-main); border-color: var(--danger); }
+#dialogo { z-index: 1200; }
+.nav-enlace-admin { color: var(--game-text); }
+
+@media (min-width: 900px) {
+  .solo-escritorio { display: inline; }
+  .admin-resumen { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+  .admin-tarjeta { grid-template-columns: 300px 1fr; }
+  .admin-tarjeta .revision-fotos { flex-wrap: wrap; align-content: flex-start; overflow: visible; }
+  .admin-tarjeta .revision-fotos a { width: calc(50% - 4px); }
+  .admin-tarjeta .revision-fotos img { width: 100%; }
 }
