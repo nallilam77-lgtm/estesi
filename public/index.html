@@ -25,7 +25,7 @@
   <link rel="stylesheet" href="css/creadores.css">
   <link rel="stylesheet" href="css/billetera.css">
   <link rel="stylesheet" href="css/cuentas.css?v=3">
-  <link rel="stylesheet" href="css/tienda.css?v=9">
+  <link rel="stylesheet" href="css/tienda.css?v=10">
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.js" defer></script>
   <script src="js/mercado.js?v=7" defer></script>
 </head>
@@ -69,6 +69,7 @@
     </div>
     <nav class="cajon-enlaces">
       <button type="button" class="nav-enlace" data-ir="cuentas"><svg class="icono"><use href="#i-buscar"/></svg>Comprar cuentas</button>
+      <button type="button" class="nav-enlace" data-ir="vendedores"><svg class="icono"><use href="#i-estrella"/></svg>Vendedores</button>
       <button type="button" class="nav-enlace" data-vista="vender"><svg class="icono"><use href="#i-etiqueta"/></svg>Vender mi cuenta</button>
       <button type="button" class="nav-enlace" data-vista="panel"><svg class="icono"><use href="#i-panel"/></svg>Mi panel</button>
       <button type="button" class="nav-enlace" data-vista="saldo"><svg class="icono"><use href="#i-billetera"/></svg>Mi saldo y recargas</button>
@@ -86,6 +87,7 @@
       </a>
       <nav class="nav-enlaces" aria-label="Principal">
         <button type="button" class="nav-enlace" data-ir="cuentas">Comprar</button>
+        <button type="button" class="nav-enlace" data-ir="vendedores">Vendedores</button>
         <button type="button" class="nav-enlace" data-vista="vender">Vender</button>
         <button type="button" class="nav-enlace" data-ir="como-funciona">Cómo funciona</button>
         <a class="nav-enlace" href="reglas-cuentas.html">Reglas</a>
@@ -184,6 +186,33 @@
           <div class="grid-cuentas" id="gridCuentas" aria-live="polite"></div>
           <div id="estadoLista"></div>
           <div class="centrado-bloque"><button type="button" class="btn btn-borde oculto" id="btnVerMas">Ver más cuentas</button></div>
+        </div>
+      </section>
+
+      <section class="seccion seccion-vendedores" id="vendedores" aria-labelledby="tituloVendedores">
+        <div class="contenedor">
+          <div class="seccion-cabecera">
+            <div>
+              <span class="antetitulo">Comunidad</span>
+              <h2 class="titulo-seccion" id="tituloVendedores">Vendedores</h2>
+              <p class="seccion-texto">Quienes venden o ya vendieron en Level Up, con sus estrellas y opiniones reales de compradores.</p>
+            </div>
+            <span class="conteo" id="conteoVendedores" aria-live="polite"></span>
+          </div>
+          <form class="barra-filtros barra-vendedores" id="formVendedores" role="search">
+            <div class="campo-buscar">
+              <svg class="icono"><use href="#i-buscar"/></svg>
+              <label for="buscarVendedor" class="solo-lectores">Buscar vendedor</label>
+              <input type="search" id="buscarVendedor" placeholder="Busca un vendedor por su nombre" maxlength="24" autocomplete="off">
+            </div>
+            <label class="solo-lectores" for="ordenVendedores">Ordenar vendedores</label>
+            <select id="ordenVendedores">
+              <option value="estrellas">Mejor calificados</option>
+              <option value="ventas">Más ventas</option>
+              <option value="recientes">Más nuevos</option>
+            </select>
+          </form>
+          <div class="grid-vendedores" id="gridVendedores" aria-live="polite"></div>
         </div>
       </section>
 
@@ -710,6 +739,7 @@
           <h4>Mercado</h4>
           <ul>
             <li><button type="button" data-ir="cuentas">Comprar cuentas</button></li>
+            <li><button type="button" data-ir="vendedores">Vendedores</button></li>
             <li><button type="button" data-vista="vender">Vender mi cuenta</button></li>
             <li><button type="button" data-vista="panel">Mi panel</button></li>
             <li><button type="button" data-vista="saldo">Mi saldo</button></li>
@@ -1652,6 +1682,52 @@
         M.notificar(ok ? 'Enlace del perfil copiado. Compártelo para que vean tus estrellas.' : 'No se pudo copiar el enlace.', ok ? 'exito' : 'error');
       });
 
+      // ---------------- Directorio de vendedores ----------------
+      let turnoVendedores = 0;
+      async function cargarVendedores() {
+        const turno = ++turnoVendedores;
+        const grid = $('gridVendedores');
+        if (!grid.children.length) for (let i = 0; i < 3; i += 1) grid.append(Object.assign(crear('div', 'tarjeta-vendedor esqueleto-vendedor'), { ariaHidden: 'true' }));
+        const texto = $('buscarVendedor').value.normalize('NFC').replace(/[^\p{L}\p{N} ._-]/gu, '').trim();
+        const { data, error } = await cliente.rpc('mercado_vendedores', { p_texto: texto, p_orden: $('ordenVendedores').value });
+        if (turno !== turnoVendedores) return;
+        grid.replaceChildren();
+        if (error) { grid.append(crear('p', 'estado-lista', 'No pudimos cargar los vendedores.')); return; }
+        $('conteoVendedores').textContent = data.length ? `${data.length} vendedor${data.length === 1 ? '' : 'es'}` : '';
+        if (!data.length) {
+          grid.append(texto ? estadoVacio('No hay vendedores con ese nombre', 'Prueba con otra parte del nombre.', false)
+            : estadoVacio('Todavía no hay vendedores', 'Publica tu primera cuenta y aparece aquí con tus estrellas.', true));
+          return;
+        }
+        for (const v of data) {
+          const b = crear('button', 'tarjeta-vendedor aparecer');
+          b.type = 'button';
+          const nombre = v.nombre || 'Vendedor';
+          const destacado = Number(v.estrellas) >= 4.5 && v.opiniones >= 3;
+          b.setAttribute('aria-label', `Ver perfil de ${nombre}`);
+          const cab = crear('div', 'tv-cabecera');
+          const av = crear('span', 'avatar', letraDe(v.nombre));
+          av.setAttribute('aria-hidden', 'true');
+          const t = crear('div', 'tv-titulo');
+          t.append(crear('strong', null, nombre), crear('small', null, `Desde ${new Date(v.miembro_desde).toLocaleDateString('es-VE', { month: 'short', year: 'numeric' })}`));
+          cab.append(av, t);
+          if (destacado) cab.append(crear('span', 'tv-insignia', 'Destacado'));
+          const estrellas = crear('p', 'tv-estrellas');
+          if (v.estrellas) estrellas.append(crear('span', 'estrellas-texto', M.estrellas(Number(v.estrellas))), document.createTextNode(` ${Number(v.estrellas).toLocaleString('es-VE')} · ${v.opiniones} opinión${v.opiniones === 1 ? '' : 'es'}`));
+          else estrellas.textContent = 'Sin calificaciones todavía';
+          const datos = crear('div', 'tv-datos');
+          datos.append(crear('span', null, `${v.ventas} venta${v.ventas === 1 ? '' : 's'}`), crear('span', v.publicadas ? 'tv-activo' : '', v.publicadas ? `${v.publicadas} a la venta` : 'Sin cuentas ahora'));
+          b.append(cab, estrellas);
+          if (v.descripcion) b.append(crear('p', 'tv-descripcion', v.descripcion));
+          b.append(datos, crear('span', 'tv-ir', 'Ver perfil →'));
+          b.addEventListener('click', () => abrirPerfil(v.usuario));
+          grid.append(b);
+        }
+      }
+      let temporizadorVendedores;
+      $('formVendedores').addEventListener('input', () => { clearTimeout(temporizadorVendedores); temporizadorVendedores = setTimeout(cargarVendedores, 350); });
+      $('formVendedores').addEventListener('submit', (e) => { e.preventDefault(); cargarVendedores(); });
+
       // ---------------- Recargas de saldo ----------------
       // Tocar el saldo (barra, "Recargar") abre la ventana de recarga directamente
       function abrirRecargar() {
@@ -2259,7 +2335,7 @@
         mostrarVista(trato ? 'panel' : recarga ? 'saldo' : ['vender', 'panel', 'saldo'].includes(inicial) ? inicial : 'buscar');
         if (trato && sesion) abrirTrato(Number(trato[1]));
         if (recarga && sesion) abrirRecarga(Number(recarga[1]));
-        if (['cuentas', 'como-funciona'].includes(inicial)) setTimeout(() => $(inicial).scrollIntoView({ block: 'start' }), 50);
+        if (['cuentas', 'como-funciona', 'vendedores'].includes(inicial)) setTimeout(() => $(inicial).scrollIntoView({ block: 'start' }), 50);
         if (sesion) { cargarTratos(); cargarSaldo(); vigilar(); cargarMiPerfil(); }
         const perfil = /^perfil-([0-9a-f-]{36})$/.exec(inicial);
         if (perfil) abrirPerfil(perfil[1]);   // punto de aviso en "Mi panel", saldo en la barra y avisos en vivo
@@ -2267,6 +2343,7 @@
         if (inicial === 'recargar' && sesion) { mostrarVista('saldo'); abrirRecargar(); }
       });
       buscar(true);
+      cargarVendedores();
     });
   </script>
 

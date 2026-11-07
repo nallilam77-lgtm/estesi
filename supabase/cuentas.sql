@@ -758,6 +758,35 @@ returns jsonb language sql stable security definer set search_path = public as $
   ) where exists (select 1 from auth.users where id = p_usuario);
 $$;
 
+-- DIRECTORIO DE VENDEDORES (público): solo quien tiene cuentas a la venta o ya vendió alguna.
+-- p_orden: 'estrellas' (mejor calificados), 'ventas' (más ventas) o 'recientes'.
+create or replace function public.mercado_vendedores(p_texto text default '', p_orden text default 'estrellas')
+returns table (usuario uuid, nombre text, descripcion text, ventas int, estrellas numeric, opiniones int, publicadas int, miembro_desde timestamptz)
+language sql stable security definer set search_path = public as $$
+  with vendedores as (
+    select u.id,
+           coalesce((select s.ventas from saldos_vendedor s where s.vendedor = u.id), 0) as ventas,
+           (select count(*)::int from cuentas_venta c where c.vendedor = u.id and c.estado = 'publicada') as publicadas,
+           (select round(avg(k.estrellas), 1) from calificaciones k where k.vendedor = u.id) as estrellas,
+           (select count(*)::int from calificaciones k where k.vendedor = u.id) as opiniones,
+           u.created_at
+      from auth.users u
+     where exists (select 1 from cuentas_venta c where c.vendedor = u.id and c.estado in ('publicada', 'reservada', 'vendida'))
+        or exists (select 1 from saldos_vendedor s where s.vendedor = u.id and s.ventas > 0)
+  )
+  select v.id, pf.nombre, coalesce(pf.descripcion, ''), v.ventas, v.estrellas, v.opiniones, v.publicadas, v.created_at
+    from vendedores v
+    left join perfiles pf on pf.usuario = v.id
+   where coalesce(trim(p_texto), '') = ''
+      or lower(coalesce(pf.nombre, '')) like '%' || replace(replace(lower(trim(p_texto)), '%', ''), '_', '\_') || '%'
+   order by
+     case when p_orden = 'ventas' then v.ventas end desc nulls last,
+     case when p_orden = 'recientes' then v.created_at end desc nulls last,
+     case when coalesce(p_orden, 'estrellas') = 'estrellas' then coalesce(v.estrellas, 0) end desc nulls last,
+     v.opiniones desc, v.ventas desc, v.publicadas desc
+   limit 60;
+$$;
+
 -- APELACIÓN: el comprador o el vendedor pide que Level Up entre al chat del trato (uno a la vez)
 create or replace function public.venta_apelar(p_venta bigint, p_motivo text)
 returns void language plpgsql security definer set search_path = public as $$
@@ -1228,6 +1257,7 @@ revoke insert, update, delete on public.perfiles from anon, authenticated;
 revoke execute on function public.perfil_guardar(text, text) from public, anon;
 grant execute on function public.perfil_guardar(text, text) to authenticated;
 grant execute on function public.mercado_perfil(uuid) to anon, authenticated;
+grant execute on function public.mercado_vendedores(text, text) to anon, authenticated;
 revoke execute on function public.admin_estado(), public.admin_limpiar(int, text[], boolean) from public, anon;
 grant execute on function public.admin_estado(), public.admin_limpiar(int, text[], boolean) to authenticated;
 
