@@ -11,3 +11,7 @@ node_modules/
 
 # Configuración local de Claude Code
 .claude/settings.local.json
+
+# Material de promoción (pesado; no va al repositorio)
+videos-promo/
+public/unete.png
