@@ -18,9 +18,9 @@
   <link rel="stylesheet" href="css/creadores.css">
   <link rel="stylesheet" href="css/billetera.css">
   <link rel="stylesheet" href="css/cuentas.css?v=3">
-  <link rel="stylesheet" href="css/tienda.css?v=7">
+  <link rel="stylesheet" href="css/tienda.css?v=8">
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.js" defer></script>
-  <script src="js/mercado.js?v=5" defer></script>
+  <script src="js/mercado.js?v=6" defer></script>
 </head>
 <body class="tienda">
 
@@ -43,6 +43,7 @@
     <symbol id="i-recarga" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 8v8M8 12h8"/></symbol>
     <symbol id="i-soporte" viewBox="0 0 24 24"><path d="M4 13v-1a8 8 0 0 1 16 0v1"/><rect x="3" y="13" width="4" height="6" rx="1.5"/><rect x="17" y="13" width="4" height="6" rx="1.5"/><path d="M19 19a3 3 0 0 1-3 3h-3"/></symbol>
     <symbol id="i-buscar" viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="m20 20-4-4"/></symbol>
+    <symbol id="i-servidor" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="7" rx="2"/><rect x="3" y="13" width="18" height="7" rx="2"/><path d="M7 7.5h.01M7 16.5h.01"/></symbol>
     <symbol id="i-whatsapp" viewBox="0 0 24 24"><path d="M3 21l1.6-4.8A8.5 8.5 0 1 1 8 19.6L3 21z"/><path d="M9 9.5c.5 2 2.5 4 4.5 4.5l1-1.2 2 1-.5 1.7c-3.5.3-7.3-3.5-7-7l1.7-.5 1 2L9 9.5z"/></symbol>
   </svg>
 
@@ -113,6 +114,7 @@
           <button type="button" role="tab" aria-selected="false" data-vista="tratos"><svg class="icono"><use href="#i-chat"/></svg>Tratos<span class="contador" data-cuenta="abiertos"></span></button>
           <button type="button" role="tab" aria-selected="false" data-vista="retiros"><svg class="icono"><use href="#i-billetera"/></svg>Retiros<span class="contador" data-cuenta="retiros"></span></button>
           <button type="button" role="tab" aria-selected="false" data-vista="usuarios"><svg class="icono"><use href="#i-usuario"/></svg>Cuentas</button>
+          <button type="button" role="tab" aria-selected="false" data-vista="sistema"><svg class="icono"><use href="#i-servidor"/></svg>Sistema</button>
           <button type="button" role="tab" aria-selected="false" data-vista="ajustes"><svg class="icono"><use href="#i-ajustes"/></svg>Ajustes</button>
         </div>
         <div class="panel-mensaje" id="mensajeAdmin" role="status" aria-live="polite"></div>
@@ -198,6 +200,34 @@
             <button type="submit" class="btn-juego"><svg class="icono"><use href="#i-buscar"/></svg>Buscar</button>
           </form>
           <div class="admin-lista" id="listaUsuarios"></div>
+        </section>
+
+        <!-- Sistema: estado de Supabase y limpieza -->
+        <section class="admin-seccion oculto" id="vistaSistema" aria-labelledby="tituloSistema">
+          <div class="admin-seccion-cabecera">
+            <h2 id="tituloSistema">Estado del sistema</h2>
+            <p>Cómo está tu Supabase: espacio usado, conexión en vivo, mantenimiento automático y el dinero que manejas.</p>
+          </div>
+          <div class="sistema-rejilla" id="estadoSistema"></div>
+
+          <div class="admin-seccion-cabecera sistema-limpieza-titulo">
+            <h2>Borrar lo viejo</h2>
+            <p>Libera espacio y borra datos sensibles que ya no hacen falta. <strong>Nunca toca el dinero:</strong> saldos, movimientos, retiros, tratos y recargas aprobadas se conservan.</p>
+          </div>
+          <form class="ajustes-grupo limpieza" id="formLimpieza" novalidate>
+            <div class="campo">
+              <label for="limpiezaDias">Borrar lo que tenga más de</label>
+              <select id="limpiezaDias">
+                <option value="30">30 días</option><option value="60">60 días</option><option value="90" selected>90 días</option><option value="180">6 meses</option><option value="365">1 año</option>
+              </select>
+            </div>
+            <div class="limpieza-opciones" id="limpiezaOpciones"></div>
+            <div class="admin-acciones">
+              <button type="button" class="btn-secundario" id="btnVistaPrevia"><svg class="icono"><use href="#i-revision"/></svg><span>Ver cuánto se borraría</span></button>
+              <button type="button" class="btn-secundario btn-peligro" id="btnLimpiar"><svg class="icono"><use href="#i-basura"/></svg><span>Borrar ahora</span></button>
+            </div>
+            <div class="panel-mensaje" id="mensajeLimpieza" role="status" aria-live="polite"></div>
+          </form>
         </section>
 
         <!-- Ajustes -->
@@ -502,7 +532,7 @@
       }
 
       // ---------------- Navegación ----------------
-      const VISTAS = { recargas: 'vistaRecargas', chats: 'vistaChats', usuarios: 'vistaUsuarios', revision: 'vistaRevision', tratos: 'vistaTratos', retiros: 'vistaRetiros', ajustes: 'vistaAjustes' };
+      const VISTAS = { recargas: 'vistaRecargas', chats: 'vistaChats', usuarios: 'vistaUsuarios', sistema: 'vistaSistema', revision: 'vistaRevision', tratos: 'vistaTratos', retiros: 'vistaRetiros', ajustes: 'vistaAjustes' };
       function irA(nueva, filtro, filtroRec) {
         vista = nueva;
         if (filtro) cambiarFiltro(filtro, false);
@@ -528,6 +558,7 @@
         revisarMetodos();
         if (vista === 'recargas') cargarRecargas();
         if (vista === 'chats') cargarChats();
+        if (vista === 'sistema') cargarEstado();
         if (vista === 'usuarios' && !$('listaUsuarios').children.length) buscarUsuarios();
         if (vista === 'revision') cargarRevision();
         if (vista === 'tratos') cargarTratos();
@@ -635,7 +666,8 @@
           img.alt = 'Comprobante de pago (abrir en grande)';
           img.loading = 'lazy';
           foto.append(img);
-          M.urlComprobante(o.captura).then((url) => { img.src = url; foto.href = url; });
+          if (o.captura) M.urlComprobante(o.captura).then((url) => { img.src = url; foto.href = url; });
+          else foto.replaceChildren(crear('p', 'captura-borrada', 'Captura borrada en una limpieza'));
 
           const cuerpo = crear('div', 'admin-tarjeta-cuerpo');
           const cabecera = crear('div', 'admin-tarjeta-cabecera');
@@ -705,10 +737,10 @@
         const caja = $('recargaAcciones');
         caja.replaceChildren();
         accionesRecarga(o, caja, async () => { await refrescarRecarga(); chatRecarga.traer(); });
-        const url = await M.urlComprobante(o.captura);
+        const url = o.captura ? await M.urlComprobante(o.captura) : '';
         if (id !== recargaAbierta) return;
-        $('recargaCaptura').src = url;
-        $('recargaCapturaEnlace').href = url || '#';
+        $('recargaCapturaEnlace').classList.toggle('oculto', !url);
+        if (url) { $('recargaCaptura').src = url; $('recargaCapturaEnlace').href = url; }
       }
 
       // ---------------- Chats (bandeja en vivo) ----------------
@@ -928,6 +960,173 @@
         tarjeta.append(cuerpo);
         return tarjeta;
       }
+
+      // ---------------- Sistema: estado de Supabase y limpieza ----------------
+      const PLAN_BD = 500 * 1024 * 1024;       // plan gratis: 500 MB de base de datos
+      const PLAN_ARCHIVOS = 1024 * 1024 * 1024; // plan gratis: 1 GB de archivos
+      const PROYECTO = 'https://supabase.com/dashboard/project/qaxgvfzpzywfgcwnalfr';
+      const tamano = (b) => (b >= 1048576 ? `${(b / 1048576).toLocaleString('es-VE', { maximumFractionDigits: 1 })} MB` : `${Math.max(1, Math.round(b / 1024))} KB`);
+      function tarjetaEstado(titulo, idIcono, estado) {
+        const t = crear('article', `estado-tarjeta estado-${estado || 'neutro'} aparecer`);
+        const cab = crear('div', 'estado-cabecera');
+        const ic = crear('span', 'icono-caja');
+        ic.append(icono(idIcono));
+        cab.append(ic, crear('h3', null, titulo));
+        if (estado) cab.append(crear('span', `pastilla estado-pastilla-${estado}`, { ok: 'Bien', aviso: 'Revisar', mal: 'Problema' }[estado]));
+        t.append(cab);
+        return t;
+      }
+      function barra(usado, total) {
+        const pct = Math.min(100, (usado / total) * 100);
+        const caja = crear('div', 'barra-uso');
+        const relleno = crear('span', pct > 85 ? 'lleno' : pct > 60 ? 'medio' : '');
+        relleno.style.width = `${Math.max(pct, 1.5)}%`;
+        caja.append(relleno);
+        const texto = crear('p', 'barra-texto', `${tamano(usado)} de ${tamano(total)} (${pct.toLocaleString('es-VE', { maximumFractionDigits: 1 })} %)`);
+        return [caja, texto];
+      }
+      const enlace = (texto, url) => { const a = crear('a', 'enlace-reglas', texto); a.href = url; a.target = '_blank'; a.rel = 'noopener'; return a; };
+
+      async function cargarEstado() {
+        const caja = $('estadoSistema');
+        const inicio = performance.now();
+        const { data: e, error } = await cliente.rpc('admin_estado');
+        const ms = Math.round(performance.now() - inicio);
+        caja.replaceChildren();
+        if (error) {
+          const t = tarjetaEstado('Conexión con Supabase', 'i-servidor', 'mal');
+          t.append(crear('p', null, `No respondió: ${error.message}. Si el proyecto está pausado, reactívalo en Supabase.`), enlace('Abrir Supabase', PROYECTO));
+          caja.append(t);
+          return;
+        }
+        // Conexión
+        const conexion = tarjetaEstado('Conexión con Supabase', 'i-servidor', ms < 1500 ? 'ok' : 'aviso');
+        conexion.append(ficha([['Respuesta', `${ms} ms`], ['Hora del servidor', fecha(e.hora_servidor)], ['Postgres', e.version_postgres]]),
+          crear('p', 'estado-nota', 'Plan gratis: si pasan 7 días sin visitas, Supabase pausa el proyecto. Entra al panel de vez en cuando.'));
+        // Base de datos
+        const bd = tarjetaEstado('Base de datos', 'i-revision', e.bd_bytes / PLAN_BD > 0.85 ? 'mal' : e.bd_bytes / PLAN_BD > 0.6 ? 'aviso' : 'ok');
+        bd.append(...barra(e.bd_bytes, PLAN_BD), ficha(Object.entries(e.tablas).map(([k, v]) => [k, Number(v).toLocaleString('es-VE')])));
+        // Archivos
+        const fotos = e.archivos['cuentas-fotos'] || { archivos: 0, bytes: 0 };
+        const comp = e.archivos.comprobantes || { archivos: 0, bytes: 0 };
+        const usadoArchivos = Number(fotos.bytes) + Number(comp.bytes);
+        const arch = tarjetaEstado('Archivos (Storage)', 'i-billetera', usadoArchivos / PLAN_ARCHIVOS > 0.85 ? 'mal' : usadoArchivos / PLAN_ARCHIVOS > 0.6 ? 'aviso' : 'ok');
+        arch.append(...barra(usadoArchivos, PLAN_ARCHIVOS), ficha([
+          ['Fotos de cuentas', `${fotos.archivos} archivos · ${tamano(Number(fotos.bytes))}`],
+          ['Capturas de pago', `${comp.archivos} archivos · ${tamano(Number(comp.bytes))}`],
+        ]));
+        // En vivo y mantenimiento
+        const tablasVivo = ['mensajes_recarga', 'mensajes_soporte', 'mensajes_venta', 'ordenes_recarga'];
+        const faltanVivo = tablasVivo.filter((t) => !e.realtime.includes(t));
+        const vivoOk = !faltanVivo.length && !$('enVivo').classList.contains('desconectado');
+        const vivo = tarjetaEstado('Chat en vivo y automático', 'i-chat', vivoOk && e.tratos_vencidos === 0 ? 'ok' : 'aviso');
+        vivo.append(ficha([
+          ['Tiempo real', faltanVivo.length ? `Faltan tablas: ${faltanVivo.join(', ')} (vuelve a correr el SQL)` : $('enVivo').classList.contains('desconectado') ? 'Tablas listas, pero este panel no está conectado' : 'Conectado'],
+          ['Tarea automática (pg_cron)', e.pg_cron ? 'Activa: cierra tratos vencidos cada 10 min' : 'No activa: los tratos se cierran cuando alguien entra a la web'],
+          ['Tratos vencidos sin cerrar', String(e.tratos_vencidos)],
+        ]));
+        if (!e.pg_cron) vivo.append(enlace('Activar pg_cron (Database → Extensions) y volver a correr el SQL', `${PROYECTO}/database/extensions`));
+        // Usuarios y pendientes
+        const pend = e.pendientes;
+        const totalPend = pend.recargas + pend.revision + pend.reclamos + pend.apelaciones;
+        const usu = tarjetaEstado('Usuarios y pendientes', 'i-usuario', totalPend ? 'aviso' : 'ok');
+        usu.append(ficha([
+          ['Cuentas registradas', `${e.usuarios} (${e.usuarios_7d} esta semana)`],
+          ['Recargas por aprobar', String(pend.recargas)], ['Publicaciones por revisar', String(pend.revision)],
+          ['Reclamos abiertos', String(pend.reclamos)], ['Apelaciones sin atender', String(pend.apelaciones)],
+        ]));
+        // Dinero
+        const d = e.dinero;
+        const debes = Number(d.saldo_recargado) + Number(d.saldo_ventas) + Number(d.retenido_en_tratos);
+        const dinero = tarjetaEstado('Dinero', 'i-dinero');
+        dinero.append(
+          crear('p', 'estado-grande', usd(debes)),
+          crear('p', 'estado-nota', 'Es lo que tus clientes tienen guardado contigo: debes tenerlo disponible.'),
+          ficha([
+            ['Saldo recargado (clientes)', usd(d.saldo_recargado)], ['Saldo de ventas (vendedores)', usd(d.saldo_ventas)],
+            ['Retenido en tratos abiertos', usd(d.retenido_en_tratos)], ['Retiros por pagar (lunes)', usd(d.retiros_por_pagar)],
+            ['Tus comisiones cobradas', usd(d.comisiones_cobradas)], ['Garantías cobradas', usd(d.garantias_cobradas)],
+          ]),
+        );
+        // Accesos directos
+        const atajos = tarjetaEstado('Supabase', 'i-ajustes');
+        const lista = crear('div', 'estado-enlaces');
+        lista.append(enlace('Uso y límites del plan', `${PROYECTO}/settings/billing/usage`), enlace('Copias de seguridad', `${PROYECTO}/database/backups/scheduled`),
+          enlace('Registros (errores)', `${PROYECTO}/logs/explorer`), enlace('Usuarios (Auth)', `${PROYECTO}/auth/users`), enlace('Archivos (Storage)', `${PROYECTO}/storage/buckets`));
+        atajos.append(lista);
+        caja.append(conexion, bd, arch, vivo, usu, dinero, atajos);
+        pintarOpcionesLimpieza();
+      }
+
+      const LIMPIEZA = [
+        ['chats_tratos', 'Chats de tratos terminados', 'Borra los mensajes de tratos cerrados o cancelados, incluidos los datos de acceso que se entregaron. Recomendado.'],
+        ['capturas_aprobadas', 'Capturas de recargas aprobadas', 'Borra la imagen del comprobante; la orden y su referencia se conservan.'],
+        ['recargas_rechazadas', 'Recargas rechazadas', 'Borra la orden, su chat y su captura.'],
+        ['publicaciones', 'Publicaciones vendidas o rechazadas', 'Borra la publicación y sus fotos (el trato y el dinero quedan).'],
+        ['soporte', 'Mensajes de soporte viejos', 'Borra los mensajes del chat en vivo con más antigüedad.'],
+        ['huerfanos', 'Archivos sin usar', 'Fotos y capturas que quedaron de subidas fallidas (de más de 1 día, sin importar los días elegidos).'],
+      ];
+      function pintarOpcionesLimpieza() {
+        const caja = $('limpiezaOpciones');
+        if (caja.children.length) return;
+        for (const [clave, titulo, ayuda] of LIMPIEZA) {
+          const l = crear('label', 'casilla limpieza-opcion');
+          const c = crear('input');
+          c.type = 'checkbox';
+          c.value = clave;
+          c.checked = ['chats_tratos', 'capturas_aprobadas', 'recargas_rechazadas', 'huerfanos'].includes(clave);
+          const t = crear('span');
+          t.append(crear('strong', null, titulo), crear('small', null, ayuda), crear('em', 'limpieza-conteo'));
+          t.lastChild.dataset.clave = clave;
+          l.append(c, t);
+          caja.append(l);
+        }
+      }
+      const elegidosLimpieza = () => [...document.querySelectorAll('#limpiezaOpciones input:checked')].map((c) => c.value);
+      async function limpiar(ejecutar) {
+        const que = elegidosLimpieza();
+        if (!que.length) return M.mensaje($('mensajeLimpieza'), 'Marca al menos una opción.', 'aviso');
+        const dias = Number($('limpiezaDias').value);
+        const { data, error } = await cliente.rpc('admin_limpiar', { p_dias: dias, p_que: que, p_ejecutar: ejecutar });
+        if (error) { M.mensaje($('mensajeLimpieza'), M.textoError(error, 'No se pudo completar la limpieza.')); return null; }
+        document.querySelectorAll('.limpieza-conteo').forEach((el) => {
+          const n = data.conteos[el.dataset.clave];
+          el.textContent = n == null ? '' : `${ejecutar ? 'Borrados' : 'Se borrarían'}: ${Number(n).toLocaleString('es-VE')}`;
+        });
+        return data;
+      }
+      $('btnVistaPrevia').addEventListener('click', async () => {
+        const data = await limpiar(false);
+        if (!data) return;
+        const total = Object.values(data.conteos).reduce((a, b) => a + Number(b), 0);
+        M.mensaje($('mensajeLimpieza'), total ? `Se borrarían ${total.toLocaleString('es-VE')} elementos. Revisa cada opción y toca "Borrar ahora".` : 'No hay nada que borrar con esos días.', total ? 'aviso' : 'exito');
+      });
+      $('btnLimpiar').addEventListener('click', async () => {
+        const vista = await limpiar(false);
+        if (!vista) return;
+        const total = Object.values(vista.conteos).reduce((a, b) => a + Number(b), 0);
+        if (!total) return M.mensaje($('mensajeLimpieza'), 'No hay nada que borrar con esos días.', 'exito');
+        const r = await dialogo({ titulo: 'Borrar lo viejo', texto: `Se borrarán ${total.toLocaleString('es-VE')} elementos de más de ${$('limpiezaDias').selectedOptions[0].textContent}. No se puede deshacer. El dinero no se toca.`, aceptar: 'Sí, borrar', peligro: true });
+        if (!r) return;
+        const b = $('btnLimpiar');
+        b.disabled = true;
+        try {
+          const data = await limpiar(true);
+          if (!data) return;
+          let archivos = 0;
+          for (const [bucket, rutas] of Object.entries(data.archivos || {})) {
+            for (let i = 0; i < rutas.length; i += 100) {
+              const { data: borrados } = await cliente.storage.from(bucket).remove(rutas.slice(i, i + 100));
+              archivos += borrados?.length || 0;
+            }
+          }
+          M.mensaje($('mensajeLimpieza'), `Limpieza hecha. ${archivos} archivos borrados del Storage.`, 'exito');
+          M.notificar(`Limpieza hecha: se liberó espacio y se borraron ${archivos} archivos.`, 'exito', { titulo: 'Sistema' });
+          cargarEstado();
+        } finally {
+          b.disabled = false;
+        }
+      });
 
       // ---------------- Revisión ----------------
       async function cargarRevision() {
@@ -1257,14 +1456,20 @@
       });
 
       // ---------------- Arranque ----------------
+      let usuarioDentro = null;   // evita entrar dos veces (Supabase repite SIGNED_IN al volver a la pestaña)
+      function entrarUnaVez() {
+        if (!sesion || usuarioDentro === sesion.user.id) return;
+        usuarioDentro = sesion.user.id;
+        entrar();
+      }
       cliente.auth.onAuthStateChange((evento, nueva) => {
         sesion = nueva;
-        if (evento === 'SIGNED_IN') setTimeout(entrar, 0);
-        if (evento === 'SIGNED_OUT') { cortarVivo(); pantallaAcceso(''); }
+        if (evento === 'SIGNED_IN') setTimeout(entrarUnaVez, 0);
+        if (evento === 'SIGNED_OUT') { usuarioDentro = null; cortarVivo(); pantallaAcceso(''); }
       });
       cliente.auth.getSession().then(({ data }) => {
         sesion = data.session;
-        if (sesion) entrar(); else pantallaAcceso('');
+        if (sesion) entrarUnaVez(); else pantallaAcceso('');
       });
       // Se actualiza solo cada 30 s (recargas nuevas, chats, reclamos)
       setInterval(() => { if (sesion && !document.hidden && !tratoAbierto && !recargaAbierta && !soporteAbierto && $('dialogo').classList.contains('oculto') && !$('vistaAdmin').classList.contains('oculto')) cargarTodo(); }, 30000);

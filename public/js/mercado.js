@@ -155,6 +155,7 @@
 
     // Enlace temporal (1 h) a una captura del bucket privado
     async urlComprobante(ruta) {
+      if (!ruta) return '';   // la captura se borró en una limpieza
       const { data } = await Mercado.cliente().storage.from(BUCKET_COMPROBANTES).createSignedUrl(ruta, 3600);
       return data?.signedUrl || '';
     },

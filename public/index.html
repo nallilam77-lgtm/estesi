@@ -25,9 +25,9 @@
   <link rel="stylesheet" href="css/creadores.css">
   <link rel="stylesheet" href="css/billetera.css">
   <link rel="stylesheet" href="css/cuentas.css?v=3">
-  <link rel="stylesheet" href="css/tienda.css?v=6">
+  <link rel="stylesheet" href="css/tienda.css?v=8">
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.js" defer></script>
-  <script src="js/mercado.js?v=5" defer></script>
+  <script src="js/mercado.js?v=6" defer></script>
 </head>
 <body class="tienda">
 
@@ -1712,8 +1712,8 @@
         $('recargaDatos').replaceWith(dl);
         const url = await M.urlComprobante(o.captura);
         if (id !== recargaAbierta) return;
-        $('recargaCaptura').src = url;
-        $('recargaCapturaEnlace').href = url || '#';
+        $('recargaCapturaEnlace').classList.toggle('oculto', !url);
+        if (url) { $('recargaCaptura').src = url; $('recargaCapturaEnlace').href = url; }
       }
 
       // ---------------- Chat en vivo con soporte ----------------
@@ -2030,8 +2030,12 @@
       }
 
       // ---------------- Arranque ----------------
+      let usuarioPrevio;   // Supabase repite SIGNED_IN al volver a la pestaña: solo reaccionamos si cambió el usuario
       cliente.auth.onAuthStateChange((evento, nueva) => {
+        const repetido = evento === 'SIGNED_IN' && usuarioPrevio === (nueva?.user?.id || null);
+        usuarioPrevio = nueva?.user?.id || null;
         sesion = nueva;
+        if (repetido) return;
         actualizarBotonPanel();
         if (evento === 'PASSWORD_RECOVERY') {
           $('vistaInicio').classList.add('oculto');
@@ -2056,6 +2060,7 @@
       });
       cliente.auth.getSession().then(({ data }) => {
         sesion = data.session;
+        usuarioPrevio = sesion?.user?.id || null;
         actualizarBotonPanel();
         const inicial = location.hash.replace('#', '');
         const trato = /^trato-(\d+)$/.exec(inicial);

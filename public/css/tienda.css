@@ -795,3 +795,45 @@ body.soporte-abierto .chat-flotante { display: none; }
 .pastilla-apelacion { color: var(--game-text); border-color: var(--game-text); background: var(--game-soft); }
 @media (max-width: 599px) { .usuario-saldos { grid-template-columns: 1fr 1fr; } .usuario-saldos .total { grid-column: 1 / -1; } }
 @media (prefers-reduced-motion: reduce) { .aviso-mercado { animation: none; } }
+
+/* =====================================================================
+   Admin → Sistema (estado de Supabase y limpieza)
+   ===================================================================== */
+.sistema-rejilla { display: grid; gap: 16px; }
+.estado-tarjeta { display: grid; gap: 14px; align-content: start; padding: 20px; border-radius: 18px; background: var(--fondo-tarjeta); border: 1px solid var(--linea); min-width: 0; }
+.estado-ok { border-color: rgba(57, 255, 20, 0.25); }
+.estado-aviso { border-color: var(--game-line); }
+.estado-mal { border-color: var(--danger); }
+.estado-cabecera { display: flex; align-items: center; gap: 12px; }
+.estado-cabecera h3 { flex: 1 1 auto; font-family: 'Montserrat', sans-serif; font-weight: 900; font-size: 15px; }
+.estado-pastilla-ok { color: var(--accent-neon); border-color: rgba(57, 255, 20, 0.4); }
+.estado-pastilla-aviso { color: var(--game-text); border-color: var(--game-line); }
+.estado-pastilla-mal { color: var(--danger); border-color: var(--danger); }
+.estado-nota { font-size: 12px; line-height: 1.5; color: var(--text-muted); }
+.estado-grande { font-family: 'Montserrat', sans-serif; font-weight: 900; font-size: 28px; color: var(--game-text); }
+.estado-enlaces { display: grid; gap: 8px; }
+.estado-enlaces .enlace-reglas, .estado-tarjeta > .enlace-reglas { text-align: left; font-size: 13px; }
+.barra-uso { height: 10px; border-radius: 999px; overflow: hidden; background: var(--fondo-hundido); border: 1px solid var(--linea); }
+.barra-uso span { display: block; height: 100%; border-radius: 999px; background: var(--accent-neon); transition: width 0.6s ease; }
+.barra-uso span.medio { background: var(--game-gradient); }
+.barra-uso span.lleno { background: var(--danger); }
+.barra-texto { margin-top: -6px; font-size: 12px; color: var(--text-muted); }
+.sistema-limpieza-titulo { margin-top: 32px; }
+.limpieza { gap: 16px; }
+.limpieza select { width: 100%; min-height: 48px; padding: 0 12px; border-radius: 12px; font: inherit; font-size: 16px; background: var(--fondo-hundido); border: 1px solid var(--linea); color: var(--text-main); }
+.limpieza-opciones { display: grid; gap: 10px; }
+.limpieza-opcion { align-items: flex-start; padding: 12px; border-radius: 12px; background: var(--fondo-hundido); border: 1px solid var(--linea); }
+.limpieza-opcion span { display: grid; gap: 2px; }
+.limpieza-opcion strong { font-size: 14px; color: var(--text-main); }
+.limpieza-opcion small { font-size: 12px; line-height: 1.5; color: var(--text-muted); }
+.limpieza-conteo { font-style: normal; font-size: 12px; font-weight: 700; color: var(--game-text); }
+.limpieza-conteo:empty { display: none; }
+.captura-borrada { padding: 24px 12px; font-size: 12px; text-align: center; color: var(--text-muted); }
+@media (min-width: 900px) {
+  .sistema-rejilla { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .limpieza-opciones { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+@media (max-width: 599px) {
+  .estado-tarjeta .ficha { grid-template-columns: 1fr; gap: 2px; }
+  .estado-tarjeta .ficha dd { margin-bottom: 8px; }
+}

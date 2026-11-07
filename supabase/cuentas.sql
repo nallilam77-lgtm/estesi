@@ -938,6 +938,136 @@ exception when check_violation then
   raise exception 'SALDO_GASTADO';
 end $$;
 
+-- ESTADO DEL SISTEMA para el panel: tamaño de la base y de los archivos, conteos, dinero y salud
+create or replace function public.admin_estado()
+returns jsonb language plpgsql stable security definer set search_path = public as $$
+begin
+  perform _exigir_admin();
+  return jsonb_build_object(
+    'hora_servidor', now(),
+    'version_postgres', split_part(version(), ' ', 2),
+    'bd_bytes', pg_database_size(current_database()),
+    'pg_cron', exists (select 1 from pg_extension where extname = 'pg_cron'),
+    'realtime', (select coalesce(jsonb_agg(tablename order by tablename), '[]'::jsonb) from pg_publication_tables
+                  where pubname = 'supabase_realtime' and schemaname = 'public'),
+    'usuarios', (select count(*) from auth.users),
+    'usuarios_7d', (select count(*) from auth.users where created_at > now() - interval '7 days'),
+    'tablas', jsonb_build_object(
+      'Publicaciones', (select count(*) from cuentas_venta),
+      'Tratos', (select count(*) from ventas_cuentas),
+      'Mensajes de tratos', (select count(*) from mensajes_venta),
+      'Recargas', (select count(*) from ordenes_recarga),
+      'Mensajes de recargas', (select count(*) from mensajes_recarga),
+      'Mensajes de soporte', (select count(*) from mensajes_soporte),
+      'Movimientos de saldo', (select count(*) from movimientos_vendedor),
+      'Retiros', (select count(*) from retiros),
+      'Calificaciones', (select count(*) from calificaciones)),
+    'archivos', (select coalesce(jsonb_object_agg(bucket_id, jsonb_build_object('archivos', n, 'bytes', b)), '{}'::jsonb)
+                   from (select o.bucket_id, count(*) n, coalesce(sum((o.metadata ->> 'size')::bigint), 0) b
+                           from storage.objects o where o.bucket_id in ('cuentas-fotos', 'comprobantes') group by o.bucket_id) x),
+    'dinero', jsonb_build_object(
+      'saldo_recargado', (select coalesce(sum(recargado), 0) from saldos_vendedor),
+      'saldo_ventas', (select coalesce(sum(disponible), 0) from saldos_vendedor),
+      'retenido_en_tratos', (select coalesce(sum(total_usd), 0) from ventas_cuentas where estado in ('pagada', 'entregada', 'en_reclamo')),
+      'retiros_por_pagar', (select coalesce(sum(neto_usd), 0) from retiros where estado = 'pendiente'),
+      'comisiones_cobradas', (select coalesce(sum(comision_usd), 0) from retiros where estado = 'pagado'),
+      'garantias_cobradas', (select coalesce(sum(total_usd - precio_usd), 0) from ventas_cuentas where estado = 'cerrada')),
+    -- Si esto no es 0, el mantenimiento automático no está corriendo
+    'tratos_vencidos', (select count(*) from ventas_cuentas where estado = 'entregada'
+                          and entregada_en < now() - make_interval(hours => _config_num('horas_revision', 24)::int)),
+    'pendientes', jsonb_build_object(
+      'recargas', (select count(*) from ordenes_recarga where estado = 'pendiente'),
+      'revision', (select count(*) from cuentas_venta where estado = 'revision'),
+      'reclamos', (select count(*) from ventas_cuentas where estado = 'en_reclamo'),
+      'apelaciones', (select count(*) from ventas_cuentas where apelada_en is not null and estado not in ('cerrada', 'cancelada')))
+  );
+end $$;
+
+-- LIMPIEZA de lo viejo. p_que: 'chats_tratos', 'recargas_rechazadas', 'capturas_aprobadas', 'publicaciones', 'soporte', 'huerfanos'.
+-- Nunca toca dinero: saldos, movimientos, retiros, tratos y recargas aprobadas se conservan siempre.
+-- Con p_ejecutar = false solo cuenta. Con true borra y devuelve las rutas de archivos para que el panel los borre del Storage.
+create or replace function public.admin_limpiar(p_dias int, p_que text[], p_ejecutar boolean default false)
+returns jsonb language plpgsql security definer set search_path = public as $$
+declare
+  corte timestamptz;
+  conteos jsonb := '{}'::jsonb;
+  fotos text[] := '{}';
+  capturas text[] := '{}';
+  tmp text[];
+  n bigint;
+begin
+  perform _exigir_admin();
+  if p_dias is null or p_dias < 7 then raise exception 'DATO_INVALIDO'; end if;
+  corte := now() - make_interval(days => p_dias);
+  perform set_config('mercado.sistema', '1', true);
+
+  -- (Primero, antes de borrar nada) Archivos que ninguna publicación ni recarga usa (subidas que fallaron), de hace más de 1 día
+  if 'huerfanos' = any (p_que) then
+    select count(*) into n from storage.objects o
+     where o.created_at < now() - interval '1 day' and (
+       (o.bucket_id = 'cuentas-fotos' and not exists (select 1 from cuentas_venta c where o.name = any (c.fotos)))
+       or (o.bucket_id = 'comprobantes' and not exists (select 1 from ordenes_recarga r where r.captura = o.name)));
+    conteos := conteos || jsonb_build_object('huerfanos', n);
+    if p_ejecutar then
+      fotos := fotos || coalesce((select array_agg(o.name) from storage.objects o where o.bucket_id = 'cuentas-fotos' and o.created_at < now() - interval '1 day'
+                                    and not exists (select 1 from cuentas_venta c where o.name = any (c.fotos))), '{}');
+      capturas := capturas || coalesce((select array_agg(o.name) from storage.objects o where o.bucket_id = 'comprobantes' and o.created_at < now() - interval '1 day'
+                                    and not exists (select 1 from ordenes_recarga r where r.captura = o.name)), '{}');
+    end if;
+  end if;
+
+  if 'chats_tratos' = any (p_que) then
+    select count(*) into n from mensajes_venta m join ventas_cuentas v on v.id = m.venta
+     where v.estado in ('cerrada', 'cancelada') and coalesce(v.cerrada_en, v.actualizado) < corte;
+    conteos := conteos || jsonb_build_object('chats_tratos', n);
+    if p_ejecutar then
+      delete from mensajes_venta m using ventas_cuentas v
+       where v.id = m.venta and v.estado in ('cerrada', 'cancelada') and coalesce(v.cerrada_en, v.actualizado) < corte;
+    end if;
+  end if;
+
+  if 'recargas_rechazadas' = any (p_que) then
+    select count(*), coalesce(array_agg(captura) filter (where captura <> ''), '{}') into n, tmp
+      from ordenes_recarga where estado = 'rechazada' and resuelto < corte;
+    capturas := capturas || tmp;
+    conteos := conteos || jsonb_build_object('recargas_rechazadas', n);
+    if p_ejecutar then delete from ordenes_recarga where estado = 'rechazada' and resuelto < corte; end if;
+  end if;
+
+  if 'capturas_aprobadas' = any (p_que) then
+    select count(*), coalesce(array_agg(captura), '{}') into n, tmp
+      from ordenes_recarga where estado = 'aprobada' and resuelto < corte and captura <> '';
+    conteos := conteos || jsonb_build_object('capturas_aprobadas', n);
+    capturas := capturas || tmp;
+    if p_ejecutar then update ordenes_recarga set captura = '' where estado = 'aprobada' and resuelto < corte and captura <> ''; end if;
+  end if;
+
+  if 'publicaciones' = any (p_que) then
+    select count(*), coalesce((select array_agg(f) from cuentas_venta c2, unnest(c2.fotos) f
+                                where c2.estado in ('rechazada', 'vendida') and c2.actualizado < corte), '{}')
+      into n, tmp
+      from cuentas_venta where estado in ('rechazada', 'vendida') and actualizado < corte;
+    conteos := conteos || jsonb_build_object('publicaciones', n);
+    fotos := fotos || tmp;
+    if p_ejecutar then delete from cuentas_venta where estado in ('rechazada', 'vendida') and actualizado < corte; end if;
+  end if;
+
+  if 'soporte' = any (p_que) then
+    select count(*) into n from mensajes_soporte where creado < corte;
+    conteos := conteos || jsonb_build_object('soporte', n);
+    if p_ejecutar then
+      delete from mensajes_soporte where creado < corte;
+      delete from soporte_chats s where s.actualizado < corte and not exists (select 1 from mensajes_soporte m where m.usuario = s.usuario);
+    end if;
+  end if;
+
+  fotos := array(select distinct x from unnest(fotos) x);
+  capturas := array(select distinct x from unnest(capturas) x);
+  return jsonb_build_object('conteos', conteos,
+    'archivos', case when p_ejecutar then jsonb_build_object('cuentas-fotos', to_jsonb(fotos[1:2000]), 'comprobantes', to_jsonb(capturas[1:2000]))
+                     else '{}'::jsonb end);
+end $$;
+
 -- Correos de comprador/vendedor para el panel (auth.users no es accesible desde la API)
 create or replace function public.admin_correos(p_ids uuid[])
 returns table (id uuid, email text) language plpgsql stable security definer set search_path = public as $$
@@ -1039,6 +1169,24 @@ revoke execute on function public.venta_apelar(bigint, text), public.venta_calif
 grant execute on function public.venta_apelar(bigint, text), public.venta_calificar(bigint, int, text),
   public.admin_buscar_usuarios(text), public.admin_ajustar_recargado(uuid, numeric, text) to authenticated;
 grant execute on function public.mercado_opiniones(uuid) to anon, authenticated;
+revoke execute on function public.admin_estado(), public.admin_limpiar(int, text[], boolean) from public, anon;
+grant execute on function public.admin_estado(), public.admin_limpiar(int, text[], boolean) to authenticated;
+
+-- ---------------------------------------------------------------------
+-- SEGURIDAD EXTRA
+-- ---------------------------------------------------------------------
+-- Quien no inició sesión no tiene NINGÚN permiso sobre las tablas privadas (antes el RLS ya le devolvía vacío;
+-- ahora ni siquiera puede consultarlas). Solo ve publicaciones publicadas y la configuración.
+revoke all on public.ventas_cuentas, public.mensajes_venta, public.saldos_vendedor, public.retiros, public.movimientos_vendedor,
+              public.mercado_admins, public.cuentas_contacto, public.ordenes_recarga, public.mensajes_recarga,
+              public.soporte_chats, public.mensajes_soporte, public.calificaciones from anon;
+revoke insert, update, delete on public.cuentas_venta, public.mercado_config from anon;
+-- Nadie (fuera del panel de Supabase) puede vaciar tablas ni crear disparadores
+revoke truncate, references, trigger on all tables in schema public from anon, authenticated;
+-- Las funciones nuevas que se creen en el futuro NO quedan abiertas al público por defecto
+alter default privileges in schema public revoke execute on functions from public;
+-- Los disparadores no se llaman desde la API
+revoke execute on function public.cuentas_venta_reglas() from public, anon, authenticated;
 
 -- Funciones internas: nadie las llama desde la API
 revoke execute on function public._mensaje_sistema(bigint, text) from public, anon, authenticated;
@@ -1078,9 +1226,23 @@ insert into storage.buckets (id, name, public, file_size_limit, allowed_mime_typ
 values ('cuentas-fotos', 'cuentas-fotos', true, 1048576, array['image/webp', 'image/jpeg', 'image/png'])
 on conflict (id) do update set public = true, file_size_limit = excluded.file_size_limit, allowed_mime_types = excluded.allowed_mime_types;
 
+-- Cuántos archivos tiene el usuario que llama en su carpeta de un bucket (p_horas = 0: todos; si no, los de las últimas p_horas)
+create or replace function public._mis_archivos(p_bucket text, p_horas int)
+returns bigint language sql stable security definer set search_path = public as $f$
+  select count(*) from storage.objects o
+   where o.bucket_id = p_bucket and o.name like auth.uid()::text || '/%'
+     and (p_horas = 0 or o.created_at > now() - make_interval(hours => p_horas));
+$f$;
+revoke execute on function public._mis_archivos(text, int) from public, anon;
+grant execute on function public._mis_archivos(text, int) to authenticated;
+-- Cada usuario sube solo a su carpeta y como máximo 80 fotos en total (evita que alguien llene tu Storage)
 drop policy if exists "cuentas-fotos subir propias" on storage.objects;
 create policy "cuentas-fotos subir propias" on storage.objects for insert to authenticated
-  with check (bucket_id = 'cuentas-fotos' and (storage.foldername(name))[1] = auth.uid()::text);
+  with check (bucket_id = 'cuentas-fotos' and (storage.foldername(name))[1] = auth.uid()::text
+              and public._mis_archivos('cuentas-fotos', 0) < 80);
+drop policy if exists "cuentas-fotos borrar admin" on storage.objects;
+create policy "cuentas-fotos borrar admin" on storage.objects for delete to authenticated
+  using (bucket_id = 'cuentas-fotos' and public.es_admin());
 drop policy if exists "cuentas-fotos borrar propias" on storage.objects;
 create policy "cuentas-fotos borrar propias" on storage.objects for delete to authenticated
   using (bucket_id = 'cuentas-fotos' and (storage.foldername(name))[1] = auth.uid()::text);
@@ -1094,7 +1256,8 @@ on conflict (id) do update set public = false, file_size_limit = excluded.file_s
 
 drop policy if exists "comprobantes subir propios" on storage.objects;
 create policy "comprobantes subir propios" on storage.objects for insert to authenticated
-  with check (bucket_id = 'comprobantes' and (storage.foldername(name))[1] = auth.uid()::text);
+  with check (bucket_id = 'comprobantes' and (storage.foldername(name))[1] = auth.uid()::text
+              and public._mis_archivos('comprobantes', 24) < 20);
 drop policy if exists "comprobantes ver propios o admin" on storage.objects;
 create policy "comprobantes ver propios o admin" on storage.objects for select to authenticated
   using (bucket_id = 'comprobantes' and ((storage.foldername(name))[1] = auth.uid()::text or public.es_admin()));
