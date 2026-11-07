@@ -17,5 +17,6 @@
 - Nunca pintar datos de usuarios con `innerHTML`: `textContent` / `Mercado.crear`.
 - Nunca escribir secretos en el código ni leer/modificar `.env`.
 - Cambios en el SQL: mantenerlo re-ejecutable; toda función que cambie `cuentas_venta` hace `set_config('mercado.sistema', '1', true)`; el saldo solo lo mueve `_mover_saldo`; Postgres no acepta regex `{n,m}` con m > 255. Probar el flujo completo antes de subir (PGlite con `auth.uid()`/`auth.role()` que leen `request.jwt.claim.*`).
+- Antes de subir un cambio en `vercel.json`, validarlo (`node -e "JSON.parse(require('fs').readFileSync('vercel.json','utf8'))"`): un JSON inválido hace fallar TODOS los despliegues y Vercel sigue mostrando la versión anterior (pasó el 2026-11-07 con `\.` sin escapar; en JSON va `\\.`). Si algo no se actualiza, revisar el estado del commit en GitHub (Vercel deja ahí "failure" con el motivo).
 - Al cambiar un `.css`/`.js` ya publicado, subir su `?v=` en las páginas (caché del navegador/CDN).
 - Explicar los cambios en español.
