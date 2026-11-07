@@ -837,3 +837,75 @@ body.soporte-abierto .chat-flotante { display: none; }
   .estado-tarjeta .ficha { grid-template-columns: 1fr; gap: 2px; }
   .estado-tarjeta .ficha dd { margin-bottom: 8px; }
 }
+
+/* =====================================================================
+   Perfiles públicos (tienda) y lista compacta de cuentas (admin)
+   ===================================================================== */
+.avatar { flex: 0 0 auto; display: inline-grid; place-items: center; width: 40px; height: 40px; border-radius: 50%; font-family: 'Montserrat', sans-serif; font-weight: 900; font-size: 16px; color: var(--game-on); background: var(--game-gradient); }
+.avatar-grande { width: 64px; height: 64px; font-size: 26px; box-shadow: var(--game-glow); }
+.avatar-chico { width: 30px; height: 30px; font-size: 13px; }
+.perfil-cabecera { display: flex; align-items: center; gap: 16px; margin-bottom: 12px; }
+.perfil-cabecera h2 { font-family: 'Montserrat', sans-serif; font-weight: 900; font-size: 20px; overflow-wrap: anywhere; }
+.perfil-cabecera p { margin: 2px 0 0; font-size: 13px; color: var(--text-muted); }
+.perfil-caja.perfil-falta { border-color: var(--game-text); box-shadow: var(--game-glow); }
+.ventana-perfil { max-width: 560px; }
+.ventana-perfil .detalle-cuerpo { padding-top: 56px; display: grid; gap: 14px; }
+.perfil-desde { font-size: 12px; color: var(--text-muted); text-transform: none; }
+.perfil-descripcion { font-size: 14px; line-height: 1.6; color: var(--text-main); }
+.perfil-descripcion:empty { display: none; }
+.perfil-datos { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; }
+.perfil-dato { display: grid; gap: 2px; padding: 12px 8px; border-radius: 14px; text-align: center; background: var(--fondo-hundido); border: 1px solid var(--linea); }
+.perfil-dato strong { font-family: 'Montserrat', sans-serif; font-weight: 900; font-size: 18px; color: var(--text-main); }
+.perfil-dato span { font-size: 11px; color: var(--text-muted); }
+.perfil-dato.dato-estrellas strong { color: #ffcc00; }
+.perfil-reparto { display: grid; gap: 4px; }
+.reparto-fila { display: grid; grid-template-columns: 32px 1fr 24px; align-items: center; gap: 8px; font-size: 12px; color: var(--text-muted); }
+.reparto-barra { height: 8px; border-radius: 999px; overflow: hidden; background: var(--fondo-hundido); border: 1px solid var(--linea); }
+.reparto-barra i { display: block; height: 100%; background: #ffcc00; border-radius: 999px; }
+.perfil-subtitulo { font-size: 14px; margin-top: 4px; }
+.opinion-cabecera { display: flex; flex-wrap: wrap; align-items: baseline; gap: 8px; }
+.opinion-cabecera b { font-size: 13px; color: var(--text-main); }
+.opinion-cabecera small { font-size: 11px; color: var(--text-muted); }
+.vendedor-ficha {
+  display: flex; align-items: center; gap: 12px; width: 100%; padding: 10px 12px; border-radius: 14px; cursor: pointer; text-align: left; font: inherit;
+  color: var(--text-main); background: var(--fondo-hundido); border: 1px solid var(--linea); transition: border-color 0.2s ease, transform 0.2s ease;
+}
+.vendedor-ficha:hover, .vendedor-ficha:focus-visible { border-color: var(--game-line); transform: translateY(-1px); outline: none; }
+.vendedor-ficha-textos { flex: 1 1 auto; display: grid; gap: 2px; min-width: 0; }
+.vendedor-ficha-textos small { font-size: 11px; color: var(--text-muted); }
+.vendedor-ficha-ir { flex: 0 0 auto; font-size: 12px; font-weight: 700; color: var(--game-text); }
+.vendedor-nombre { color: var(--text-main); font-weight: 800; }
+.chip-vendedor { min-height: 36px; padding: 0 14px; border-radius: 999px; cursor: pointer; font: inherit; font-size: 12px; font-weight: 700; color: var(--game-text); background: var(--game-soft); border: 1px solid var(--game-line); }
+
+.usuarios-lista { display: grid; gap: 6px; }
+.usuarios-resumen { font-size: 12px; color: var(--text-muted); margin-bottom: 4px; }
+.fila-usuario-cabecera { display: none; }
+.fila-usuario { border-radius: 12px; background: var(--fondo-tarjeta); border: 1px solid var(--linea); }
+.fila-usuario[open] { border-color: var(--game-line); }
+.fila-usuario summary { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 2px 10px; align-items: center; padding: 8px 12px; cursor: pointer; list-style: none; font-size: 12px; }
+.fila-usuario summary::-webkit-details-marker { display: none; }
+.fu-quien { display: flex; align-items: center; gap: 10px; min-width: 0; grid-row: span 2; }
+.fu-textos { display: grid; min-width: 0; }
+.fu-textos b { font-size: 13px; color: var(--text-main); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.fu-textos small { font-size: 11px; color: var(--text-muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.fu-saldo { font-family: 'Montserrat', sans-serif; font-weight: 900; font-size: 13px; text-align: right; color: var(--text-muted); }
+.fu-saldo.con-saldo { color: var(--game-text); }
+.fu-partes, .fu-actividad { display: none; color: var(--text-muted); }
+.fu-estrellas { text-align: right; color: #ffcc00; font-weight: 700; }
+.fu-cuerpo { display: grid; gap: 10px; padding: 4px 12px 12px; border-top: 1px solid var(--linea); }
+.fu-fechas { font-size: 12px; color: var(--text-muted); padding-top: 8px; }
+.fu-cuerpo .admin-acciones > * { flex: 0 1 auto; }
+@media (min-width: 900px) {
+  .fila-usuario-cabecera, .fila-usuario summary { display: grid; grid-template-columns: minmax(0, 2.4fr) 1fr 1.4fr 0.6fr 1.6fr; gap: 12px; align-items: center; }
+  .fila-usuario-cabecera { padding: 0 12px; font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.4px; color: var(--text-muted); }
+  .fu-quien { grid-row: auto; }
+  .fu-partes, .fu-actividad { display: block; }
+  .fu-saldo, .fu-estrellas { text-align: left; }
+}
+@media (max-width: 599px) {
+  .perfil-datos { grid-template-columns: repeat(2, 1fr); }
+}
+.vendedor-ficha .vendedor-rep { display: block; font-size: 13px; line-height: 1.5; }
+.vendedor-ficha .vendedor-rep .icono { display: inline-block; vertical-align: -3px; width: 15px; height: 15px; margin-right: 4px; }
+.fu-movimientos table { font-size: 12px; }
+.fu-movimientos th, .fu-movimientos td { padding: 6px 8px; }

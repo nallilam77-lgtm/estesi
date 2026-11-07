@@ -18,9 +18,9 @@
   <link rel="stylesheet" href="css/creadores.css">
   <link rel="stylesheet" href="css/billetera.css">
   <link rel="stylesheet" href="css/cuentas.css?v=3">
-  <link rel="stylesheet" href="css/tienda.css?v=8">
+  <link rel="stylesheet" href="css/tienda.css?v=9">
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.js" defer></script>
-  <script src="js/mercado.js?v=6" defer></script>
+  <script src="js/mercado.js?v=7" defer></script>
 </head>
 <body class="tienda">
 
@@ -192,14 +192,14 @@
         <section class="admin-seccion oculto" id="vistaUsuarios" aria-labelledby="tituloUsuarios">
           <div class="admin-seccion-cabecera">
             <h2 id="tituloUsuarios">Cuentas registradas</h2>
-            <p>Busca por correo (o parte de él) para ver el saldo, la actividad y escribirle. Vacío = las 30 más nuevas.</p>
+            <p>Busca por correo o nombre (o parte de ellos). Toca una cuenta para ver sus movimientos, escribirle o ajustar su saldo. Vacío = las 100 más nuevas.</p>
           </div>
           <form class="buscar-usuarios" id="formUsuarios" role="search">
             <label for="buscarUsuario" class="solo-lectores">Correo</label>
-            <input type="search" id="buscarUsuario" placeholder="Ej: juanperez@gmail.com o juanperez" maxlength="120" autocomplete="off" spellcheck="false">
+            <input type="search" id="buscarUsuario" placeholder="Correo o nombre: juanperez" maxlength="120" autocomplete="off" spellcheck="false">
             <button type="submit" class="btn-juego"><svg class="icono"><use href="#i-buscar"/></svg>Buscar</button>
           </form>
-          <div class="admin-lista" id="listaUsuarios"></div>
+          <div class="usuarios-lista" id="listaUsuarios"></div>
         </section>
 
         <!-- Sistema: estado de Supabase y limpieza -->
@@ -882,6 +882,7 @@
 
       // ---------------- Cuentas registradas ----------------
       const TEXTO_MOV = { venta: 'Venta', retiro: 'Retiro', retiro_devuelto: 'Retiro devuelto', ajuste: 'Ajuste', recarga: 'Recarga', recarga_revertida: 'Recarga anulada', compra: 'Compra', reembolso: 'Reembolso' };
+      // Lista compacta: una fila por cuenta (se abre para ver acciones y movimientos)
       async function buscarUsuarios() {
         const lista = $('listaUsuarios');
         const texto = $('buscarUsuario').value.trim();
@@ -890,36 +891,44 @@
         lista.replaceChildren();
         if (error) return aviso('No pudimos buscar. ¿Corriste el SQL nuevo?');
         if (!data.length) return lista.append(vacio(`No hay cuentas con "${texto}".`));
+        const totalSaldo = data.reduce((s, u) => s + Number(u.disponible) + Number(u.recargado), 0);
+        lista.append(crear('p', 'usuarios-resumen', `${data.length} cuenta${data.length === 1 ? '' : 's'}${data.length === 100 ? ' (las 100 más nuevas: busca para ver otras)' : ''} · saldo total ${usd(totalSaldo)}`));
+        const cab = crear('div', 'fila-usuario-cabecera');
+        for (const t of ['Cuenta', 'Saldo', 'Recargado / ventas', 'Estrellas', 'Actividad']) cab.append(crear('span', null, t));
+        lista.append(cab);
         for (const u of data) {
           correos.set(u.id, u.email);
-          lista.append(tarjetaUsuario(u));
+          lista.append(filaUsuario(u));
         }
       }
       $('formUsuarios').addEventListener('submit', (e) => { e.preventDefault(); buscarUsuarios(); });
 
-      function tarjetaUsuario(u) {
-        const tarjeta = crear('article', 'admin-tarjeta aparecer');
-        const cuerpo = crear('div', 'admin-tarjeta-cuerpo');
-        const cabecera = crear('div', 'admin-tarjeta-cabecera');
-        const titulo = crear('div');
-        titulo.append(crear('span', 'tarjeta-codigo', `Registrada el ${fecha(u.creado)}${u.ultimo_acceso ? ` · último acceso ${fecha(u.ultimo_acceso)}` : ''}`), crear('h3', null, u.email));
-        cabecera.append(titulo);
-        if (u.estrellas) cabecera.append(crear('span', 'pastilla', `★ ${Number(u.estrellas).toLocaleString('es-VE')}`));
-        const saldos = crear('div', 'usuario-saldos');
+      function filaUsuario(u) {
+        const fila = crear('details', 'fila-usuario');
+        const resumen = crear('summary');
         const total = Number(u.disponible) + Number(u.recargado);
-        for (const [k, v, clase] of [['Saldo total', usd(total), 'total'], ['Recargado', usd(u.recargado), ''], ['De ventas', usd(u.disponible), '']]) {
-          const d = crear('div', clase);
-          d.append(crear('span', null, k), crear('strong', null, v));
-          saldos.append(d);
-        }
-        const actividad = ficha([
-          ['Recargas', String(u.recargas)], ['Tratos', String(u.tratos)], ['Ventas cerradas', String(u.ventas)], ['Publicaciones', String(u.publicaciones)],
-        ]);
+        const quien = crear('span', 'fu-quien');
+        const av = crear('span', 'avatar avatar-chico', (u.nombre || u.email || '?').trim()[0].toUpperCase());
+        av.setAttribute('aria-hidden', 'true');
+        const textos = crear('span', 'fu-textos');
+        textos.append(crear('b', null, u.nombre || 'Sin nombre'), crear('small', null, u.email));
+        quien.append(av, textos);
+        resumen.append(
+          quien,
+          crear('span', `fu-saldo${total > 0 ? ' con-saldo' : ''}`, usd(total)),
+          crear('span', 'fu-partes', `${usd(u.recargado)} / ${usd(u.disponible)}`),
+          crear('span', 'fu-estrellas', u.estrellas ? `★ ${Number(u.estrellas).toLocaleString('es-VE')}` : '—'),
+          crear('span', 'fu-actividad', `${u.recargas} rec · ${u.tratos} tratos · ${u.ventas} ventas`),
+        );
+        fila.append(resumen);
+
+        const cuerpo = crear('div', 'fu-cuerpo');
+        cuerpo.append(crear('p', 'fu-fechas', `Registrada el ${fecha(u.creado)}${u.ultimo_acceso ? ` · último acceso ${fecha(u.ultimo_acceso)}` : ''} · ${u.publicaciones} publicaciones`));
         const acciones = crear('div', 'admin-acciones');
-        boton(acciones, 'Escribirle (soporte)', 'btn-secundario', 'i-chat', () => abrirSoporte(u.id));
-        boton(acciones, 'Ajustar saldo', 'btn-secundario', 'i-billetera', async () => {
+        boton(acciones, 'Escribirle', 'btn-secundario btn-chico', 'i-chat', () => abrirSoporte(u.id));
+        boton(acciones, 'Ajustar saldo', 'btn-secundario btn-chico', 'i-billetera', async () => {
           const r = await dialogo({
-            titulo: `Ajustar saldo de ${u.email}`,
+            titulo: `Ajustar saldo de ${u.nombre || u.email}`,
             texto: 'Escribe el monto en USD: positivo suma, negativo resta (ej: -5). Queda en su historial de movimientos.',
             etiqueta: 'Monto (USD)', valor: '', aceptar: 'Aplicar ajuste', obligatorio: true,
             casilla: { texto: 'Ajustar el saldo DE VENTAS (retirable). Sin marcar se ajusta el recargado (solo para comprar).', marcado: false },
@@ -932,18 +941,26 @@
           const ok = await accion(r.marcado ? 'admin_ajustar_saldo' : 'admin_ajustar_recargado', { [r.marcado ? 'p_vendedor' : 'p_usuario']: u.id, p_monto: monto, p_detalle: detalle.texto }, `Saldo de ${u.email} ajustado en ${usd(monto)}.`);
           if (ok) buscarUsuarios();
         });
-        const movs = crear('details', 'movimientos-usuario');
-        movs.append(crear('summary', null, 'Ver movimientos de saldo'));
-        movs.addEventListener('toggle', async () => {
-          if (!movs.open || movs.dataset.cargado) return;
-          movs.dataset.cargado = '1';
+        const perfil = conIcono('a', 'btn-secundario btn-chico', 'i-tienda', 'Perfil público');
+        perfil.href = `index.html#perfil-${u.id}`;
+        perfil.target = '_blank';
+        perfil.rel = 'noopener';
+        acciones.append(perfil);
+        const movs = crear('div', 'fu-movimientos');
+        cuerpo.append(acciones, movs);
+        fila.append(cuerpo);
+        fila.addEventListener('toggle', async () => {
+          if (!fila.open || fila.dataset.cargado) return;
+          fila.dataset.cargado = '1';
+          movs.append(crear('p', 'estado-lista', 'Cargando movimientos…'));
           const { data } = await cliente.from('movimientos_vendedor').select('tipo,monto,saldo_despues,detalle,creado').eq('vendedor', u.id).order('id', { ascending: false }).limit(30);
+          movs.replaceChildren();
           const envoltura = crear('div', 'tabla-scroll');
           const tabla = crear('table');
-          const cab = tabla.createTHead().insertRow();
-          for (const t of ['Fecha', 'Detalle', 'Monto', 'Saldo']) cab.append(crear('th', null, t));
+          const cabT = tabla.createTHead().insertRow();
+          for (const t of ['Fecha', 'Detalle', 'Monto', 'Saldo']) cabT.append(crear('th', null, t));
           const cuerpoTabla = tabla.createTBody();
-          if (!data?.length) { const c = cuerpoTabla.insertRow().insertCell(); c.colSpan = 4; c.textContent = 'Sin movimientos.'; }
+          if (!data?.length) { const c = cuerpoTabla.insertRow().insertCell(); c.colSpan = 4; c.textContent = 'Sin movimientos de saldo.'; }
           for (const m of data || []) {
             const tr = cuerpoTabla.insertRow();
             tr.insertCell().textContent = fecha(m.creado);
@@ -956,9 +973,7 @@
           envoltura.append(tabla);
           movs.append(envoltura);
         });
-        cuerpo.append(cabecera, saldos, actividad, acciones, movs);
-        tarjeta.append(cuerpo);
-        return tarjeta;
+        return fila;
       }
 
       // ---------------- Sistema: estado de Supabase y limpieza ----------------

@@ -25,9 +25,9 @@
   <link rel="stylesheet" href="css/creadores.css">
   <link rel="stylesheet" href="css/billetera.css">
   <link rel="stylesheet" href="css/cuentas.css?v=3">
-  <link rel="stylesheet" href="css/tienda.css?v=8">
+  <link rel="stylesheet" href="css/tienda.css?v=9">
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.js" defer></script>
-  <script src="js/mercado.js?v=6" defer></script>
+  <script src="js/mercado.js?v=7" defer></script>
 </head>
 <body class="tienda">
 
@@ -156,6 +156,7 @@
               <h2 class="titulo-seccion" id="tituloCuentas">Cuentas a la venta</h2>
             </div>
             <span class="conteo" id="conteoCuentas" aria-live="polite"></span>
+            <button type="button" class="chip-vendedor oculto" id="chipVendedor" aria-label="Quitar filtro de vendedor"></button>
           </div>
 
           <form class="barra-filtros" id="formFiltros" role="search">
@@ -387,6 +388,34 @@
 
           <!-- MI PANEL -->
           <div class="vista-buscar oculto" id="vistaPanel">
+            <section class="panel-caja perfil-caja aparecer" id="cajaPerfil" aria-labelledby="tituloPerfil">
+              <div class="perfil-cabecera">
+                <span class="avatar avatar-grande" id="perfilAvatar" aria-hidden="true">?</span>
+                <div>
+                  <h2 id="tituloPerfil">Mi perfil público</h2>
+                  <p id="perfilResumen">Elige tu nombre: es lo que ven compradores y vendedores. Tu correo nunca se muestra.</p>
+                </div>
+              </div>
+              <form class="form-publicar" id="formPerfil" novalidate>
+                <div class="form-fila">
+                  <div class="campo">
+                    <label for="perfilNombre">Nombre público</label>
+                    <input type="text" id="perfilNombre" minlength="3" maxlength="24" placeholder="Ej: JoseGamer" autocomplete="nickname" spellcheck="false">
+                    <p class="campo-ayuda">3 a 24 letras o números. Puedes usar espacio, punto, guion o guion bajo.</p>
+                  </div>
+                  <div class="campo">
+                    <label for="perfilDescripcion">Sobre ti (opcional)</label>
+                    <input type="text" id="perfilDescripcion" maxlength="160" placeholder="Ej: Vendo cuentas LATAM desde 2020">
+                  </div>
+                </div>
+                <div class="admin-acciones">
+                  <button type="submit" class="btn-juego" id="btnPerfil">Guardar perfil</button>
+                  <button type="button" class="btn-secundario oculto" id="btnVerPerfil">Ver cómo me ven</button>
+                </div>
+              </form>
+              <div class="panel-mensaje" id="mensajePerfil" role="status" aria-live="polite"></div>
+            </section>
+
             <div class="tablero">
               <button type="button" class="dato dato-acento dato-boton" data-vista="saldo"><strong id="textoSaldo">—</strong><span>tu saldo · recargar</span></button>
               <div class="dato"><strong id="statVentas">0</strong><span>ventas cerradas</span></div>
@@ -496,7 +525,7 @@
           <span class="tarjeta-codigo" id="detalleCodigo"></span>
           <h2 id="detalleTitulo"></h2>
           <div class="etiquetas" id="detalleEtiquetas"></div>
-          <p class="vendedor-rep" id="detalleVendedor"></p>
+          <button type="button" class="vendedor-ficha" id="detalleVendedor"></button>
 
           <div class="caja-compra">
             <p class="tarjeta-precio" id="detallePrecio"></p>
@@ -556,6 +585,31 @@
             <button type="submit" class="btn-juego" id="chatEnviar">Enviar</button>
           </form>
           <div class="panel-mensaje" id="chatAviso" role="status" aria-live="polite"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Perfil público de un usuario -->
+  <div class="ventana oculto" id="ventanaPerfil" role="dialog" aria-modal="true" aria-labelledby="perfilNombreVer">
+    <div class="ventana-caja ventana-perfil">
+      <button type="button" class="ventana-cerrar" data-cerrar aria-label="Cerrar">✖</button>
+      <div class="detalle-cuerpo">
+        <div class="perfil-cabecera">
+          <span class="avatar avatar-grande" id="perfilVerAvatar" aria-hidden="true"></span>
+          <div>
+            <h2 id="perfilNombreVer"></h2>
+            <p class="perfil-desde" id="perfilDesde"></p>
+          </div>
+        </div>
+        <p class="perfil-descripcion" id="perfilVerDescripcion"></p>
+        <div class="perfil-datos" id="perfilDatos"></div>
+        <div class="perfil-reparto" id="perfilReparto"></div>
+        <h3 class="perfil-subtitulo">Opiniones de compradores</h3>
+        <div class="opiniones" id="perfilOpiniones"></div>
+        <div class="admin-acciones">
+          <button type="button" class="btn-juego" id="perfilVerCuentas">Ver sus cuentas a la venta</button>
+          <button type="button" class="btn-secundario" id="perfilCompartir"><svg class="icono"><use href="#i-copiar"/></svg>Copiar enlace del perfil</button>
         </div>
       </div>
     </div>
@@ -817,7 +871,7 @@
         $(b.dataset.ir).scrollIntoView({ behavior: 'smooth', block: 'start' });
       }));
       function actualizarBotonPanel() {
-        $('textoBotonPanel').textContent = sesion ? 'Mi panel' : 'Entrar';
+        $('textoBotonPanel').textContent = sesion ? (miPerfil?.nombre || 'Mi panel') : 'Entrar';
         $('chipSaldo').classList.toggle('oculto', !sesion);
         // Enlace al panel de administración solo para admins (la base de datos decide; esto solo lo muestra)
         const enlaces = [$('enlaceAdmin'), $('enlaceAdminMenu')];
@@ -865,6 +919,7 @@
         const orden = $('filtroOrden').value;
 
         let consulta = cliente.from('cuentas_venta').select(COLUMNAS, { count: 'exact' }).eq('estado', 'publicada');
+        if (filtroVendedor) consulta = consulta.eq('vendedor', filtroVendedor.id);
         if (texto) consulta = consulta.or(`titulo.ilike.*${texto}*,destacados.ilike.*${texto}*`);
         if (region) consulta = consulta.eq('region', region);
         if (precioMax > 0) consulta = consulta.lte('precio_usd', precioMax);
@@ -885,7 +940,7 @@
         if (turno !== busquedaActual) return;
         for (const cuenta of data) $('gridCuentas').append(tarjeta(cuenta));
         const mostradas = $('gridCuentas').children.length;
-        const hayFiltros = texto || region || precioMax;
+        const hayFiltros = texto || region || precioMax || filtroVendedor;
         $('conteoCuentas').textContent = count ? `${count} cuenta${count === 1 ? '' : 's'}${hayFiltros ? ' con esos filtros' : ' disponibles'}` : '';
         if (!mostradas) {
           $('estadoLista').replaceChildren(hayFiltros
@@ -900,14 +955,15 @@
         const faltan = [...new Set(vendedores)].filter((v) => !reputacion.has(v));
         if (!faltan.length) return;
         const { data } = await cliente.rpc('mercado_reputacion', { p_vendedores: faltan });
-        for (const v of faltan) reputacion.set(v, { ventas: 0, estrellas: null, opiniones: 0 });
-        for (const fila of data || []) reputacion.set(fila.vendedor, { ventas: fila.ventas || 0, estrellas: fila.estrellas == null ? null : Number(fila.estrellas), opiniones: fila.opiniones || 0 });
+        for (const v of faltan) reputacion.set(v, { ventas: 0, estrellas: null, opiniones: 0, nombre: null });
+        for (const fila of data || []) reputacion.set(fila.vendedor, { ventas: fila.ventas || 0, estrellas: fila.estrellas == null ? null : Number(fila.estrellas), opiniones: fila.opiniones || 0, nombre: fila.nombre || null });
       }
       function lineaReputacion(vendedor, etiqueta = 'span') {
-        const r = reputacion.get(vendedor) || { ventas: 0, estrellas: null, opiniones: 0 };
+        const r = reputacion.get(vendedor) || { ventas: 0, estrellas: null, opiniones: 0, nombre: null };
         const n = r.ventas;
         const el = crear(etiqueta, `vendedor-rep${n ? '' : ' vendedor-nuevo'}`);
         el.append(icono(n ? 'i-escudo' : 'i-usuario'));
+        if (r.nombre) el.append(crear('b', 'vendedor-nombre', r.nombre), document.createTextNode(' · '));
         if (r.estrellas) {
           el.append(crear('span', 'estrellas-texto', `★ ${r.estrellas.toLocaleString('es-VE')}`), document.createTextNode(` (${r.opiniones}) · `));
         }
@@ -996,7 +1052,14 @@
         $('detalleCodigo').textContent = `${codigoCuenta(cuenta.id)} · Publicada el ${fecha(cuenta.creado)}`;
         $('detalleTitulo').textContent = cuenta.titulo;
         $('detalleEtiquetas').replaceWith(Object.assign(etiquetas(cuenta), { id: 'detalleEtiquetas' }));
-        $('detalleVendedor').replaceWith(Object.assign(lineaReputacion(cuenta.vendedor, 'p'), { id: 'detalleVendedor' }));
+        const ficha = $('detalleVendedor');
+        const rep = reputacion.get(cuenta.vendedor) || {};
+        const av = crear('span', 'avatar', letraDe(rep.nombre));
+        av.setAttribute('aria-hidden', 'true');
+        const textos = crear('span', 'vendedor-ficha-textos');
+        textos.append(crear('small', null, 'Vendedor'), lineaReputacion(cuenta.vendedor));
+        ficha.replaceChildren(av, textos, crear('span', 'vendedor-ficha-ir', 'Ver perfil'));
+        ficha.onclick = () => abrirPerfil(cuenta.vendedor);
         $('detalleDestacados').textContent = cuenta.destacados;
         $('bloqueDestacados').classList.toggle('oculto', !cuenta.destacados);
         $('detalleDescripcion').textContent = cuenta.descripcion;
@@ -1242,6 +1305,11 @@
         if (!/^(412|414|416|422|424|426)\d{7}$/.test(telefono)) return M.mensaje(aviso, 'Escribe tu WhatsApp venezolano sin el 0. Ej: 4141234567.');
         if (!fotosElegidas.length) return M.mensaje(aviso, 'Agrega al menos una foto de la cuenta.');
         if (!$('pubAcepto').checked) return M.mensaje(aviso, 'Para publicar debes aceptar las Reglas del Intermediario.');
+        if (!miPerfil) {
+          M.notificar('Antes de publicar elige tu nombre público: es lo que verán los compradores junto a tus estrellas.', 'aviso', { titulo: 'Falta tu perfil' });
+          mostrarVista('panel');
+          return setTimeout(() => $('perfilNombre').focus(), 150);
+        }
 
         const boton = $('btnPublicar');
         boton.disabled = true;
@@ -1469,6 +1537,120 @@
         if (acciones.children.length) fila.append(acciones);
         return fila;
       }
+
+      // ---------------- Perfiles ----------------
+      let miPerfil = null;          // { nombre, descripcion } o null si todavía no eligió nombre
+      let filtroVendedor = null;    // { id, nombre } para "ver sus cuentas"
+      let avisoPerfilMostrado = false;
+      const letraDe = (nombre) => (nombre ? nombre.trim()[0].toUpperCase() : '?');
+      async function cargarMiPerfil() {
+        if (!sesion) { miPerfil = null; return; }
+        const { data } = await cliente.from('perfiles').select('nombre,descripcion').eq('usuario', yo()).maybeSingle();
+        miPerfil = data || null;
+        $('perfilNombre').value = miPerfil?.nombre || '';
+        $('perfilDescripcion').value = miPerfil?.descripcion || '';
+        $('perfilAvatar').textContent = letraDe(miPerfil?.nombre);
+        $('tituloPerfil').textContent = miPerfil ? miPerfil.nombre : 'Mi perfil público';
+        $('perfilResumen').textContent = miPerfil
+          ? 'Así te ven compradores y vendedores. Tu correo nunca se muestra.'
+          : 'Elige tu nombre: es lo que ven compradores y vendedores. Tu correo nunca se muestra.';
+        $('cajaPerfil').classList.toggle('perfil-falta', !miPerfil);
+        $('btnVerPerfil').classList.toggle('oculto', !miPerfil);
+        $('textoBotonPanel').textContent = miPerfil ? miPerfil.nombre : 'Mi panel';
+        if (!miPerfil && !avisoPerfilMostrado) {
+          avisoPerfilMostrado = true;
+          M.notificar('Elige tu nombre público para que los demás te reconozcan y vean tus estrellas.', 'aviso', {
+            titulo: 'Completa tu perfil', duracion: 10000,
+            alTocar: () => { mostrarVista('panel'); setTimeout(() => $('perfilNombre').focus(), 150); },
+          });
+        }
+      }
+      $('formPerfil').addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const nombre = $('perfilNombre').value.trim().replace(/\s+/g, ' ');
+        if (nombre.length < 3) return M.mensaje($('mensajePerfil'), 'El nombre debe tener al menos 3 letras.');
+        if (!/^[\p{L}\p{N} ._-]+$/u.test(nombre)) return M.mensaje($('mensajePerfil'), 'Usa solo letras, números, espacio, punto o guion.');
+        const b = $('btnPerfil');
+        b.disabled = true;
+        try {
+          await M.rpc('perfil_guardar', { p_nombre: nombre, p_descripcion: $('perfilDescripcion').value.trim() }, 'No pudimos guardar tu perfil.');
+          $('mensajePerfil').textContent = '';
+          M.notificar(`Ahora te ven como "${nombre}".`, 'exito', { titulo: 'Perfil guardado' });
+          reputacion.delete(yo());
+          await cargarMiPerfil();
+        } catch (error) {
+          M.mensaje($('mensajePerfil'), error.message);
+        } finally {
+          b.disabled = false;
+        }
+      });
+      $('btnVerPerfil').addEventListener('click', () => abrirPerfil(yo()));
+
+      let perfilAbierto = null;
+      async function abrirPerfil(usuario) {
+        perfilAbierto = { id: usuario, nombre: '' };
+        for (const id of ['perfilDatos', 'perfilReparto', 'perfilOpiniones']) $(id).replaceChildren();
+        $('perfilNombreVer').textContent = 'Cargando…';
+        $('perfilDesde').textContent = '';
+        $('perfilVerDescripcion').textContent = '';
+        $('perfilVerAvatar').textContent = '';
+        abrirVentana('ventanaPerfil');
+        const { data: p, error } = await cliente.rpc('mercado_perfil', { p_usuario: usuario });
+        if (perfilAbierto?.id !== usuario) return;
+        if (error || !p) { $('perfilNombreVer').textContent = 'Perfil no disponible'; return; }
+        const nombre = p.nombre || 'Usuario sin nombre';
+        perfilAbierto.nombre = nombre;
+        $('perfilNombreVer').textContent = nombre;
+        $('perfilVerAvatar').textContent = letraDe(p.nombre);
+        $('perfilDesde').textContent = p.miembro_desde ? `En Level Up desde ${new Date(p.miembro_desde).toLocaleDateString('es-VE', { month: 'long', year: 'numeric' })}` : '';
+        $('perfilVerDescripcion').textContent = p.descripcion || '';
+        const dato = (valor, etiqueta, clase = '') => { const d = crear('div', `perfil-dato ${clase}`); d.append(crear('strong', null, valor), crear('span', null, etiqueta)); return d; };
+        $('perfilDatos').replaceChildren(
+          dato(p.estrellas ? `★ ${Number(p.estrellas).toLocaleString('es-VE')}` : '—', p.opiniones ? `${p.opiniones} opinión${p.opiniones === 1 ? '' : 'es'}` : 'sin opiniones aún', 'dato-estrellas'),
+          dato(String(p.ventas), `venta${p.ventas === 1 ? '' : 's'}`),
+          dato(String(p.compras), `compra${p.compras === 1 ? '' : 's'}`),
+          dato(String(p.publicadas), 'a la venta'),
+        );
+        if (p.opiniones) {
+          for (let e = 5; e >= 1; e -= 1) {
+            const n = Number(p.reparto[e] || 0);
+            const fila = crear('div', 'reparto-fila');
+            const barra = crear('span', 'reparto-barra');
+            const relleno = crear('i');
+            relleno.style.width = `${(n / p.opiniones) * 100}%`;
+            barra.append(relleno);
+            fila.append(crear('span', null, `${e} ★`), barra, crear('span', null, String(n)));
+            $('perfilReparto').append(fila);
+          }
+        }
+        if (!p.ultimas.length) $('perfilOpiniones').append(crear('p', 'estado-lista', 'Todavía nadie lo ha calificado.'));
+        for (const o of p.ultimas) {
+          const d = crear('div', 'opinion');
+          const cab = crear('div', 'opinion-cabecera');
+          cab.append(crear('span', 'estrellas-texto', M.estrellas(o.estrellas)), crear('b', null, o.comprador), crear('small', null, fecha(o.creado)));
+          d.append(cab);
+          if (o.comentario) d.append(crear('p', null, o.comentario));
+          $('perfilOpiniones').append(d);
+        }
+        $('perfilVerCuentas').classList.toggle('oculto', !p.publicadas);
+      }
+      $('perfilVerCuentas').addEventListener('click', () => {
+        if (!perfilAbierto) return;
+        filtroVendedor = { ...perfilAbierto };
+        cerrarVentana('ventanaPerfil');
+        if (!$('ventanaDetalle').classList.contains('oculto')) cerrarVentana('ventanaDetalle');
+        $('chipVendedor').textContent = `Cuentas de ${filtroVendedor.nombre} ✖`;
+        $('chipVendedor').classList.remove('oculto');
+        if (vista !== 'buscar') mostrarVista('buscar');
+        buscar(true);
+        setTimeout(() => $('cuentas').scrollIntoView({ behavior: 'smooth', block: 'start' }), 60);
+      });
+      $('chipVendedor').addEventListener('click', () => { filtroVendedor = null; $('chipVendedor').classList.add('oculto'); buscar(true); });
+      $('perfilCompartir').addEventListener('click', async (e) => {
+        if (!perfilAbierto) return;
+        const ok = await M.copiar(`${location.origin}${location.pathname}#perfil-${perfilAbierto.id}`, e.currentTarget);
+        M.notificar(ok ? 'Enlace del perfil copiado. Compártelo para que vean tus estrellas.' : 'No se pudo copiar el enlace.', ok ? 'exito' : 'error');
+      });
 
       // ---------------- Recargas de saldo ----------------
       // Tocar el saldo (barra, "Recargar") abre la ventana de recarga directamente
@@ -1798,7 +1980,9 @@
 
       // ---------------- Trato ----------------
       let tratoAbierto = null;
+      const nombresTrato = {};   // { comprador: 'Ana', vendedor: 'JoseGamer' }
       const chat = M.crearChat({
+        nombreDe: (m) => nombresTrato[m.rol],
         lista: $('chatLista'), form: $('chatForm'), input: $('chatTexto'), boton: $('chatEnviar'), aviso: $('chatAviso'), yo,
         // Un mensaje del sistema = el trato cambió de estado: se vuelve a pintar
         alNuevo: (mensajes) => { if (tratoAbierto && mensajes.some((m) => m.rol === 'sistema')) refrescarTrato(); },
@@ -1806,6 +1990,8 @@
 
       async function abrirTrato(id) {
         tratoAbierto = id;
+        delete nombresTrato.comprador;
+        delete nombresTrato.vendedor;
         $('mensajeTrato').textContent = '';
         $('tratoAcciones').replaceChildren(crear('p', 'estado-lista', 'Cargando…'));
         abrirVentana('ventanaTrato');
@@ -1858,13 +2044,18 @@
         const limite = (desde, horas) => fecha(new Date(new Date(desde).getTime() + horas * 3600_000).toISOString());
 
         chat.habilitar(!['cerrada', 'cancelada'].includes(v.estado));
-        // Participantes y apelación
+        // Participantes (con su nombre público) y apelación
         const part = $('tratoParticipantes');
-        part.replaceChildren(
-          crear('span', rol === 'comprador' ? 'yo' : '', rol === 'comprador' ? 'Tú · comprador' : 'Comprador'),
-          crear('span', rol === 'vendedor' ? 'yo' : '', rol === 'vendedor' ? 'Tú · vendedor' : 'Vendedor'),
+        const pintarParticipantes = () => part.replaceChildren(
+          crear('span', rol === 'comprador' ? 'yo' : '', rol === 'comprador' ? 'Tú · comprador' : `${nombresTrato.comprador || 'Comprador'} · comprador`),
+          crear('span', rol === 'vendedor' ? 'yo' : '', rol === 'vendedor' ? 'Tú · vendedor' : `${nombresTrato.vendedor || 'Vendedor'} · vendedor`),
           crear('span', 'testigo', 'Level Up · testigo'),
         );
+        pintarParticipantes();
+        cliente.from('perfiles').select('usuario,nombre').in('usuario', [v.comprador, v.vendedor]).then(({ data }) => {
+          for (const f of data || []) nombresTrato[f.usuario === v.comprador ? 'comprador' : 'vendedor'] = f.nombre;
+          if (tratoAbierto === v.id) pintarParticipantes();
+        });
         const abierto = !['cerrada', 'cancelada'].includes(v.estado);
         $('btnApelar').classList.toggle('oculto', !abierto || !!v.apelada_en);
         $('avisoApelacion').classList.toggle('oculto', !v.apelada_en);
@@ -2048,7 +2239,7 @@
         if (evento === 'SIGNED_IN' || evento === 'SIGNED_OUT') {
           setTimeout(() => {
             mostrarVista(vista);
-            if (evento === 'SIGNED_IN') { cargarSaldo(); vigilar(); pintarSoporte(); }
+            if (evento === 'SIGNED_IN') { cargarSaldo(); vigilar(); pintarSoporte(); cargarMiPerfil(); }
             if (evento === 'SIGNED_OUT') { saldoDisponible = 0; saldoRecargado = 0; cortarVigilancia(); chatSoporte.cerrar(); pintarSoporte(); }
             if (evento === 'SIGNED_IN' && compraPendiente) {
               const pedido = compraPendiente;
@@ -2069,7 +2260,9 @@
         if (trato && sesion) abrirTrato(Number(trato[1]));
         if (recarga && sesion) abrirRecarga(Number(recarga[1]));
         if (['cuentas', 'como-funciona'].includes(inicial)) setTimeout(() => $(inicial).scrollIntoView({ block: 'start' }), 50);
-        if (sesion) { cargarTratos(); cargarSaldo(); vigilar(); }   // punto de aviso en "Mi panel", saldo en la barra y avisos en vivo
+        if (sesion) { cargarTratos(); cargarSaldo(); vigilar(); cargarMiPerfil(); }
+        const perfil = /^perfil-([0-9a-f-]{36})$/.exec(inicial);
+        if (perfil) abrirPerfil(perfil[1]);   // punto de aviso en "Mi panel", saldo en la barra y avisos en vivo
         if (inicial === 'soporte') abrirSoporte();
         if (inicial === 'recargar' && sesion) { mostrarVista('saldo'); abrirRecargar(); }
       });

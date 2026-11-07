@@ -16,6 +16,7 @@
 - Antes de tocar HTML/CSS de `public/`, leer `.claude/UI_RULES.md` (estética oscura gaming, acento de Free Fire `--game-*`, glass, espaciados, modo ligero en celulares) y comprobar a 360 px.
 - Nunca pintar datos de usuarios con `innerHTML`: `textContent` / `Mercado.crear`.
 - Admin → Sistema: `admin_estado()` (tamaño, conteos, dinero, salud) y `admin_limpiar(dias, que[], ejecutar)` (nunca toca dinero; devuelve rutas de Storage que el panel borra). `vercel.json` tiene CSP estricta: si agregas un dominio externo (scripts, imágenes, APIs), agrégalo ahí.
+- Perfiles públicos: tabla `perfiles` (nombre único, lectura pública, se guarda con `perfil_guardar`); `mercado_perfil(id)` arma el perfil público (nunca el correo); enlace `index.html#perfil-<id>`. Publicar exige tener nombre.
 - Supabase repite `SIGNED_IN` al volver a la pestaña: reaccionar solo si cambió el usuario.
 - Nunca usar `alert`/`confirm`/`prompt` del navegador: avisos con `Mercado.notificar(texto, tipo)` y confirmaciones con `await Mercado.confirmar({...})` (el admin usa su `dialogo()`).
 - Tratos: apelación (`venta_apelar`, se marca atendida cuando un admin escribe en el chat) y calificación del comprador al vendedor (`venta_calificar`, tabla `calificaciones`; `mercado_reputacion` devuelve ventas + estrellas). Admin → Cuentas: `admin_buscar_usuarios` y ajustes de saldo (`admin_ajustar_saldo` = ventas, `admin_ajustar_recargado` = recargado).

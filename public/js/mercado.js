@@ -301,7 +301,7 @@
     // conexión en vivo falla, también se revisa cada 15 s. alNuevo(mensajes) avisa cuando llegan (los del sistema = cambió de estado).
     // Recargas: tabla 'mensajes_recarga', campo 'orden', funcion 'recarga_mensaje', parametro 'p_orden'.
     // Soporte: tabla 'mensajes_soporte', campo 'usuario', funcion 'soporte_mensaje', parametro 'p_usuario'.
-    crearChat({ lista, form, input, boton, aviso, yo, alNuevo, tabla = 'mensajes_venta', campo = 'venta', funcion = 'mensaje_enviar', parametro = 'p_venta' }) {
+    crearChat({ lista, form, input, boton, aviso, yo, alNuevo, nombreDe, tabla = 'mensajes_venta', campo = 'venta', funcion = 'mensaje_enviar', parametro = 'p_venta' }) {
       let venta = null;
       let ultimo = 0;
       let temporizador = null;
@@ -328,7 +328,8 @@
         const apelacion = m.rol === 'sistema' && m.texto.startsWith('APELACIÓN');
         const div = Mercado.crear('div', `msg msg-${m.rol}${propio ? ' msg-mio' : ''}${apelacion ? ' msg-apelacion' : ''}${ultimo ? ' msg-nuevo' : ''}`);
         const cabecera = Mercado.crear('span', 'msg-autor');
-        cabecera.append(Mercado.crear('b', null, propio ? 'Tú' : TEXTO_ROL[m.rol] || m.rol), Mercado.crear('time', null, hora(m.creado)));
+        const nombre = !propio && nombreDe?.(m);
+        cabecera.append(Mercado.crear('b', null, propio ? 'Tú' : nombre ? `${nombre} (${(TEXTO_ROL[m.rol] || m.rol).toLowerCase()})` : TEXTO_ROL[m.rol] || m.rol), Mercado.crear('time', null, hora(m.creado)));
         cabecera.lastChild.dateTime = m.creado;
         div.append(cabecera, Mercado.crear('p', 'msg-texto', m.texto));
         // Los datos de acceso que entrega el vendedor se copian con un toque
