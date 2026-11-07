@@ -8,6 +8,7 @@
   const SUPABASE_URL = 'https://qaxgvfzpzywfgcwnalfr.supabase.co';
   const SUPABASE_PUBLICABLE = 'sb_publishable_iWFflYD8yK3tQIWcORNz7g_OPfvmvng';
   const BUCKET = 'cuentas-fotos';
+  const BUCKET_COMPROBANTES = 'comprobantes';   // privado: capturas de pago de las recargas
 
   // Códigos que lanzan las funciones de supabase/cuentas.sql → texto para el cliente
   const ERRORES = {
@@ -29,6 +30,13 @@
     CHAT_CERRADO: 'Este trato ya terminó: el chat está cerrado.',
     DEMASIADOS_MENSAJES: 'Estás enviando mensajes muy rápido. Espera un momento.',
     SOLO_ADMIN: 'Solo un administrador puede hacer eso.',
+    SALDO_COMPRA: 'No tienes saldo suficiente. Recarga y vuelve a intentarlo.',
+    METODO_NO_DISPONIBLE: 'Ese método de pago no está disponible ahora.',
+    RECARGA_MONTO: 'Revisa el monto de la recarga.',
+    CAPTURA_REQUERIDA: 'Sube la captura del comprobante de pago.',
+    DEMASIADAS_RECARGAS: 'Ya tienes 3 recargas esperando revisión. Espera a que las aprobemos.',
+    REFERENCIA_USADA: 'Esa referencia ya se usó en otra recarga.',
+    SALDO_GASTADO: 'El usuario ya gastó parte de ese saldo: no se puede descontar completo.',
   };
 
   const TEXTO_ESTADO_CUENTA = {
@@ -39,13 +47,25 @@
     pendiente_pago: 'Esperando pago', pagada: 'Pago retenido · esperando entrega', entregada: 'Datos entregados · en revisión',
     en_reclamo: 'En reclamo', cerrada: 'Cerrado', cancelada: 'Cancelado',
   };
-  const TEXTO_ROL = { comprador: 'Comprador', vendedor: 'Vendedor', admin: 'Level Up', sistema: 'Level Up · Sistema' };
+  const TEXTO_ROL = { comprador: 'Comprador', vendedor: 'Vendedor', cliente: 'Cliente', admin: 'Level Up', sistema: 'Level Up · Sistema' };
+  const TEXTO_ESTADO_RECARGA = { pendiente: 'En revisión', aprobada: 'Aprobada', rechazada: 'Rechazada' };
+  // Métodos de recarga: qué pedir como comprobante y qué datos de mercado_config mostrar
+  const METODOS_RECARGA = {
+    binance: { nombre: 'Binance', referencia: 'Número de orden', ayuda: 'En Binance Pay: Historial → toca el pago → "ID de orden".', datos: [['ID de Binance Pay', 'binance_pay_id'], ['Nombre', 'binance_nombre']] },
+    pago_movil: { nombre: 'Pago Móvil', referencia: 'Referencia', ayuda: 'El número de referencia que aparece en el comprobante del banco.', datos: [['Banco', 'pm_banco'], ['Teléfono', 'pm_telefono'], ['Cédula', 'pm_cedula'], ['Titular', 'pm_titular']] },
+    paypal: { nombre: 'PayPal', referencia: 'ID de transacción', ayuda: 'En PayPal: Actividad → toca el pago → "ID de transacción".', datos: [['Correo de PayPal', 'paypal_correo'], ['Nombre', 'paypal_nombre']] },
+  };
+  const CLAVE_METODO = { binance: 'binance_pay_id', pago_movil: 'pm_telefono', paypal: 'paypal_correo' };
+  const CONFIG_NUMERICA = ['comision_retiro', 'retiro_minimo', 'garantia_usd', 'horas_pago', 'horas_revision', 'tasa_bs', 'recarga_minima', 'paypal_recargo'];
 
   let cliente = null;
 
   const Mercado = {
     SUPABASE_URL,
     BUCKET,
+    BUCKET_COMPROBANTES,
+    METODOS_RECARGA,
+    TEXTO_ESTADO_RECARGA,
     WHATSAPP: '584228887089',
     METODOS: ['Pago Móvil', 'Binance', 'Zinli', 'Otro'],
     TEXTO_ESTADO_CUENTA,
@@ -71,6 +91,7 @@
     codigoCuenta: (id) => `FF-${id}`,
     codigoTrato: (id) => `T-${id}`,
     codigoRetiro: (id) => `R-${id}`,
+    codigoRecarga: (id) => `RC-${id}`,
     urlFoto: (ruta) => `${SUPABASE_URL}/storage/v1/object/public/${BUCKET}/${String(ruta).split('/').map(encodeURIComponent).join('/')}`,
     usd: (n) => `${Number(n).toLocaleString('es-VE', { minimumFractionDigits: 0, maximumFractionDigits: 2 })} USD`,
     bs: (n) => `${Number(n).toLocaleString('es-VE', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} Bs`,
@@ -94,16 +115,60 @@
       return data;
     },
 
-    // mercado_config → { comision_retiro: 4, retiro_minimo: 5, ..., instrucciones_pago: '...' }
+    // mercado_config → { comision_retiro: 4, ..., instrucciones_pago: '...', binance_pay_id: '...' }
     async config() {
-      const valores = { comision_retiro: 4, retiro_minimo: 5, garantia_usd: 1, horas_pago: 2, horas_revision: 24, tasa_bs: 0, instrucciones_pago: '' };
+      const valores = { comision_retiro: 4, retiro_minimo: 5, garantia_usd: 1, horas_pago: 2, horas_revision: 24, tasa_bs: 0, recarga_minima: 1, paypal_recargo: 0, instrucciones_pago: '' };
       const { data, error } = await Mercado.cliente().from('mercado_config').select('clave,valor');
       if (!error) {
         for (const { clave, valor } of data) {
-          valores[clave] = clave === 'instrucciones_pago' ? valor : (Number(valor) || 0);
+          valores[clave] = CONFIG_NUMERICA.includes(clave) ? (Number(valor) || 0) : valor;
         }
       }
       return valores;
+    },
+
+    // Métodos de recarga que el admin configuró (los que no tienen datos no se muestran)
+    metodosActivos: (config) => Object.keys(METODOS_RECARGA).filter((m) => String(config[CLAVE_METODO[m]] || '').trim()),
+
+    // Lo que hay que enviar por un método (PayPal puede llevar un recargo por su comisión)
+    montoPagar: (metodo, monto, config) => (metodo === 'paypal'
+      ? Math.round(monto * (1 + (config.paypal_recargo || 0) / 100) * 100) / 100 : monto),
+
+    // Comprime una imagen a WebP (máx. 1280 px, < 1 MB) en el navegador: sube rápido con datos móviles
+    async comprimir(archivo, lado = 1280) {
+      const bitmap = await createImageBitmap(archivo);
+      const escala = Math.min(1, lado / Math.max(bitmap.width, bitmap.height));
+      const lienzo = document.createElement('canvas');
+      lienzo.width = Math.round(bitmap.width * escala);
+      lienzo.height = Math.round(bitmap.height * escala);
+      lienzo.getContext('2d').drawImage(bitmap, 0, 0, lienzo.width, lienzo.height);
+      bitmap.close?.();
+      for (const calidad of [0.82, 0.7, 0.55]) {
+        let blob = await new Promise((r) => lienzo.toBlob(r, 'image/webp', calidad));
+        if (!blob || blob.type !== 'image/webp') blob = await new Promise((r) => lienzo.toBlob(r, 'image/jpeg', calidad)); // Safari viejo
+        if (blob && blob.size <= 1_000_000) return blob;
+      }
+      throw new Error('FOTO_GRANDE');
+    },
+
+    // Enlace temporal (1 h) a una captura del bucket privado
+    async urlComprobante(ruta) {
+      const { data } = await Mercado.cliente().storage.from(BUCKET_COMPROBANTES).createSignedUrl(ruta, 3600);
+      return data?.signedUrl || '';
+    },
+
+    // Copia un texto y lo marca en el mismo botón
+    async copiar(texto, boton) {
+      try {
+        await navigator.clipboard.writeText(texto);
+        if (boton) {
+          boton.classList.add('copiado');
+          setTimeout(() => boton.classList.remove('copiado'), 1400);
+        }
+        return true;
+      } catch (e) {
+        return false;
+      }
     },
 
     mensaje(el, texto, tipo = 'error') {
@@ -111,9 +176,10 @@
       el.textContent = texto;
     },
 
-    // Chat de un trato: trae los mensajes nuevos cada 5 s mientras está abierto (y la pestaña visible).
-    // alNuevo(mensajes) avisa cuando llegan mensajes (los del sistema = el trato cambió de estado).
-    crearChat({ lista, form, input, boton, aviso, yo, alNuevo }) {
+    // Chat de un trato (o de una orden de recarga): trae los mensajes nuevos cada 5 s mientras está abierto
+    // (y la pestaña visible). alNuevo(mensajes) avisa cuando llegan (los del sistema = cambió de estado).
+    // Para recargas: tabla 'mensajes_recarga', campo 'orden', funcion 'recarga_mensaje', parametro 'p_orden'.
+    crearChat({ lista, form, input, boton, aviso, yo, alNuevo, tabla = 'mensajes_venta', campo = 'venta', funcion = 'mensaje_enviar', parametro = 'p_venta' }) {
       let venta = null;
       let ultimo = 0;
       let temporizador = null;
@@ -121,7 +187,7 @@
 
       function burbuja(m) {
         const propio = m.autor && m.autor === yo();
-        const div = Mercado.crear('div', `msg msg-${m.rol}${propio ? ' msg-mio' : ''}`);
+        const div = Mercado.crear('div', `msg msg-${m.rol}${propio ? ' msg-mio' : ''}${ultimo ? ' msg-nuevo' : ''}`);
         const cabecera = Mercado.crear('span', 'msg-autor', `${propio ? 'Tú' : TEXTO_ROL[m.rol] || m.rol} · ${Mercado.fecha(m.creado)}`);
         div.append(cabecera, Mercado.crear('p', 'msg-texto', m.texto));
         return div;
@@ -131,8 +197,8 @@
         if (!venta || ocupado) return;
         ocupado = true;
         const pedido = venta;
-        const { data, error } = await Mercado.cliente().from('mensajes_venta')
-          .select('id,autor,rol,texto,creado').eq('venta', pedido).gt('id', ultimo).order('id').limit(200);
+        const { data, error } = await Mercado.cliente().from(tabla)
+          .select('id,autor,rol,texto,creado').eq(campo, pedido).gt('id', ultimo).order('id').limit(200);
         ocupado = false;
         if (error || pedido !== venta || !data.length) return;
         const alFinal = lista.scrollHeight - lista.scrollTop - lista.clientHeight < 80 || ultimo === 0;
@@ -148,7 +214,7 @@
         if (!texto || !venta) return;
         boton.disabled = true;
         try {
-          await Mercado.rpc('mensaje_enviar', { p_venta: venta, p_texto: texto.slice(0, 1000) }, 'No se pudo enviar el mensaje.');
+          await Mercado.rpc(funcion, { [parametro]: venta, p_texto: texto.slice(0, 1000) }, 'No se pudo enviar el mensaje.');
           input.value = '';
           aviso.textContent = '';
           await traer();
@@ -177,7 +243,7 @@
         habilitar(si) {
           input.disabled = !si;
           boton.disabled = !si;
-          input.placeholder = si ? 'Escribe un mensaje…' : 'El chat de este trato está cerrado';
+          input.placeholder = si ? 'Escribe un mensaje…' : 'Este chat está cerrado';
         },
         traer,
       };

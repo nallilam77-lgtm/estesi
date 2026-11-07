@@ -42,3 +42,8 @@
 /* La ruleta SÍ gira: su vuelta es una transición de 4 s y sin ella saltaba al instante al resultado
    (1440° = 4 vueltas exactas: parecía que no se movía). Es una sola rotación, no traba el teléfono. */
 .ligero #ruletaGiraAuto { transition: transform 4s cubic-bezier(0.15, 0.95, 0.15, 1) !important; }
+
+/* Animaciones de entrada del saldo, las ventanas y el chat: solo opacidad y posición (no repintan),
+   cortas y una sola vez, así que también se ven en celulares. */
+.ligero .aparecer, .ligero .ventana:not(.oculto) > .ventana-caja, .ligero .msg-nuevo, .ligero .captura-vista { animation-duration: 0.25s !important; }
+.ligero .saldo-sube { animation-duration: 0.6s !important; }

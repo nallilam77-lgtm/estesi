@@ -6,7 +6,7 @@
   <meta name="robots" content="noindex, nofollow">
   <script>
     // Modo ligero (css/ligero.css): mismo script que el resto de las páginas
-    (function () { var n = navigator, c = n.connection || {}; if ((n.deviceMemory && n.deviceMemory <= 2) || (n.hardwareConcurrency && n.hardwareConcurrency <= 4) || c.saveData || /(^|\D)2g/.test(c.effectiveType || '') || (window.matchMedia && (matchMedia('(pointer: coarse)').matches || matchMedia('(prefers-reduced-motion: reduce)').matches))) { document.documentElement.classList.add('ligero'); var l = document.createElement('link'); l.rel = 'stylesheet'; l.href = 'css/ligero.css?v=3'; document.head.appendChild(l); } })();
+    (function () { var n = navigator, c = n.connection || {}; if ((n.deviceMemory && n.deviceMemory <= 2) || (n.hardwareConcurrency && n.hardwareConcurrency <= 4) || c.saveData || /(^|\D)2g/.test(c.effectiveType || '') || (window.matchMedia && (matchMedia('(pointer: coarse)').matches || matchMedia('(prefers-reduced-motion: reduce)').matches))) { document.documentElement.classList.add('ligero'); var l = document.createElement('link'); l.rel = 'stylesheet'; l.href = 'css/ligero.css?v=4'; document.head.appendChild(l); } })();
   </script>
   <meta name="theme-color" content="#0b1120">
   <title>Admin · Level Up Cuentas</title>
@@ -17,10 +17,10 @@
   <link rel="stylesheet" href="css/paginas-legales.css">
   <link rel="stylesheet" href="css/creadores.css">
   <link rel="stylesheet" href="css/billetera.css">
-  <link rel="stylesheet" href="css/cuentas.css?v=2">
-  <link rel="stylesheet" href="css/tienda.css?v=2">
+  <link rel="stylesheet" href="css/cuentas.css?v=3">
+  <link rel="stylesheet" href="css/tienda.css?v=3">
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.js" defer></script>
-  <script src="js/mercado.js?v=2" defer></script>
+  <script src="js/mercado.js?v=3" defer></script>
 </head>
 <body class="tienda">
 
@@ -39,6 +39,8 @@
     <symbol id="i-usuario" viewBox="0 0 24 24"><circle cx="12" cy="8" r="4"/><path d="M4 21a8 8 0 0 1 16 0"/></symbol>
     <symbol id="i-candado" viewBox="0 0 24 24"><rect x="5" y="11" width="14" height="10" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></symbol>
     <symbol id="i-video" viewBox="0 0 24 24"><rect x="3" y="6" width="13" height="12" rx="2"/><path d="m16 10 5-3v10l-5-3"/></symbol>
+    <symbol id="i-basura" viewBox="0 0 24 24"><path d="M4 7h16M10 11v6M14 11v6"/><path d="M6 7l1 13h10l1-13M9 7V4h6v3"/></symbol>
+    <symbol id="i-recarga" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 8v8M8 12h8"/></symbol>
     <symbol id="i-whatsapp" viewBox="0 0 24 24"><path d="M3 21l1.6-4.8A8.5 8.5 0 1 1 8 19.6L3 21z"/><path d="M9 9.5c.5 2 2.5 4 4.5 4.5l1-1.2 2 1-.5 1.7c-3.5.3-7.3-3.5-7-7l1.7-.5 1 2L9 9.5z"/></symbol>
   </svg>
 
@@ -92,21 +94,38 @@
       <div class="contenedor app-cuerpo">
         <div class="admin-resumen" id="resumenAdmin">
           <button type="button" class="admin-dato" data-ir="revision"><span class="icono-caja"><svg class="icono"><use href="#i-revision"/></svg></span><span><strong data-cuenta="revision">—</strong>Publicaciones por revisar</span></button>
-          <button type="button" class="admin-dato" data-ir="tratos" data-filtro="por_confirmar"><span class="icono-caja"><svg class="icono"><use href="#i-dinero"/></svg></span><span><strong data-cuenta="pagos">—</strong>Pagos por confirmar</span></button>
+          <button type="button" class="admin-dato" data-ir="recargas" data-filtro-recargas="pendiente"><span class="icono-caja"><svg class="icono"><use href="#i-recarga"/></svg></span><span><strong data-cuenta="recargas">—</strong><em id="textoRecargasResumen">Recargas por aprobar</em></span></button>
           <button type="button" class="admin-dato" data-ir="tratos" data-filtro="en_reclamo"><span class="icono-caja"><svg class="icono"><use href="#i-alerta"/></svg></span><span><strong data-cuenta="reclamos">—</strong>Reclamos abiertos</span></button>
           <button type="button" class="admin-dato" data-ir="retiros"><span class="icono-caja"><svg class="icono"><use href="#i-billetera"/></svg></span><span><strong data-cuenta="retiros">—</strong><em id="textoRetirosResumen">Retiros pendientes</em></span></button>
         </div>
 
         <div class="admin-pestanas" role="tablist" id="pestanasAdmin">
-          <button type="button" role="tab" aria-selected="true" data-vista="revision"><svg class="icono"><use href="#i-revision"/></svg>Revisión<span class="contador" data-cuenta="revision"></span></button>
+          <button type="button" role="tab" aria-selected="true" data-vista="recargas"><svg class="icono"><use href="#i-recarga"/></svg>Recargas<span class="contador" data-cuenta="recargasTotal"></span></button>
+          <button type="button" role="tab" aria-selected="false" data-vista="revision"><svg class="icono"><use href="#i-revision"/></svg>Revisión<span class="contador" data-cuenta="revision"></span></button>
           <button type="button" role="tab" aria-selected="false" data-vista="tratos"><svg class="icono"><use href="#i-chat"/></svg>Tratos<span class="contador" data-cuenta="abiertos"></span></button>
           <button type="button" role="tab" aria-selected="false" data-vista="retiros"><svg class="icono"><use href="#i-billetera"/></svg>Retiros<span class="contador" data-cuenta="retiros"></span></button>
           <button type="button" role="tab" aria-selected="false" data-vista="ajustes"><svg class="icono"><use href="#i-ajustes"/></svg>Ajustes</button>
         </div>
         <div class="panel-mensaje" id="mensajeAdmin" role="status" aria-live="polite"></div>
 
+        <!-- Recargas -->
+        <section class="admin-seccion" id="vistaRecargas" aria-labelledby="tituloRecargas">
+          <div class="admin-seccion-cabecera">
+            <h2 id="tituloRecargas">Recargas de saldo</h2>
+            <p>Revisa la captura y la referencia en tu Binance, PayPal o banco. Si llegó otro monto, apruébalo con el monto real.</p>
+          </div>
+          <div class="chips" id="filtroRecargas" role="group" aria-label="Filtrar recargas">
+            <button type="button" class="chip" data-filtro="pendiente" aria-pressed="true">Por aprobar</button>
+            <button type="button" class="chip" data-filtro="sin_responder" aria-pressed="false">Chats sin responder</button>
+            <button type="button" class="chip" data-filtro="aprobada" aria-pressed="false">Aprobadas</button>
+            <button type="button" class="chip" data-filtro="rechazada" aria-pressed="false">Rechazadas</button>
+            <button type="button" class="chip" data-filtro="todas" aria-pressed="false">Todas</button>
+          </div>
+          <div class="admin-lista" id="listaRecargas"></div>
+        </section>
+
         <!-- Revisión -->
-        <section class="admin-seccion" id="vistaRevision" aria-labelledby="tituloRevision">
+        <section class="admin-seccion oculto" id="vistaRevision" aria-labelledby="tituloRevision">
           <div class="admin-seccion-cabecera">
             <h2 id="tituloRevision">Publicaciones por revisar</h2>
             <p>Revisa que las fotos sean reales y no muestren datos de acceso. El WhatsApp del vendedor solo lo ves tú.</p>
@@ -118,7 +137,7 @@
         <section class="admin-seccion oculto" id="vistaTratos" aria-labelledby="tituloTratosAdmin">
           <div class="admin-seccion-cabecera">
             <h2 id="tituloTratosAdmin">Tratos</h2>
-            <p>Confirma pagos, mira el chat y resuelve reclamos.</p>
+            <p>Mira el chat de cada trato y resuelve reclamos. Las compras se pagan con saldo: el dinero ya está retenido.</p>
           </div>
           <div class="chips" id="filtroTratos" role="group" aria-label="Filtrar tratos">
             <button type="button" class="chip" data-filtro="abiertos" aria-pressed="true">Abiertos</button>
@@ -150,15 +169,47 @@
           </div>
           <form class="ajustes" id="formAjustes" novalidate>
             <fieldset class="ajustes-grupo">
-              <legend><svg class="icono"><use href="#i-dinero"/></svg>Pagos del comprador</legend>
-              <div class="campo">
-                <label for="cfg_instrucciones_pago">Instrucciones de pago</label>
-                <textarea id="cfg_instrucciones_pago" maxlength="600" placeholder="Pago Móvil: banco, teléfono y cédula. Binance: correo o ID."></textarea>
-                <p class="campo-ayuda">Las ve el comprador al pagar. Escribe tus datos de Pago Móvil y Binance.</p>
+              <legend><svg class="icono"><use href="#i-dinero"/></svg>Binance</legend>
+              <p class="campo-ayuda">Deja vacío el ID para no ofrecer Binance.</p>
+              <div class="form-fila">
+                <div class="campo"><label for="cfg_binance_pay_id">ID de Binance Pay (o correo)</label><input type="text" id="cfg_binance_pay_id" maxlength="120" autocomplete="off"></div>
+                <div class="campo"><label for="cfg_binance_nombre">Nombre en Binance</label><input type="text" id="cfg_binance_nombre" maxlength="120" autocomplete="off"></div>
+              </div>
+            </fieldset>
+            <fieldset class="ajustes-grupo">
+              <legend><svg class="icono"><use href="#i-dinero"/></svg>Pago Móvil</legend>
+              <p class="campo-ayuda">Deja vacío el teléfono para no ofrecer Pago Móvil.</p>
+              <div class="form-fila">
+                <div class="campo"><label for="cfg_pm_banco">Banco</label><input type="text" id="cfg_pm_banco" maxlength="120" placeholder="Ej: Banesco (0134)" autocomplete="off"></div>
+                <div class="campo"><label for="cfg_pm_telefono">Teléfono</label><input type="text" id="cfg_pm_telefono" maxlength="120" inputmode="tel" placeholder="Ej: 04141234567" autocomplete="off"></div>
+              </div>
+              <div class="form-fila">
+                <div class="campo"><label for="cfg_pm_cedula">Cédula / RIF</label><input type="text" id="cfg_pm_cedula" maxlength="120" placeholder="Ej: V12345678" autocomplete="off"></div>
+                <div class="campo"><label for="cfg_pm_titular">Titular</label><input type="text" id="cfg_pm_titular" maxlength="120" autocomplete="off"></div>
               </div>
               <div class="campo">
                 <label for="cfg_tasa_bs">Tasa del día (Bs por 1 USD)</label>
-                <input type="text" id="cfg_tasa_bs" inputmode="decimal" placeholder="Vacío = no mostrar el monto en Bs">
+                <input type="text" id="cfg_tasa_bs" inputmode="decimal" placeholder="Ej: 45.50 · vacío = no calcular Bs">
+                <p class="campo-ayuda">Con la tasa, la tienda le dice al cliente cuántos Bs enviar.</p>
+              </div>
+            </fieldset>
+            <fieldset class="ajustes-grupo">
+              <legend><svg class="icono"><use href="#i-dinero"/></svg>PayPal</legend>
+              <p class="campo-ayuda">Deja vacío el correo para no ofrecer PayPal.</p>
+              <div class="form-fila tres">
+                <div class="campo"><label for="cfg_paypal_correo">Correo de PayPal</label><input type="text" id="cfg_paypal_correo" maxlength="120" inputmode="email" autocomplete="off"></div>
+                <div class="campo"><label for="cfg_paypal_nombre">Nombre</label><input type="text" id="cfg_paypal_nombre" maxlength="120" autocomplete="off"></div>
+                <div class="campo"><label for="cfg_paypal_recargo">Recargo PayPal (%)</label><input type="text" id="cfg_paypal_recargo" inputmode="decimal" placeholder="Ej: 5.4"></div>
+              </div>
+              <p class="campo-ayuda">El recargo cubre la comisión de PayPal: si recargan 10 USD con 5 %, envían 10,50 USD y reciben 10 USD de saldo.</p>
+            </fieldset>
+            <fieldset class="ajustes-grupo">
+              <legend><svg class="icono"><use href="#i-recarga"/></svg>Recargas</legend>
+              <div class="campo"><label for="cfg_recarga_minima">Recarga mínima (USD)</label><input type="text" id="cfg_recarga_minima" inputmode="decimal"></div>
+              <div class="campo">
+                <label for="cfg_instrucciones_pago">Nota para quien recarga</label>
+                <textarea id="cfg_instrucciones_pago" maxlength="600" placeholder="Ej: Envía el monto exacto. Aprobamos de 8 a. m. a 10 p. m."></textarea>
+                <p class="campo-ayuda">Aparece debajo de tus datos de pago.</p>
               </div>
             </fieldset>
             <fieldset class="ajustes-grupo">
@@ -171,10 +222,7 @@
             </fieldset>
             <fieldset class="ajustes-grupo">
               <legend><svg class="icono"><use href="#i-revision"/></svg>Plazos</legend>
-              <div class="form-fila">
-                <div class="campo"><label for="cfg_horas_pago">Horas para pagar</label><input type="text" id="cfg_horas_pago" inputmode="numeric"><p class="campo-ayuda">Si no informa el pago, el trato se cancela solo.</p></div>
-                <div class="campo"><label for="cfg_horas_revision">Horas de revisión</label><input type="text" id="cfg_horas_revision" inputmode="numeric"><p class="campo-ayuda">Sin reclamo, el trato se cierra solo y el vendedor cobra.</p></div>
-              </div>
+              <div class="campo"><label for="cfg_horas_revision">Horas de revisión</label><input type="text" id="cfg_horas_revision" inputmode="numeric"><p class="campo-ayuda">Tras la entrega, el comprador tiene este tiempo para reclamar; si no, el trato se cierra solo y el vendedor cobra.</p></div>
             </fieldset>
             <button type="submit" class="btn-juego" id="btnAjustes">Guardar ajustes</button>
             <div class="panel-mensaje" id="mensajeAjustes" role="status" aria-live="polite"></div>
@@ -209,6 +257,34 @@
     </div>
   </div>
 
+  <!-- Recarga (vista de admin) -->
+  <div class="ventana oculto" id="ventanaRecarga" role="dialog" aria-modal="true" aria-labelledby="recargaTitulo">
+    <div class="ventana-caja ventana-trato">
+      <button type="button" class="ventana-cerrar" data-cerrar aria-label="Cerrar">✖</button>
+      <div class="detalle-cuerpo">
+        <span class="tarjeta-codigo" id="recargaCodigo"></span>
+        <h2 id="recargaTitulo"></h2>
+        <span class="pastilla" id="recargaEstado"></span>
+        <div class="recarga-detalle">
+          <a class="recarga-captura" id="recargaCapturaEnlace" target="_blank" rel="noopener"><img id="recargaCaptura" alt="Comprobante (abrir en grande)"></a>
+          <dl class="ficha" id="recargaDatos"></dl>
+        </div>
+        <div class="admin-acciones" id="recargaAcciones"></div>
+        <div class="panel-mensaje" id="mensajeRecarga" role="status" aria-live="polite"></div>
+        <div class="chat">
+          <h3>Chat con el cliente <span class="chat-nota">· escribes como Level Up</span></h3>
+          <div class="chat-lista" id="recChatLista" aria-live="polite"></div>
+          <form class="chat-form" id="recChatForm">
+            <label for="recChatTexto" class="solo-lectores">Mensaje</label>
+            <textarea id="recChatTexto" rows="2" maxlength="1000" placeholder="Escribe como Level Up…"></textarea>
+            <button type="submit" class="btn-juego" id="recChatEnviar">Enviar</button>
+          </form>
+          <div class="panel-mensaje" id="recChatAviso" role="status" aria-live="polite"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
   <!-- Diálogo propio (reemplaza prompt/confirm del navegador) -->
   <div class="ventana oculto" id="dialogo" role="alertdialog" aria-modal="true" aria-labelledby="dialogoTitulo" aria-describedby="dialogoTexto">
     <form class="ventana-caja dialogo-caja" id="dialogoForm" novalidate>
@@ -236,9 +312,11 @@
       const M = window.Mercado;
       const cliente = M?.cliente();
       if (!cliente) return;
-      const { crear, usd, fecha, codigoCuenta, codigoTrato, codigoRetiro, urlFoto } = M;
+      const { crear, usd, fecha, codigoCuenta, codigoTrato, codigoRetiro, codigoRecarga, urlFoto } = M;
       let sesion = null;
-      let vista = 'revision';
+      let vista = 'recargas';
+      let filtroRecargas = 'pendiente';
+      let recargaAbierta = null;
       let filtroTratos = 'abiertos';
       let tratoAbierto = null;
       const correos = new Map();
@@ -358,21 +436,23 @@
       }
 
       // ---------------- Navegación ----------------
-      const VISTAS = { revision: 'vistaRevision', tratos: 'vistaTratos', retiros: 'vistaRetiros', ajustes: 'vistaAjustes' };
-      function irA(nueva, filtro) {
+      const VISTAS = { recargas: 'vistaRecargas', revision: 'vistaRevision', tratos: 'vistaTratos', retiros: 'vistaRetiros', ajustes: 'vistaAjustes' };
+      function irA(nueva, filtro, filtroRec) {
         vista = nueva;
         if (filtro) cambiarFiltro(filtro, false);
+        if (filtroRec) cambiarFiltroRecargas(filtroRec, false);
         document.querySelectorAll('#pestanasAdmin [data-vista]').forEach((b) => b.setAttribute('aria-selected', String(b.dataset.vista === nueva)));
         for (const [clave, id] of Object.entries(VISTAS)) $(id).classList.toggle('oculto', clave !== nueva);
         $('mensajeAdmin').textContent = '';
         cargarTodo();
       }
       document.querySelectorAll('#pestanasAdmin [data-vista]').forEach((b) => b.addEventListener('click', () => irA(b.dataset.vista)));
-      document.querySelectorAll('.admin-dato').forEach((b) => b.addEventListener('click', () => irA(b.dataset.ir, b.dataset.filtro)));
+      document.querySelectorAll('.admin-dato').forEach((b) => b.addEventListener('click', () => irA(b.dataset.ir, b.dataset.filtro, b.dataset.filtroRecargas)));
       $('btnRefrescar').addEventListener('click', () => cliente.rpc('mercado_mantenimiento').then(cargarTodo, cargarTodo));
 
       function cargarTodo() {
         cargarResumen();
+        if (vista === 'recargas') cargarRecargas();
         if (vista === 'revision') cargarRevision();
         if (vista === 'tratos') cargarTratos();
         if (vista === 'retiros') cargarRetiros();
@@ -381,27 +461,176 @@
 
       async function cargarResumen() {
         const contar = (consulta) => consulta.then(({ count }) => count || 0, () => 0);
-        const [revision, pagos, reclamos, abiertos, retiros] = await Promise.all([
+        const [revision, recargas, chats, reclamos, abiertos, retiros] = await Promise.all([
           contar(cliente.from('cuentas_venta').select('id', { count: 'exact', head: true }).eq('estado', 'revision')),
-          contar(cliente.from('ventas_cuentas').select('id', { count: 'exact', head: true }).eq('estado', 'pendiente_pago').not('pago_informado_en', 'is', null)),
+          contar(cliente.from('ordenes_recarga').select('id', { count: 'exact', head: true }).eq('estado', 'pendiente')),
+          cliente.from('ordenes_recarga').select('msg_cliente,msg_admin').not('msg_cliente', 'is', null).order('msg_cliente', { ascending: false }).limit(200)
+            .then(({ data }) => (data || []).filter(sinResponder).length, () => 0),
           contar(cliente.from('ventas_cuentas').select('id', { count: 'exact', head: true }).eq('estado', 'en_reclamo')),
           contar(cliente.from('ventas_cuentas').select('id', { count: 'exact', head: true }).in('estado', ['pendiente_pago', 'pagada', 'entregada', 'en_reclamo'])),
           cliente.from('retiros').select('neto_usd').eq('estado', 'pendiente').then(({ data }) => data || [], () => []),
         ]);
         const totalRetiros = retiros.reduce((s, r) => s + Number(r.neto_usd), 0);
-        const valores = { revision, pagos, reclamos, abiertos, retiros: retiros.length };
+        const valores = { revision, recargas, recargasTotal: recargas + chats, reclamos, abiertos, retiros: retiros.length };
         document.querySelectorAll('[data-cuenta]').forEach((el) => {
           const n = valores[el.dataset.cuenta];
           el.textContent = el.classList.contains('contador') ? (n ? String(n) : '') : String(n);
         });
         $('textoRetirosResumen').textContent = retiros.length ? `Retiros · pagar ${usd(totalRetiros)}` : 'Retiros pendientes';
-        const urgentes = { revision, pagos, reclamos };
+        $('textoRecargasResumen').textContent = chats ? `Recargas por aprobar · ${chats} chat${chats === 1 ? '' : 's'} sin responder` : 'Recargas por aprobar';
+        const urgentes = { revision, recargas: recargas + chats, reclamos };
         document.querySelectorAll('.admin-dato').forEach((b) => {
           const clave = b.querySelector('[data-cuenta]').dataset.cuenta;
           b.classList.toggle('urgente', (urgentes[clave] || 0) > 0);
         });
-        const pendientes = revision + pagos + reclamos;
+        const pendientes = revision + recargas + chats + reclamos;
         document.title = pendientes ? `(${pendientes}) Admin · Level Up Cuentas` : 'Admin · Level Up Cuentas';
+      }
+
+      // ---------------- Recargas ----------------
+      const sinResponder = (o) => o.msg_cliente && (!o.msg_admin || o.msg_cliente > o.msg_admin);
+      function cambiarFiltroRecargas(filtro, recargar = true) {
+        filtroRecargas = filtro;
+        document.querySelectorAll('#filtroRecargas .chip').forEach((b) => b.setAttribute('aria-pressed', String(b.dataset.filtro === filtro)));
+        if (recargar) cargarRecargas();
+      }
+      document.querySelectorAll('#filtroRecargas .chip').forEach((b) => b.addEventListener('click', () => cambiarFiltroRecargas(b.dataset.filtro)));
+
+      const enviado = (o) => (o.monto_bs ? `${M.bs(o.monto_bs)} (${usd(o.monto_pagar)})` : usd(o.monto_pagar));
+      const pastillaRecarga = (o) => crear('span', `pastilla pastilla-recarga-${o.estado}`, M.TEXTO_ESTADO_RECARGA[o.estado]);
+
+      // Acciones de una recarga (en la tarjeta y en la ventana)
+      function accionesRecarga(o, caja, despues) {
+        if (o.estado === 'pendiente') {
+          boton(caja, `Aprobar ${usd(o.monto_usd)}`, 'btn-juego', 'i-check', async () => {
+            const r = await dialogo({ titulo: `Aprobar ${codigoRecarga(o.id)}`, texto: `¿Verificaste que llegaron ${enviado(o)} por ${M.METODOS_RECARGA[o.metodo].nombre} con la referencia ${o.referencia}? Si llegó otro monto, cambia el número.`, etiqueta: 'Monto a acreditar (USD)', valor: String(Number(o.monto_usd)), aceptar: 'Aprobar y acreditar', obligatorio: true });
+            if (!r) return;
+            const monto = Number(r.texto.replace(',', '.'));
+            if (!(monto > 0)) return aviso('Escribe un monto válido.');
+            if (await accion('admin_recarga_aprobar', { p_orden: o.id, p_monto: monto }, `${codigoRecarga(o.id)} aprobada: ${usd(monto)} acreditados.`)) despues();
+          });
+          boton(caja, 'Rechazar', 'btn-secundario btn-peligro', 'i-x', async () => {
+            const r = await dialogo({ titulo: `Rechazar ${codigoRecarga(o.id)}`, texto: 'El cliente verá el motivo en el chat de la recarga.', etiqueta: 'Motivo', valor: 'El pago no llegó', aceptar: 'Rechazar', peligro: true, obligatorio: true });
+            if (r && await accion('admin_recarga_rechazar', { p_orden: o.id, p_motivo: r.texto }, `${codigoRecarga(o.id)} rechazada.`)) despues();
+          });
+        }
+        boton(caja, 'Eliminar', 'btn-secundario btn-peligro', 'i-basura', async () => {
+          const aprobada = o.estado === 'aprobada';
+          const r = await dialogo({
+            titulo: `Eliminar ${codigoRecarga(o.id)}`,
+            texto: 'Se borran la orden, su chat y la captura. No se puede deshacer.',
+            casilla: aprobada ? { texto: `Descontar del saldo del cliente los ${usd(o.acreditado_usd)} acreditados`, marcado: false } : null,
+            aceptar: 'Eliminar', peligro: true,
+          });
+          if (!r) return;
+          try {
+            const ruta = await M.rpc('admin_recarga_eliminar', { p_orden: o.id, p_revertir: aprobada && r.marcado });
+            if (ruta) await cliente.storage.from(M.BUCKET_COMPROBANTES).remove([ruta]);
+            aviso(`${codigoRecarga(o.id)} eliminada.`, 'exito');
+            if (recargaAbierta === o.id) cerrarRecarga();
+            despues();
+          } catch (error) {
+            aviso(error.message);
+          }
+        });
+      }
+
+      async function cargarRecargas() {
+        let consulta = cliente.from('ordenes_recarga').select('*').limit(100);
+        if (filtroRecargas === 'pendiente') consulta = consulta.eq('estado', 'pendiente').order('creado');
+        else if (filtroRecargas === 'sin_responder') consulta = consulta.not('msg_cliente', 'is', null).order('msg_cliente', { ascending: false });
+        else if (filtroRecargas === 'todas') consulta = consulta.order('creado', { ascending: false });
+        else consulta = consulta.eq('estado', filtroRecargas).order('resuelto', { ascending: false });
+        const { data, error } = await consulta;
+        if (error) return aviso('No pudimos cargar las recargas.');
+        const filas = filtroRecargas === 'sin_responder' ? data.filter(sinResponder) : data;
+        await traerCorreos(filas.map((o) => o.usuario));
+        const lista = $('listaRecargas');
+        lista.replaceChildren();
+        if (!filas.length) return lista.append(vacio(filtroRecargas === 'pendiente' ? 'No hay recargas por aprobar. Todo al día.' : 'No hay recargas con ese filtro.'));
+        for (const o of filas) {
+          const tarjeta = crear('article', 'admin-tarjeta admin-recarga aparecer');
+          const foto = crear('a', 'admin-recarga-foto');
+          foto.target = '_blank';
+          foto.rel = 'noopener';
+          const img = crear('img');
+          img.alt = 'Comprobante de pago (abrir en grande)';
+          img.loading = 'lazy';
+          foto.append(img);
+          M.urlComprobante(o.captura).then((url) => { img.src = url; foto.href = url; });
+
+          const cuerpo = crear('div', 'admin-tarjeta-cuerpo');
+          const cabecera = crear('div', 'admin-tarjeta-cabecera');
+          const titulo = crear('div');
+          titulo.append(crear('span', 'tarjeta-codigo', `${codigoRecarga(o.id)} · ${M.METODOS_RECARGA[o.metodo].nombre} · ${fecha(o.creado)}`), crear('h3', null, correo(o.usuario)));
+          const monto = crear('div', 'admin-monto');
+          monto.append(crear('span', 'tarjeta-precio', usd(o.estado === 'aprobada' ? o.acreditado_usd : o.monto_usd)), pastillaRecarga(o));
+          cabecera.append(titulo, monto);
+
+          const pares = [['Envió', enviado(o)], [M.METODOS_RECARGA[o.metodo].referencia, o.referencia]];
+          if (o.nota) pares.push(['Motivo', o.nota]);
+          if (o.resuelto) pares.push([o.estado === 'aprobada' ? 'Aprobada' : 'Resuelta', fecha(o.resuelto)]);
+          const acciones = crear('div', 'admin-acciones');
+          const chatBoton = boton(acciones, sinResponder(o) ? 'Chat · sin responder' : 'Ver chat', `btn-secundario${sinResponder(o) ? ' btn-alerta' : ''}`, 'i-chat', () => abrirRecarga(o.id));
+          chatBoton.dataset.orden = String(o.id);
+          accionesRecarga(o, acciones, cargarTodo);
+          cuerpo.append(cabecera, ficha(pares), acciones);
+          tarjeta.append(foto, cuerpo);
+          lista.append(tarjeta);
+        }
+      }
+
+      const chatRecarga = M.crearChat({
+        lista: $('recChatLista'), form: $('recChatForm'), input: $('recChatTexto'), boton: $('recChatEnviar'), aviso: $('recChatAviso'), yo,
+        tabla: 'mensajes_recarga', campo: 'orden', funcion: 'recarga_mensaje', parametro: 'p_orden',
+        alNuevo: (mensajes) => { if (recargaAbierta && mensajes.some((m) => m.rol === 'sistema')) refrescarRecarga(); },
+      });
+      function cerrarRecarga() {
+        $('ventanaRecarga').classList.add('oculto');
+        document.body.classList.remove('no-scroll');
+        chatRecarga.cerrar();
+        recargaAbierta = null;
+        cargarTodo();
+      }
+      $('ventanaRecarga').querySelector('[data-cerrar]').addEventListener('click', cerrarRecarga);
+      $('ventanaRecarga').addEventListener('click', (e) => { if (e.target === $('ventanaRecarga')) cerrarRecarga(); });
+
+      async function abrirRecarga(id) {
+        recargaAbierta = id;
+        $('mensajeRecarga').textContent = '';
+        $('recargaCaptura').removeAttribute('src');
+        $('ventanaRecarga').classList.remove('oculto');
+        document.body.classList.add('no-scroll');
+        chatRecarga.abrir(id);
+        chatRecarga.habilitar(true);
+        await refrescarRecarga();
+        $('recChatTexto').focus({ preventScroll: true });
+      }
+      async function refrescarRecarga() {
+        const id = recargaAbierta;
+        const { data: o } = await cliente.from('ordenes_recarga').select('*').eq('id', id).maybeSingle();
+        if (!o || id !== recargaAbierta) return;
+        await traerCorreos([o.usuario]);
+        const { data: s } = await cliente.from('saldos_vendedor').select('disponible,recargado').eq('vendedor', o.usuario).maybeSingle();
+        $('recargaCodigo').textContent = `${codigoRecarga(o.id)} · ${fecha(o.creado)}`;
+        $('recargaTitulo').textContent = `${usd(o.monto_usd)} por ${M.METODOS_RECARGA[o.metodo].nombre}`;
+        $('recargaEstado').replaceWith(Object.assign(pastillaRecarga(o), { id: 'recargaEstado' }));
+        const pares = [
+          ['Cliente', correo(o.usuario)],
+          ['Envió', enviado(o)],
+          [M.METODOS_RECARGA[o.metodo].referencia, o.referencia],
+          ['Saldo actual', s ? `${usd(Number(s.recargado) + Number(s.disponible))} (recargado ${usd(s.recargado)} · ventas ${usd(s.disponible)})` : '0 USD'],
+        ];
+        if (o.acreditado_usd) pares.push(['Acreditado', `${usd(o.acreditado_usd)} · ${fecha(o.resuelto)}`]);
+        if (o.nota) pares.push(['Motivo', o.nota]);
+        $('recargaDatos').replaceWith(Object.assign(ficha(pares), { id: 'recargaDatos' }));
+        const caja = $('recargaAcciones');
+        caja.replaceChildren();
+        accionesRecarga(o, caja, async () => { await refrescarRecarga(); chatRecarga.traer(); });
+        const url = await M.urlComprobante(o.captura);
+        if (id !== recargaAbierta) return;
+        $('recargaCaptura').src = url;
+        $('recargaCapturaEnlace').href = url || '#';
       }
 
       // ---------------- Revisión ----------------
@@ -517,6 +746,7 @@
       document.addEventListener('keydown', (e) => {
         if (e.key !== 'Escape') return;
         if (!$('dialogo').classList.contains('oculto')) cerrarDialogo(null);
+        else if (recargaAbierta) cerrarRecarga();
         else if (tratoAbierto) cerrarTrato();
       });
 
@@ -544,9 +774,9 @@
           ['Vendedor', `${correo(v.vendedor)}${contacto?.whatsapp ? ` · ${contacto.whatsapp}` : ''}`],
           ['Cobrar al comprador', `${usd(v.total_usd)}${v.garantia ? ' (con garantía)' : ''}`],
           ['Para el vendedor', usd(v.precio_usd)],
-          ['Pago informado', v.pago_informado_en ? `${v.metodo_pago} · ref. ${v.referencia_pago} · ${fecha(v.pago_informado_en)}` : 'Todavía no'],
+          ['Pago', v.metodo_pago === 'Saldo' ? `Con saldo · ${fecha(v.pagada_en)}` : v.pago_informado_en ? `${v.metodo_pago} · ref. ${v.referencia_pago} · ${fecha(v.pago_informado_en)}` : 'Todavía no'],
         ];
-        if (v.pagada_en) pares.push(['Pago confirmado', fecha(v.pagada_en)]);
+        if (v.pagada_en && v.metodo_pago !== 'Saldo') pares.push(['Pago confirmado', fecha(v.pagada_en)]);
         if (v.entregada_en) pares.push(['Datos entregados', fecha(v.entregada_en)]);
         if (v.reclamo_motivo) pares.push(['Reclamo', v.reclamo_motivo]);
         if (v.resolucion) pares.push(['Resolución', v.resolucion]);
@@ -577,19 +807,21 @@
             if (r) await ejecutar('admin_confirmar_pago', { p_venta: v.id }, 'Pago confirmado. El vendedor ya puede entregar.');
           });
         }
+        const pagadoSaldo = Number(v.pagado_recargado || 0) + Number(v.pagado_disponible || 0);
+        const textoReembolso = pagadoSaldo > 0 ? `${usd(pagadoSaldo)} vuelven solos al saldo del comprador.` : `El reembolso de ${usd(v.total_usd)} lo haces tú (trato viejo, pagado por fuera).`;
         if (['pagada', 'entregada', 'en_reclamo'].includes(v.estado)) {
           boton(caja, 'A favor del vendedor', 'btn-secundario', 'i-check', async () => {
             const r = await dialogo({ titulo: 'Resolver a favor del vendedor', texto: `Se cierra el trato y ${usd(v.precio_usd)} pasan a su saldo. La nota se publica en el chat.`, etiqueta: 'Nota', valor: v.estado === 'en_reclamo' ? 'El video no muestra el problema' : '', aceptar: 'Cerrar y pagar' });
             if (r) await ejecutar('admin_resolver', { p_venta: v.id, p_favor: 'vendedor', p_nota: r.texto }, 'Cerrado a favor del vendedor.');
           });
           boton(caja, 'A favor del comprador', 'btn-secundario btn-peligro', 'i-x', async () => {
-            const r = await dialogo({ titulo: 'Resolver a favor del comprador', texto: `Se cancela el trato y la cuenta queda rechazada. El reembolso de ${usd(v.total_usd)} lo haces tú.`, etiqueta: 'Nota', valor: 'El video muestra que la cuenta no es la publicada', aceptar: 'Reembolsar', peligro: true, obligatorio: true });
-            if (r) await ejecutar('admin_resolver', { p_venta: v.id, p_favor: 'comprador', p_nota: r.texto }, 'Resuelto a favor del comprador: haz el reembolso.');
+            const r = await dialogo({ titulo: 'Resolver a favor del comprador', texto: `Se cancela el trato y la cuenta queda rechazada. ${textoReembolso}`, etiqueta: 'Nota', valor: 'El video muestra que la cuenta no es la publicada', aceptar: 'Reembolsar', peligro: true, obligatorio: true });
+            if (r) await ejecutar('admin_resolver', { p_venta: v.id, p_favor: 'comprador', p_nota: r.texto }, pagadoSaldo > 0 ? 'Resuelto a favor del comprador: el dinero volvió a su saldo.' : 'Resuelto a favor del comprador: haz el reembolso.');
           });
         }
         if (['pendiente_pago', 'pagada', 'entregada', 'en_reclamo'].includes(v.estado)) {
           boton(caja, 'Cancelar trato', 'btn-secundario btn-peligro', 'i-x', async () => {
-            const r = await dialogo({ titulo: 'Cancelar trato', texto: 'Lo ven el comprador y el vendedor. Si el comprador ya pagó, el reembolso lo haces tú.', etiqueta: 'Motivo', valor: 'El pago no llegó', casilla: { texto: 'Devolver la cuenta al mercado', marcado: true }, aceptar: 'Cancelar trato', peligro: true, obligatorio: true });
+            const r = await dialogo({ titulo: 'Cancelar trato', texto: `Lo ven el comprador y el vendedor. ${v.estado === 'pendiente_pago' ? '' : textoReembolso}`, etiqueta: 'Motivo', valor: 'El pago no llegó', casilla: { texto: 'Devolver la cuenta al mercado', marcado: true }, aceptar: 'Cancelar trato', peligro: true, obligatorio: true });
             if (r) await ejecutar('admin_cancelar', { p_venta: v.id, p_motivo: r.texto, p_devolver_al_mercado: r.marcado }, 'Trato cancelado.');
           });
         }
@@ -648,7 +880,10 @@
       }
 
       // ---------------- Ajustes ----------------
-      const CLAVES = ['instrucciones_pago', 'tasa_bs', 'comision_retiro', 'retiro_minimo', 'garantia_usd', 'horas_pago', 'horas_revision'];
+      const CLAVES = ['binance_pay_id', 'binance_nombre', 'pm_banco', 'pm_telefono', 'pm_cedula', 'pm_titular', 'tasa_bs',
+        'paypal_correo', 'paypal_nombre', 'paypal_recargo', 'recarga_minima', 'instrucciones_pago',
+        'comision_retiro', 'retiro_minimo', 'garantia_usd', 'horas_revision'];
+      const TEXTOS = ['instrucciones_pago', 'binance_pay_id', 'binance_nombre', 'pm_banco', 'pm_telefono', 'pm_cedula', 'pm_titular', 'paypal_correo', 'paypal_nombre'];
       async function cargarAjustes() {
         const { data } = await cliente.from('mercado_config').select('clave,valor');
         for (const { clave, valor } of data || []) if ($(`cfg_${clave}`)) $(`cfg_${clave}`).value = valor;
@@ -661,7 +896,7 @@
           for (const clave of CLAVES) {
             const campo = $(`cfg_${clave}`);
             const valor = campo.value.trim();
-            await M.rpc('admin_config', { p_clave: clave, p_valor: clave === 'instrucciones_pago' ? valor : valor.replace(',', '.') }, `Revisa el valor de "${campo.labels[0].textContent}".`);
+            await M.rpc('admin_config', { p_clave: clave, p_valor: TEXTOS.includes(clave) ? valor : valor.replace(',', '.') }, `Revisa el valor de "${campo.labels[0].textContent}".`);
           }
           M.mensaje($('mensajeAjustes'), 'Ajustes guardados. Ya se aplican en la tienda.', 'exito');
         } catch (error) {
@@ -681,8 +916,8 @@
         sesion = data.session;
         if (sesion) entrar(); else pantallaAcceso('');
       });
-      // Se actualiza solo cada minuto (pagos nuevos, reclamos)
-      setInterval(() => { if (sesion && !document.hidden && !tratoAbierto && $('dialogo').classList.contains('oculto') && !$('vistaAdmin').classList.contains('oculto')) cargarTodo(); }, 60000);
+      // Se actualiza solo cada 30 s (recargas nuevas, chats, reclamos)
+      setInterval(() => { if (sesion && !document.hidden && !tratoAbierto && !recargaAbierta && $('dialogo').classList.contains('oculto') && !$('vistaAdmin').classList.contains('oculto')) cargarTodo(); }, 30000);
     });
   </script>
 </body>

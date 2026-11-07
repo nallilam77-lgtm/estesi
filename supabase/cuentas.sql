@@ -8,15 +8,21 @@
 --
 -- Las cuentas de usuario son las mismas de la billetera (Supabase Auth).
 --
+-- SALDO: cada usuario tiene un saldo con dos partes (tabla saldos_vendedor):
+--   recargado  → lo que recargó por Binance, PayPal o Pago Móvil (orden de recarga con captura y referencia
+--                que un admin aprueba). Sirve para comprar; NO se retira.
+--   disponible → lo que ganó vendiendo. Sirve para comprar y es lo único que se retira (con el 4 %).
+--   Al comprar se usa primero lo recargado y luego lo de ventas; si el trato se cancela, vuelve cada parte a su lugar.
+--
 -- FLUJO DE UN TRATO (reglas en public/reglas-cuentas.html):
---   pendiente_pago → el comprador tocó "Comprar"; la cuenta queda "reservada". Tiene `horas_pago` para
---                    informar su pago (método + referencia); si no, se cancela sola y la cuenta vuelve al mercado.
---   pagada         → un admin confirmó que el dinero llegó (queda RETENIDO por Level Up).
+--   pagada         → el comprador tocó "Comprar con saldo": se descuenta de su saldo, la cuenta queda "reservada"
+--                    y el dinero queda RETENIDO por Level Up.
+--   (pendiente_pago → solo tratos viejos, de antes del saldo: el comprador informaba el pago y un admin lo confirmaba.)
 --   entregada      → el vendedor entregó los datos en el chat del trato. El comprador tiene `horas_revision`
 --                    para "Finalizar" o "Tengo un problema" (con video); si no hace nada, se cierra solo.
 --   en_reclamo     → un admin decide: a favor del vendedor (se cierra) o del comprador (se cancela y se reembolsa).
 --   cerrada        → el precio COMPLETO pasa al saldo del vendedor y la cuenta queda "vendida".
---   cancelada      → no hubo venta (si el comprador ya había pagado, el reembolso lo haces tú).
+--   cancelada      → no hubo venta: lo pagado vuelve solo al saldo del comprador.
 --
 -- COMISIÓN: comprar y vender no cuesta nada. Solo al RETIRAR se descuenta `comision_retiro` % (4).
 -- La Garantía Extendida (`garantia_usd`) la paga el comprador y es para Level Up, no para el vendedor.
@@ -48,8 +54,17 @@ insert into public.mercado_config (clave, valor) values
   ('horas_pago', '2'),             -- para informar el pago tras tocar "Comprar"
   ('horas_revision', '24'),        -- para finalizar o reclamar tras la entrega
   ('tasa_bs', ''),                 -- Bs por 1 USD (vacío = no se muestra el monto en Bs)
-  ('instrucciones_pago', 'Paga el total por Pago Móvil (al cambio del día) o por Binance y escribe abajo la referencia. Te confirmamos en el chat del trato.')
+  ('instrucciones_pago', 'Paga el total por Pago Móvil (al cambio del día) o por Binance y escribe abajo la referencia. Te confirmamos en el chat del trato.'),
+  -- Recargas de saldo: tus datos de cobro (vacío = ese método no aparece en la tienda)
+  ('recarga_minima', '1'),         -- USD
+  ('paypal_recargo', '0'),         -- % extra que paga quien recarga por PayPal (comisión de PayPal)
+  ('binance_pay_id', ''), ('binance_nombre', ''),
+  ('paypal_correo', ''), ('paypal_nombre', ''),
+  ('pm_banco', ''), ('pm_telefono', ''), ('pm_cedula', ''), ('pm_titular', '')
 on conflict (clave) do nothing;
+-- Desde que existe el saldo, este texto es la nota que ve quien recarga
+update public.mercado_config set valor = 'Envía el monto exacto, toma captura del comprobante y súbela aquí con la referencia o número de orden. Te acreditamos en minutos (horario de atención).'
+ where clave = 'instrucciones_pago' and valor like 'Paga el total por Pago Móvil%';
 
 create or replace function public._config_num(p_clave text, p_defecto numeric)
 returns numeric language plpgsql stable security definer set search_path = public as $$
@@ -186,6 +201,9 @@ create unique index if not exists ventas_cuenta_abierta on public.ventas_cuentas
 create index if not exists ventas_por_comprador on public.ventas_cuentas (comprador, creado desc);
 create index if not exists ventas_por_vendedor on public.ventas_cuentas (vendedor, creado desc);
 create index if not exists ventas_abiertas on public.ventas_cuentas (estado) where estado not in ('cerrada', 'cancelada');
+-- Cuánto se cobró de cada parte del saldo del comprador (para devolverlo igual si se cancela)
+alter table public.ventas_cuentas add column if not exists pagado_recargado numeric(12, 2) not null default 0;
+alter table public.ventas_cuentas add column if not exists pagado_disponible numeric(12, 2) not null default 0;
 
 create table if not exists public.mensajes_venta (
   id      bigint generated always as identity primary key,
@@ -203,6 +221,41 @@ create table if not exists public.saldos_vendedor (
   ventas      int not null default 0,       -- ventas cerradas (reputación)
   actualizado timestamptz not null default now()
 );
+-- Saldo recargado (solo para comprar, no se retira). "disponible" = ganado vendiendo (se retira).
+alter table public.saldos_vendedor add column if not exists recargado numeric(12, 2) not null default 0 check (recargado >= 0);
+
+-- Órdenes de recarga: el usuario paga por Binance / PayPal / Pago Móvil y sube captura + referencia
+create table if not exists public.ordenes_recarga (
+  id              bigint generated always as identity primary key,
+  usuario         uuid not null references auth.users (id) on delete cascade,
+  metodo          text not null check (metodo in ('binance', 'paypal', 'pago_movil')),
+  monto_usd       numeric(10, 2) not null check (monto_usd > 0),       -- lo que se acredita
+  monto_pagar     numeric(10, 2) not null check (monto_pagar > 0),     -- lo que envía (PayPal puede llevar recargo)
+  monto_bs        numeric(14, 2),                                      -- Pago Móvil, a la tasa del momento
+  referencia      text not null,
+  captura         text not null,                                       -- ruta en el bucket privado "comprobantes"
+  estado          text not null default 'pendiente' check (estado in ('pendiente', 'aprobada', 'rechazada')),
+  acreditado_usd  numeric(10, 2),
+  nota            text,                                                -- motivo del rechazo
+  msg_cliente     timestamptz,                                         -- último mensaje del cliente en el chat
+  msg_admin       timestamptz,                                         -- último mensaje de Level Up
+  creado          timestamptz not null default now(),
+  resuelto        timestamptz
+);
+create index if not exists ordenes_recarga_por_usuario on public.ordenes_recarga (usuario, creado desc);
+create index if not exists ordenes_recarga_pendientes on public.ordenes_recarga (creado) where estado = 'pendiente';
+-- La misma referencia no se puede usar dos veces (salvo que la orden se haya rechazado)
+create unique index if not exists ordenes_recarga_referencia_unica on public.ordenes_recarga (metodo, lower(referencia)) where estado <> 'rechazada';
+
+create table if not exists public.mensajes_recarga (
+  id      bigint generated always as identity primary key,
+  orden   bigint not null references public.ordenes_recarga (id) on delete cascade,
+  autor   uuid references auth.users (id) on delete set null,
+  rol     text not null check (rol in ('cliente', 'admin', 'sistema')),
+  texto   text not null check (char_length(texto) between 1 and 1000),
+  creado  timestamptz not null default now()
+);
+create index if not exists mensajes_por_orden on public.mensajes_recarga (orden, id);
 
 create table if not exists public.retiros (
   id            bigint generated always as identity primary key,
@@ -232,6 +285,10 @@ create table if not exists public.movimientos_vendedor (
   detalle        text,
   creado         timestamptz not null default now()
 );
+alter table public.movimientos_vendedor add column if not exists orden bigint references public.ordenes_recarga (id) on delete set null;
+alter table public.movimientos_vendedor drop constraint if exists movimientos_vendedor_tipo_check;
+alter table public.movimientos_vendedor add constraint movimientos_vendedor_tipo_check
+  check (tipo in ('venta', 'retiro', 'retiro_devuelto', 'ajuste', 'recarga', 'recarga_revertida', 'compra', 'reembolso'));
 -- Una venta se acredita una sola vez
 create unique index if not exists movimientos_vendedor_venta_unica on public.movimientos_vendedor (venta) where tipo = 'venta';
 create index if not exists movimientos_vendedor_por_usuario on public.movimientos_vendedor (vendedor, creado desc);
@@ -255,10 +312,30 @@ begin
          actualizado = now()
    where vendedor = p_vendedor
    returning disponible into nuevo;
+  -- saldo_despues = saldo total (ventas + recargado)
   insert into movimientos_vendedor (vendedor, tipo, monto, saldo_despues, venta, retiro, detalle)
-  values (p_vendedor, p_tipo, p_monto, nuevo, p_venta, p_retiro, p_detalle);
+  select p_vendedor, p_tipo, p_monto, s.disponible + s.recargado, p_venta, p_retiro, p_detalle from saldos_vendedor s where s.vendedor = p_vendedor;
   return nuevo;
 end $$;
+
+-- Igual que _mover_saldo pero sobre la parte RECARGADA (solo para comprar). Únicas dos funciones que tocan saldos.
+create or replace function public._mover_recargado(p_usuario uuid, p_monto numeric, p_tipo text, p_venta bigint, p_orden bigint, p_detalle text)
+returns numeric language plpgsql security definer set search_path = public as $$
+declare nuevo numeric; total numeric;
+begin
+  insert into saldos_vendedor (vendedor) values (p_usuario) on conflict (vendedor) do nothing;
+  update saldos_vendedor set recargado = recargado + p_monto, actualizado = now()
+   where vendedor = p_usuario
+   returning recargado, recargado + disponible into nuevo, total;
+  insert into movimientos_vendedor (vendedor, tipo, monto, saldo_despues, venta, orden, detalle)
+  values (p_usuario, p_tipo, p_monto, total, p_venta, p_orden, p_detalle);
+  return nuevo;
+end $$;
+
+create or replace function public._mensaje_recarga(p_orden bigint, p_texto text)
+returns void language sql security definer set search_path = public as $$
+  insert into mensajes_recarga (orden, autor, rol, texto) values (p_orden, null, 'sistema', left(p_texto, 1000));
+$$;
 
 create or replace function public._venta_cerrar(p_venta bigint, p_detalle text)
 returns void language plpgsql security definer set search_path = public as $$
@@ -290,7 +367,16 @@ begin
      set estado = p_estado_cuenta,
          motivo_rechazo = case when p_estado_cuenta = 'rechazada' then p_motivo else motivo_rechazo end
    where id = v.cuenta and estado = 'reservada';
-  perform _mensaje_sistema(p_venta, 'Trato cancelado. ' || p_motivo);
+  -- Si se pagó con saldo, cada parte vuelve a donde estaba
+  if v.pagado_recargado > 0 then
+    perform _mover_recargado(v.comprador, v.pagado_recargado, 'reembolso', v.id, null, format('Reembolso del trato T-%s', v.id));
+  end if;
+  if v.pagado_disponible > 0 then
+    perform _mover_saldo(v.comprador, v.pagado_disponible, 'reembolso', v.id, null, format('Reembolso del trato T-%s', v.id));
+  end if;
+  perform _mensaje_sistema(p_venta, 'Trato cancelado. ' || p_motivo
+    || case when v.pagado_recargado + v.pagado_disponible > 0
+            then format(' Se devolvieron %s USD al saldo del comprador.', v.pagado_recargado + v.pagado_disponible) else '' end);
 end $$;
 
 -- Rol de quien llama dentro de un trato (o null si no participa)
@@ -326,27 +412,41 @@ end $$;
 -- ---------------------------------------------------------------------
 -- Funciones del COMPRADOR
 -- ---------------------------------------------------------------------
+-- Comprar = pagar con saldo al instante: primero lo recargado, luego lo ganado en ventas. El dinero queda retenido.
 create or replace function public.venta_crear(p_cuenta bigint, p_garantia boolean default false)
 returns bigint language plpgsql security definer set search_path = public as $$
-declare c cuentas_venta; v_id bigint; pendientes int; extra numeric;
+declare c cuentas_venta; s saldos_vendedor; v_id bigint; extra numeric; total numeric; de_recarga numeric; de_ventas numeric;
 begin
   if auth.uid() is null then raise exception 'SIN_SESION'; end if;
   perform mercado_mantenimiento();
   select * into c from cuentas_venta where id = p_cuenta for update;
   if not found or c.estado <> 'publicada' then raise exception 'NO_DISPONIBLE'; end if;
   if c.vendedor = auth.uid() then raise exception 'ES_TUYA'; end if;
-  select count(*) into pendientes from ventas_cuentas where comprador = auth.uid() and estado = 'pendiente_pago';
-  if pendientes >= 2 then raise exception 'DEMASIADAS_PENDIENTES'; end if;
 
   extra := case when p_garantia then _config_num('garantia_usd', 1) else 0 end;
+  total := c.precio_usd + extra;
+  insert into saldos_vendedor (vendedor) values (auth.uid()) on conflict (vendedor) do nothing;
+  select * into s from saldos_vendedor where vendedor = auth.uid() for update;
+  if s.recargado + s.disponible < total then raise exception 'SALDO_COMPRA'; end if;
+  de_recarga := least(s.recargado, total);
+  de_ventas := total - de_recarga;
+
   perform set_config('mercado.sistema', '1', true);
   update cuentas_venta set estado = 'reservada' where id = c.id;
-  insert into ventas_cuentas (cuenta, comprador, vendedor, titulo, precio_usd, garantia, total_usd)
-  values (c.id, auth.uid(), c.vendedor, c.titulo, c.precio_usd, coalesce(p_garantia, false), c.precio_usd + extra)
+  insert into ventas_cuentas (cuenta, comprador, vendedor, titulo, precio_usd, garantia, total_usd, estado,
+                              metodo_pago, pago_informado_en, pagada_en, pagado_recargado, pagado_disponible)
+  values (c.id, auth.uid(), c.vendedor, c.titulo, c.precio_usd, coalesce(p_garantia, false), total, 'pagada',
+          'Saldo', now(), now(), de_recarga, de_ventas)
   returning id into v_id;
+  if de_recarga > 0 then
+    perform _mover_recargado(auth.uid(), -de_recarga, 'compra', v_id, null, format('Compra T-%s · %s', v_id, c.titulo));
+  end if;
+  if de_ventas > 0 then
+    perform _mover_saldo(auth.uid(), -de_ventas, 'compra', v_id, null, format('Compra T-%s · %s', v_id, c.titulo));
+  end if;
   perform _mensaje_sistema(v_id, format(
-    'Trato T-%s abierto por la cuenta FF-%s. Total a pagar: %s USD%s. El comprador tiene %s h para pagar e informar la referencia. Nadie debe pagar ni entregar datos fuera de este chat.',
-    v_id, c.id, c.precio_usd + extra, case when p_garantia then ' (incluye Garantía Extendida)' else '' end, _config_num('horas_pago', 2)));
+    'Trato T-%s por la cuenta FF-%s. El comprador pagó %s USD con su saldo%s y Level Up los RETIENE hasta el cierre. VENDEDOR: entrega aquí el correo/usuario y la contraseña de la cuenta y luego toca "Ya entregué los datos". Nadie debe entregar datos fuera de este chat.',
+    v_id, c.id, total, case when p_garantia then ' (incluye Garantía Extendida)' else '' end));
   return v_id;
 end $$;
 
@@ -438,6 +538,71 @@ begin
 end $$;
 
 -- ---------------------------------------------------------------------
+-- RECARGAS DE SALDO (cualquier usuario): pagó por fuera y sube captura + referencia; un admin aprueba.
+-- La captura se sube antes al bucket privado "comprobantes", en la carpeta <su id>/.
+-- ---------------------------------------------------------------------
+create or replace function public.recarga_crear(p_metodo text, p_monto numeric, p_referencia text, p_captura text)
+returns bigint language plpgsql security definer set search_path = public as $$
+declare
+  o_id bigint; monto numeric := round(p_monto, 2); pagar numeric; bs numeric; tasa numeric;
+  ref text := upper(regexp_replace(coalesce(p_referencia, ''), '\s', '', 'g'));
+  nombre text;
+begin
+  if auth.uid() is null then raise exception 'SIN_SESION'; end if;
+  -- Solo los métodos que configuraste en el admin
+  if p_metodo = 'binance' and nullif(trim((select valor from mercado_config where clave = 'binance_pay_id')), '') is not null then nombre := 'Binance';
+  elsif p_metodo = 'paypal' and nullif(trim((select valor from mercado_config where clave = 'paypal_correo')), '') is not null then nombre := 'PayPal';
+  elsif p_metodo = 'pago_movil' and nullif(trim((select valor from mercado_config where clave = 'pm_telefono')), '') is not null then nombre := 'Pago Móvil';
+  else raise exception 'METODO_NO_DISPONIBLE';
+  end if;
+  if monto is null or monto < _config_num('recarga_minima', 1) or monto > 2000 then raise exception 'RECARGA_MONTO'; end if;
+  if ref !~ '^[A-Z0-9-]{4,40}$' then raise exception 'DATO_INVALIDO'; end if;
+  if coalesce(p_captura, '') !~ ('^' || auth.uid()::text || '/[A-Za-z0-9_-]{8,64}\.(webp|jpg|jpeg|png)$')
+     or not exists (select 1 from storage.objects where bucket_id = 'comprobantes' and name = p_captura) then
+    raise exception 'CAPTURA_REQUERIDA';
+  end if;
+  if (select count(*) from ordenes_recarga where usuario = auth.uid() and estado = 'pendiente') >= 3 then
+    raise exception 'DEMASIADAS_RECARGAS';
+  end if;
+
+  pagar := case when p_metodo = 'paypal' then round(monto * (1 + _config_num('paypal_recargo', 0) / 100), 2) else monto end;
+  tasa := _config_num('tasa_bs', 0);
+  bs := case when p_metodo = 'pago_movil' and tasa > 0 then round(monto * tasa, 2) end;
+  begin
+    insert into ordenes_recarga (usuario, metodo, monto_usd, monto_pagar, monto_bs, referencia, captura)
+    values (auth.uid(), p_metodo, monto, pagar, bs, ref, p_captura)
+    returning id into o_id;
+  exception when unique_violation then
+    raise exception 'REFERENCIA_USADA';
+  end;
+  perform _mensaje_recarga(o_id, format('Orden RC-%s recibida: %s USD por %s (referencia %s). Level Up la está verificando y te avisa aquí. Si tienes una duda, escríbela en este chat.',
+    o_id, monto, nombre, ref));
+  return o_id;
+end $$;
+
+-- Chat de una orden de recarga (el dueño de la orden y los admins)
+create or replace function public.recarga_mensaje(p_orden bigint, p_texto text)
+returns bigint language plpgsql security definer set search_path = public as $$
+declare o ordenes_recarga; rol text; m_id bigint; texto text := trim(coalesce(p_texto, ''));
+begin
+  select * into o from ordenes_recarga where id = p_orden;
+  if not found then raise exception 'NO_PERMITIDO'; end if;
+  rol := case when o.usuario = auth.uid() then 'cliente' when public.es_admin() then 'admin' end;
+  if rol is null then raise exception 'NO_PERMITIDO'; end if;
+  if char_length(texto) not between 1 and 1000 then raise exception 'DATO_INVALIDO'; end if;
+  if (select count(*) from mensajes_recarga where autor = auth.uid() and creado > now() - interval '1 minute') >= 20 then
+    raise exception 'DEMASIADOS_MENSAJES';
+  end if;
+  insert into mensajes_recarga (orden, autor, rol, texto) values (p_orden, auth.uid(), rol, texto) returning id into m_id;
+  if rol = 'cliente' then
+    update ordenes_recarga set msg_cliente = now() where id = p_orden;
+  else
+    update ordenes_recarga set msg_admin = now() where id = p_orden;
+  end if;
+  return m_id;
+end $$;
+
+-- ---------------------------------------------------------------------
 -- Chat del trato (comprador, vendedor y admins)
 -- ---------------------------------------------------------------------
 create or replace function public.mensaje_enviar(p_venta bigint, p_texto text)
@@ -497,7 +662,7 @@ begin
     'Level Up confirmó el pago de %s USD: el dinero queda RETENIDO hasta el cierre. VENDEDOR: entrega aquí el correo/usuario y la contraseña de la cuenta y luego toca "Ya entregué los datos".', v.total_usd));
 end $$;
 
--- A favor del vendedor: se cierra y cobra. A favor del comprador: se cancela (reembolsas tú) y la cuenta queda rechazada.
+-- A favor del vendedor: se cierra y cobra. A favor del comprador: se cancela, lo pagado vuelve a su saldo y la cuenta queda rechazada.
 create or replace function public.admin_resolver(p_venta bigint, p_favor text, p_nota text)
 returns void language plpgsql security definer set search_path = public as $$
 declare v ventas_cuentas;
@@ -515,7 +680,7 @@ begin
   end if;
 end $$;
 
--- Cancelar cualquier trato abierto (p. ej., pago falso). Si ya había pagado, el reembolso lo haces tú.
+-- Cancelar cualquier trato abierto. Si se pagó con saldo, vuelve solo al saldo del comprador.
 create or replace function public.admin_cancelar(p_venta bigint, p_motivo text, p_devolver_al_mercado boolean default true)
 returns void language plpgsql security definer set search_path = public as $$
 begin
@@ -546,17 +711,65 @@ begin
   return _mover_saldo(p_vendedor, round(p_monto, 2), 'ajuste', null, null, left(coalesce(p_detalle, 'Ajuste'), 200));
 end $$;
 
-create or replace function public.admin_config(p_clave text, p_valor text)
+-- Aprobar una recarga: suma el monto (o el que indiques, si llegó otro) a la parte recargada del saldo
+create or replace function public.admin_recarga_aprobar(p_orden bigint, p_monto numeric default null)
 returns void language plpgsql security definer set search_path = public as $$
+declare o ordenes_recarga; monto numeric;
 begin
   perform _exigir_admin();
-  if p_clave not in ('comision_retiro', 'retiro_minimo', 'garantia_usd', 'horas_pago', 'horas_revision', 'tasa_bs', 'instrucciones_pago') then
+  select * into o from ordenes_recarga where id = p_orden for update;
+  if not found or o.estado <> 'pendiente' then raise exception 'ESTADO_INVALIDO'; end if;
+  monto := round(coalesce(p_monto, o.monto_usd), 2);
+  if monto <= 0 or monto > 5000 then raise exception 'DATO_INVALIDO'; end if;
+  update ordenes_recarga set estado = 'aprobada', acreditado_usd = monto, resuelto = now() where id = p_orden;
+  perform _mover_recargado(o.usuario, monto, 'recarga', null, o.id, format('Recarga RC-%s', o.id));
+  perform _mensaje_recarga(p_orden, format('Recarga aprobada: %s USD ya están en tu saldo. ¡Ya puedes comprar!', monto)
+    || case when monto <> o.monto_usd then format(' (Pediste %s USD; acreditamos lo que llegó.)', o.monto_usd) else '' end);
+end $$;
+
+create or replace function public.admin_recarga_rechazar(p_orden bigint, p_motivo text)
+returns void language plpgsql security definer set search_path = public as $$
+declare o ordenes_recarga; motivo text := left(coalesce(nullif(trim(p_motivo), ''), 'El pago no llegó'), 200);
+begin
+  perform _exigir_admin();
+  select * into o from ordenes_recarga where id = p_orden for update;
+  if not found or o.estado <> 'pendiente' then raise exception 'ESTADO_INVALIDO'; end if;
+  update ordenes_recarga set estado = 'rechazada', nota = motivo, resuelto = now() where id = p_orden;
+  perform _mensaje_recarga(p_orden, 'Recarga rechazada: ' || motivo || '. Si crees que es un error, respóndenos en este chat.');
+end $$;
+
+-- Eliminar una orden (y su chat). Si estaba aprobada y p_revertir, descuenta del saldo lo acreditado.
+-- Devuelve la ruta de la captura para que el panel borre el archivo.
+create or replace function public.admin_recarga_eliminar(p_orden bigint, p_revertir boolean default false)
+returns text language plpgsql security definer set search_path = public as $$
+declare o ordenes_recarga; s saldos_vendedor;
+begin
+  perform _exigir_admin();
+  select * into o from ordenes_recarga where id = p_orden for update;
+  if not found then raise exception 'ESTADO_INVALIDO'; end if;
+  if o.estado = 'aprobada' and p_revertir then
+    select * into s from saldos_vendedor where vendedor = o.usuario for update;
+    if not found or s.recargado < o.acreditado_usd then raise exception 'SALDO_GASTADO'; end if;
+    perform _mover_recargado(o.usuario, -o.acreditado_usd, 'recarga_revertida', null, null, format('Recarga RC-%s anulada por Level Up', o.id));
+  end if;
+  delete from ordenes_recarga where id = p_orden;
+  return o.captura;
+end $$;
+
+create or replace function public.admin_config(p_clave text, p_valor text)
+returns void language plpgsql security definer set search_path = public as $$
+declare numericas text[] := array['comision_retiro', 'retiro_minimo', 'garantia_usd', 'horas_pago', 'horas_revision', 'tasa_bs', 'recarga_minima', 'paypal_recargo'];
+begin
+  perform _exigir_admin();
+  if not (p_clave = any (numericas) or p_clave in ('instrucciones_pago', 'binance_pay_id', 'binance_nombre', 'paypal_correo', 'paypal_nombre',
+                                                   'pm_banco', 'pm_telefono', 'pm_cedula', 'pm_titular')) then
     raise exception 'DATO_INVALIDO';
   end if;
-  if p_clave <> 'instrucciones_pago' and nullif(trim(p_valor), '') is not null and trim(p_valor) !~ '^[0-9]+(\.[0-9]+)?$' then
+  if p_clave = any (numericas) and nullif(trim(p_valor), '') is not null and trim(p_valor) !~ '^[0-9]+(\.[0-9]+)?$' then
     raise exception 'DATO_INVALIDO';
   end if;
-  update mercado_config set valor = left(trim(coalesce(p_valor, '')), 600) where clave = p_clave;
+  update mercado_config set valor = left(trim(coalesce(p_valor, '')), case when p_clave = 'instrucciones_pago' then 600 else 120 end)
+   where clave = p_clave;
 end $$;
 
 -- Correos de comprador/vendedor para el panel (auth.users no es accesible desde la API)
@@ -579,6 +792,8 @@ alter table public.mensajes_venta enable row level security;
 alter table public.saldos_vendedor enable row level security;
 alter table public.retiros enable row level security;
 alter table public.movimientos_vendedor enable row level security;
+alter table public.ordenes_recarga enable row level security;
+alter table public.mensajes_recarga enable row level security;
 
 drop policy if exists "soy admin" on public.mercado_admins;
 create policy "soy admin" on public.mercado_admins for select to authenticated using (usuario = auth.uid());
@@ -620,15 +835,22 @@ drop policy if exists "retiros propios" on public.retiros;
 create policy "retiros propios" on public.retiros for select to authenticated using (vendedor = auth.uid() or public.es_admin());
 drop policy if exists "movimientos propios" on public.movimientos_vendedor;
 create policy "movimientos propios" on public.movimientos_vendedor for select to authenticated using (vendedor = auth.uid() or public.es_admin());
+drop policy if exists "recargas propias" on public.ordenes_recarga;
+create policy "recargas propias" on public.ordenes_recarga for select to authenticated using (usuario = auth.uid() or public.es_admin());
+drop policy if exists "mensajes de mis recargas" on public.mensajes_recarga;
+create policy "mensajes de mis recargas" on public.mensajes_recarga for select to authenticated
+  using (public.es_admin() or exists (select 1 from ordenes_recarga o where o.id = orden and o.usuario = auth.uid()));
 
 -- Permisos de tabla (además del RLS)
 grant select on public.cuentas_venta, public.mercado_config to anon, authenticated;
 grant insert, update, delete on public.cuentas_venta to authenticated;
 grant select, insert, update, delete on public.cuentas_contacto to authenticated;
 grant select on public.ventas_cuentas, public.mensajes_venta, public.saldos_vendedor, public.retiros,
-               public.movimientos_vendedor, public.mercado_admins to authenticated;
+               public.movimientos_vendedor, public.mercado_admins, public.ordenes_recarga, public.mensajes_recarga to authenticated;
 revoke insert, update, delete on public.ventas_cuentas, public.mensajes_venta, public.saldos_vendedor, public.retiros,
-               public.movimientos_vendedor, public.mercado_admins, public.mercado_config from anon, authenticated;
+               public.movimientos_vendedor, public.mercado_admins, public.mercado_config,
+               public.ordenes_recarga, public.mensajes_recarga from anon, authenticated;
+revoke select on public.ordenes_recarga, public.mensajes_recarga from anon;
 
 -- Funciones internas: nadie las llama desde la API
 revoke execute on function public._mensaje_sistema(bigint, text) from public, anon, authenticated;
@@ -638,20 +860,26 @@ revoke execute on function public._venta_cancelar(bigint, text, text) from publi
 revoke execute on function public._rol_en_venta(public.ventas_cuentas) from public, anon, authenticated;
 revoke execute on function public._exigir_admin() from public, anon, authenticated;
 revoke execute on function public._config_num(text, numeric) from public, anon, authenticated;
+revoke execute on function public._mover_recargado(uuid, numeric, text, bigint, bigint, text) from public, anon, authenticated;
+revoke execute on function public._mensaje_recarga(bigint, text) from public, anon, authenticated;
 -- Las de usuario y admin requieren sesión (las de admin comprueban además es_admin())
 revoke execute on function public.venta_crear(bigint, boolean), public.venta_informar_pago(bigint, text, text),
   public.venta_finalizar(bigint), public.venta_reclamar(bigint, text, text), public.venta_cancelar(bigint),
   public.venta_entregar(bigint), public.retiro_solicitar(numeric, text, text), public.mensaje_enviar(bigint, text),
   public.admin_moderar_cuenta(bigint, boolean, text), public.admin_confirmar_pago(bigint), public.admin_resolver(bigint, text, text),
   public.admin_cancelar(bigint, text, boolean), public.admin_resolver_retiro(bigint, boolean, text),
-  public.admin_ajustar_saldo(uuid, numeric, text), public.admin_config(text, text), public.admin_correos(uuid[])
+  public.admin_ajustar_saldo(uuid, numeric, text), public.admin_config(text, text), public.admin_correos(uuid[]),
+  public.recarga_crear(text, numeric, text, text), public.recarga_mensaje(bigint, text),
+  public.admin_recarga_aprobar(bigint, numeric), public.admin_recarga_rechazar(bigint, text), public.admin_recarga_eliminar(bigint, boolean)
   from public, anon;
 grant execute on function public.venta_crear(bigint, boolean), public.venta_informar_pago(bigint, text, text),
   public.venta_finalizar(bigint), public.venta_reclamar(bigint, text, text), public.venta_cancelar(bigint),
   public.venta_entregar(bigint), public.retiro_solicitar(numeric, text, text), public.mensaje_enviar(bigint, text),
   public.admin_moderar_cuenta(bigint, boolean, text), public.admin_confirmar_pago(bigint), public.admin_resolver(bigint, text, text),
   public.admin_cancelar(bigint, text, boolean), public.admin_resolver_retiro(bigint, boolean, text),
-  public.admin_ajustar_saldo(uuid, numeric, text), public.admin_config(text, text), public.admin_correos(uuid[])
+  public.admin_ajustar_saldo(uuid, numeric, text), public.admin_config(text, text), public.admin_correos(uuid[]),
+  public.recarga_crear(text, numeric, text, text), public.recarga_mensaje(bigint, text),
+  public.admin_recarga_aprobar(bigint, numeric), public.admin_recarga_rechazar(bigint, text), public.admin_recarga_eliminar(bigint, boolean)
   to authenticated;
 grant execute on function public.mercado_mantenimiento(), public.mercado_reputacion(uuid[]), public.es_admin() to anon, authenticated;
 
@@ -668,6 +896,26 @@ create policy "cuentas-fotos subir propias" on storage.objects for insert to aut
 drop policy if exists "cuentas-fotos borrar propias" on storage.objects;
 create policy "cuentas-fotos borrar propias" on storage.objects for delete to authenticated
   using (bucket_id = 'cuentas-fotos' and (storage.foldername(name))[1] = auth.uid()::text);
+
+-- ---------------------------------------------------------------------
+-- Comprobantes de recarga: bucket PRIVADO (solo el dueño y los admins los ven, con enlaces firmados).
+-- ---------------------------------------------------------------------
+insert into storage.buckets (id, name, public, file_size_limit, allowed_mime_types)
+values ('comprobantes', 'comprobantes', false, 2097152, array['image/webp', 'image/jpeg', 'image/png'])
+on conflict (id) do update set public = false, file_size_limit = excluded.file_size_limit, allowed_mime_types = excluded.allowed_mime_types;
+
+drop policy if exists "comprobantes subir propios" on storage.objects;
+create policy "comprobantes subir propios" on storage.objects for insert to authenticated
+  with check (bucket_id = 'comprobantes' and (storage.foldername(name))[1] = auth.uid()::text);
+drop policy if exists "comprobantes ver propios o admin" on storage.objects;
+create policy "comprobantes ver propios o admin" on storage.objects for select to authenticated
+  using (bucket_id = 'comprobantes' and ((storage.foldername(name))[1] = auth.uid()::text or public.es_admin()));
+-- El dueño solo borra una captura que no quedó en ninguna orden (subida fallida); los admins, cualquiera
+drop policy if exists "comprobantes borrar" on storage.objects;
+create policy "comprobantes borrar" on storage.objects for delete to authenticated
+  using (bucket_id = 'comprobantes' and (public.es_admin() or (
+    (storage.foldername(name))[1] = auth.uid()::text
+    and not exists (select 1 from public.ordenes_recarga o where o.captura = name))));
 
 -- ---------------------------------------------------------------------
 -- Tarea automática cada 10 min (si activas pg_cron en Database → Extensions; si no, la página

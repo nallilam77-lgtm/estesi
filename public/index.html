@@ -5,9 +5,9 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <script>
     // Modo ligero en todos los celulares y tablets (pantalla táctil), con ahorro de datos o "reducir movimiento": sin desenfoque, animaciones ni transiciones (css/ligero.css)
-    (function () { var n = navigator, c = n.connection || {}; if ((n.deviceMemory && n.deviceMemory <= 2) || (n.hardwareConcurrency && n.hardwareConcurrency <= 4) || c.saveData || /(^|\D)2g/.test(c.effectiveType || '') || (window.matchMedia && (matchMedia('(pointer: coarse)').matches || matchMedia('(prefers-reduced-motion: reduce)').matches))) { document.documentElement.classList.add('ligero'); var l = document.createElement('link'); l.rel = 'stylesheet'; l.href = 'css/ligero.css?v=3'; document.head.appendChild(l); } })();
+    (function () { var n = navigator, c = n.connection || {}; if ((n.deviceMemory && n.deviceMemory <= 2) || (n.hardwareConcurrency && n.hardwareConcurrency <= 4) || c.saveData || /(^|\D)2g/.test(c.effectiveType || '') || (window.matchMedia && (matchMedia('(pointer: coarse)').matches || matchMedia('(prefers-reduced-motion: reduce)').matches))) { document.documentElement.classList.add('ligero'); var l = document.createElement('link'); l.rel = 'stylesheet'; l.href = 'css/ligero.css?v=4'; document.head.appendChild(l); } })();
   </script>
-  <meta name="description" content="Compra y vende cuentas de Free Fire con Level Up como intermediario: el dinero queda retenido hasta que la cuenta se entrega. Comprar no tiene comisión y vender es gratis.">
+  <meta name="description" content="Compra y vende cuentas de Free Fire con Level Up como intermediario: recarga saldo por Binance, PayPal o Pago Móvil y el dinero queda retenido hasta que la cuenta se entrega.">
   <meta name="theme-color" content="#0b1120">
   <title>Cuentas de Free Fire - Level Up</title>
   <meta property="og:type" content="website">
@@ -24,10 +24,10 @@
   <link rel="stylesheet" href="css/paginas-legales.css">
   <link rel="stylesheet" href="css/creadores.css">
   <link rel="stylesheet" href="css/billetera.css">
-  <link rel="stylesheet" href="css/cuentas.css?v=2">
-  <link rel="stylesheet" href="css/tienda.css?v=2">
+  <link rel="stylesheet" href="css/cuentas.css?v=3">
+  <link rel="stylesheet" href="css/tienda.css?v=3">
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.js" defer></script>
-  <script src="js/mercado.js?v=2" defer></script>
+  <script src="js/mercado.js?v=3" defer></script>
 </head>
 <body class="tienda">
 
@@ -52,6 +52,11 @@
     <symbol id="i-dinero" viewBox="0 0 24 24"><rect x="2" y="6" width="20" height="12" rx="2"/><circle cx="12" cy="12" r="3"/><path d="M6 12h.01M18 12h.01"/></symbol>
     <symbol id="i-globo" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3c3 3.5 3 14.5 0 18M12 3c-3 3.5-3 14.5 0 18"/></symbol>
     <symbol id="i-imagen" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="16" rx="2"/><circle cx="9" cy="10" r="2"/><path d="m21 16-5-5-9 9"/></symbol>
+    <symbol id="i-copiar" viewBox="0 0 24 24"><rect x="9" y="9" width="12" height="12" rx="2"/><path d="M5 15V5a2 2 0 0 1 2-2h10"/></symbol>
+    <symbol id="i-movil" viewBox="0 0 24 24"><rect x="6" y="2" width="12" height="20" rx="2"/><path d="M11 18h2"/></symbol>
+    <symbol id="i-moneda" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 7v10M9.5 9.5 12 7l2.5 2.5M9.5 14.5 12 17l2.5-2.5"/></symbol>
+    <symbol id="i-tarjeta" viewBox="0 0 24 24"><rect x="2" y="5" width="20" height="14" rx="2"/><path d="M2 10h20M6 15h4"/></symbol>
+    <symbol id="i-subir" viewBox="0 0 24 24"><path d="M12 16V4M7 9l5-5 5 5"/><path d="M4 16v3a1 1 0 0 0 1 1h14a1 1 0 0 0 1-1v-3"/></symbol>
   </svg>
 
   <div class="sidebar-overlay" id="menuOverlay" onclick="toggleMenu()"></div>
@@ -64,8 +69,10 @@
       <button type="button" class="nav-enlace" data-ir="cuentas"><svg class="icono"><use href="#i-buscar"/></svg>Comprar cuentas</button>
       <button type="button" class="nav-enlace" data-vista="vender"><svg class="icono"><use href="#i-etiqueta"/></svg>Vender mi cuenta</button>
       <button type="button" class="nav-enlace" data-vista="panel"><svg class="icono"><use href="#i-panel"/></svg>Mi panel</button>
+      <button type="button" class="nav-enlace" data-vista="saldo"><svg class="icono"><use href="#i-billetera"/></svg>Mi saldo y recargas</button>
       <button type="button" class="nav-enlace" data-ir="como-funciona"><svg class="icono"><use href="#i-escudo"/></svg>Cómo funciona</button>
       <a class="nav-enlace" href="reglas-cuentas.html"><svg class="icono"><use href="#i-libro"/></svg>Reglas del Intermediario</a>
+      <a class="nav-enlace nav-enlace-admin oculto" id="enlaceAdminMenu" href="admin-cuentas.html"><svg class="icono"><use href="#i-panel"/></svg>Panel de administración</a>
     </nav>
   </aside>
 
@@ -83,6 +90,7 @@
       </nav>
       <div class="nav-acciones">
         <a class="nav-enlace nav-enlace-admin oculto" id="enlaceAdmin" href="admin-cuentas.html">Admin</a>
+        <button type="button" class="chip-saldo oculto" id="chipSaldo" data-vista="saldo" aria-label="Mi saldo"><svg class="icono"><use href="#i-billetera"/></svg><span id="chipSaldoTexto">0 USD</span></button>
         <button type="button" class="btn-nav" data-vista="panel">
           <svg class="icono"><use href="#i-usuario"/></svg><span id="textoBotonPanel">Entrar</span>
           <span class="punto-aviso oculto" id="puntoPanel" aria-label="Tienes tratos pendientes"></span>
@@ -184,7 +192,7 @@
             <p class="seccion-texto">Nadie le paga a ciegas a un desconocido. Level Up custodia el dinero y es testigo de toda la entrega.</p>
           </div>
           <ol class="pasos-grandes">
-            <li class="paso-grande"><span class="icono-caja"><svg class="icono"><use href="#i-candado"/></svg></span><h3>Pagas a Level Up</h3><p>Reservas la cuenta, pagas por Pago Móvil o Binance e informas la referencia. El dinero queda retenido.</p></li>
+            <li class="paso-grande"><span class="icono-caja"><svg class="icono"><use href="#i-billetera"/></svg></span><h3>Recargas y compras</h3><p>Recargas tu saldo por Binance, PayPal o Pago Móvil y compras al instante. Level Up retiene el dinero.</p></li>
             <li class="paso-grande"><span class="icono-caja"><svg class="icono"><use href="#i-chat"/></svg></span><h3>Recibes los datos</h3><p>El vendedor te entrega el acceso en el chat del trato, con Level Up como testigo. Nadie ve el número del otro.</p></li>
             <li class="paso-grande"><span class="icono-caja"><svg class="icono"><use href="#i-video"/></svg></span><h3>Revisas grabando</h3><p>Graba la pantalla sin cortes, revisa la cuenta y cambia correo, clave y vinculaciones a tu nombre.</p></li>
             <li class="paso-grande"><span class="icono-caja"><svg class="icono"><use href="#i-check"/></svg></span><h3>Finalizas</h3><p>Si todo está bien, finalizas y el vendedor cobra. Si hay un problema, reclamas con tu video.</p></li>
@@ -218,7 +226,8 @@
             <details><summary>¿Qué pasa si la cuenta no es como la publicaron?<svg class="icono"><use href="#i-mas"/></svg></summary><p>Tocas "Tengo un problema" y adjuntas el enlace de tu video sin cortes, grabado desde que usaste los datos. Level Up revisa el caso y, si el reclamo es válido, te devuelve el dinero.</p></details>
             <details><summary>¿Por qué tengo que grabar la pantalla?<svg class="icono"><use href="#i-mas"/></svg></summary><p>Es la prueba que protege a las dos partes: demuestra si la cuenta llegó bien o no. Sin video continuo (que empiece como máximo 5 minutos después de la entrega) no se puede reclamar.</p></details>
             <details><summary>¿Cuánto cuesta vender?<svg class="icono"><use href="#i-mas"/></svg></summary><p>Publicar y vender es gratis y recibes el precio completo en tu saldo. Solo se descuenta un <span data-comision>4 %</span> cuando retiras tu dinero. Los retiros se pagan los lunes.</p></details>
-            <details><summary>¿Cómo pago?<svg class="icono"><use href="#i-mas"/></svg></summary><p>Por Pago Móvil (al cambio del día), Binance o Zinli. Al comprar ves los datos de pago y escribes tu referencia; Level Up la confirma en el chat del trato.</p></details>
+            <details><summary>¿Cómo pago?<svg class="icono"><use href="#i-mas"/></svg></summary><p>Recargas saldo en "Mi saldo" por Binance, PayPal o Pago Móvil (al cambio del día): envías el pago, subes la captura y la referencia, y lo acreditamos apenas lo verificamos. Con ese saldo compras cualquier cuenta al instante.</p></details>
+            <details><summary>¿Puedo retirar el saldo que recargué?<svg class="icono"><use href="#i-mas"/></svg></summary><p>El saldo recargado es para comprar cuentas. Lo que se retira es lo que ganas vendiendo (con un <span data-comision>4 %</span> de comisión, los lunes). Si un trato se cancela, lo que pagaste vuelve completo a tu saldo.</p></details>
             <details><summary>¿Garena puede suspender una cuenta comprada?<svg class="icono"><use href="#i-mas"/></svg></summary><p>Las reglas de Garena no permiten vender cuentas, así que el riesgo existe. Level Up responde por la entrega de la cuenta tal como se publicó, pero no por sanciones que Garena aplique después de cerrado el trato.</p></details>
           </div>
         </div>
@@ -247,7 +256,7 @@
             <h2 id="tituloAcceso"><svg class="icono"><use href="#i-usuario"/></svg>Entra a tu cuenta</h2>
             <p>Usa tu correo y una contraseña.</p>
             <ul class="acceso-ventajas">
-              <li><svg class="icono"><use href="#i-check"/></svg>Compra con el dinero retenido por Level Up</li>
+              <li><svg class="icono"><use href="#i-check"/></svg>Recarga saldo y compra con el dinero retenido por Level Up</li>
               <li><svg class="icono"><use href="#i-check"/></svg>Publica tus cuentas gratis</li>
               <li><svg class="icono"><use href="#i-check"/></svg>Sigue tus tratos y tu saldo en un solo lugar</li>
             </ul>
@@ -377,7 +386,7 @@
           <!-- MI PANEL -->
           <div class="vista-buscar oculto" id="vistaPanel">
             <div class="tablero">
-              <div class="dato dato-acento"><strong id="textoSaldo">—</strong><span>saldo de ventas</span></div>
+              <button type="button" class="dato dato-acento dato-boton" data-vista="saldo"><strong id="textoSaldo">—</strong><span>tu saldo · recargar</span></button>
               <div class="dato"><strong id="statVentas">0</strong><span>ventas cerradas</span></div>
               <div class="dato"><strong id="statTratos">0</strong><span>tratos activos</span></div>
             </div>
@@ -392,8 +401,92 @@
               <div class="panel-mensaje" id="mensajeTratos" role="status" aria-live="polite"></div>
             </section>
 
-            <section class="panel-caja" aria-labelledby="tituloSaldo">
-              <h2 id="tituloSaldo"><svg class="icono"><use href="#i-billetera"/></svg>Retirar mi dinero</h2>
+            <section class="panel-caja" aria-labelledby="tituloMias">
+              <div class="saldo-cabecera">
+                <h2 id="tituloMias"><svg class="icono"><use href="#i-etiqueta"/></svg>Mis publicaciones</h2>
+                <button type="button" class="btn-secundario" data-vista="vender">+ Publicar</button>
+              </div>
+              <div class="mis-cuentas" id="listaMias"></div>
+              <div class="panel-mensaje" id="mensajeMias" role="status" aria-live="polite"></div>
+            </section>
+          </div>
+
+          <!-- MI SALDO -->
+          <div class="vista-saldo oculto" id="vistaSaldo">
+            <section class="saldo-tarjeta aparecer" aria-labelledby="tituloSaldoTotal">
+              <div class="saldo-tarjeta-arriba">
+                <span class="saldo-etiqueta" id="tituloSaldoTotal"><svg class="icono"><use href="#i-billetera"/></svg>Tu saldo</span>
+                <span class="saldo-correo" id="textoCuentaSaldo"></span>
+              </div>
+              <strong class="saldo-numero" id="saldoTotal">—</strong>
+              <div class="saldo-partes">
+                <div><span>Recargado</span><b id="saldoRecargado">—</b><small>para comprar cuentas</small></div>
+                <div><span>De ventas</span><b id="saldoVentas">—</b><small>se puede retirar</small></div>
+              </div>
+              <div class="saldo-botones">
+                <button type="button" class="btn btn-principal" data-saltar="cajaRecargar"><svg class="icono"><use href="#i-mas"/></svg>Recargar</button>
+                <button type="button" class="btn btn-borde" data-ir="cuentas"><svg class="icono"><use href="#i-buscar"/></svg>Ver cuentas</button>
+              </div>
+            </section>
+
+            <section class="panel-caja aparecer" id="cajaRecargar" aria-labelledby="tituloRecargar">
+              <h2 id="tituloRecargar"><svg class="icono"><use href="#i-mas"/></svg>Recargar saldo</h2>
+              <p>Elige cómo vas a pagar. Lo acreditamos apenas verifiquemos tu pago.</p>
+              <div class="panel-mensaje" id="avisoFalta" role="status" aria-live="polite"></div>
+              <div class="metodos" id="metodosRecarga" role="group" aria-label="Método de pago"></div>
+
+              <form class="recarga-form oculto" id="formRecarga" novalidate>
+                <div class="recarga-paso">
+                  <span class="paso-num" aria-hidden="true">1</span>
+                  <div class="recarga-paso-cuerpo">
+                    <label class="recarga-titulo" for="recMonto">¿Cuánto quieres recargar?</label>
+                    <div class="montos-rapidos" id="montosRapidos">
+                      <button type="button" data-monto="5">5 USD</button><button type="button" data-monto="10">10 USD</button><button type="button" data-monto="20">20 USD</button><button type="button" data-monto="50">50 USD</button>
+                    </div>
+                    <div class="campo-monto"><input type="number" id="recMonto" min="1" max="2000" step="0.01" inputmode="decimal" placeholder="Otro monto"><span>USD</span></div>
+                  </div>
+                </div>
+                <div class="recarga-paso">
+                  <span class="paso-num" aria-hidden="true">2</span>
+                  <div class="recarga-paso-cuerpo">
+                    <span class="recarga-titulo">Envía el pago a estos datos</span>
+                    <div class="datos-metodo" id="datosMetodo"></div>
+                    <p class="campo-ayuda" id="notaRecarga"></p>
+                  </div>
+                </div>
+                <div class="recarga-paso">
+                  <span class="paso-num" aria-hidden="true">3</span>
+                  <div class="recarga-paso-cuerpo">
+                    <span class="recarga-titulo">Sube el comprobante</span>
+                    <label class="captura-elegir" id="capturaElegir">
+                      <svg class="icono"><use href="#i-subir"/></svg>
+                      <span><strong id="capturaTexto">Subir captura del pago</strong><small>Que se vean el monto, la fecha y la referencia</small></span>
+                      <input type="file" id="recCaptura" accept="image/*">
+                    </label>
+                    <div class="captura-vista oculto" id="capturaVista">
+                      <img id="capturaImg" alt="Captura elegida">
+                      <button type="button" id="capturaQuitar" aria-label="Quitar captura">✖</button>
+                    </div>
+                    <div class="campo">
+                      <label for="recReferencia" id="etiquetaReferencia">Referencia</label>
+                      <input type="text" id="recReferencia" maxlength="40" autocomplete="off" spellcheck="false" aria-describedby="ayudaReferencia">
+                      <p class="campo-ayuda" id="ayudaReferencia"></p>
+                    </div>
+                  </div>
+                </div>
+                <button type="submit" class="btn-juego" id="btnRecarga">Enviar orden de recarga</button>
+              </form>
+              <div class="panel-mensaje" id="mensajeRecarga" role="status" aria-live="polite"></div>
+            </section>
+
+            <section class="panel-caja aparecer" aria-labelledby="tituloOrdenes">
+              <h2 id="tituloOrdenes"><svg class="icono"><use href="#i-reloj"/></svg>Mis recargas</h2>
+              <p>Toca una recarga para ver su estado o escribirnos.</p>
+              <div class="lista-tratos" id="listaRecargas"></div>
+            </section>
+
+            <section class="panel-caja aparecer" id="cajaRetiro" aria-labelledby="tituloSaldo">
+              <h2 id="tituloSaldo"><svg class="icono"><use href="#i-dinero"/></svg>Retirar lo que ganaste vendiendo</h2>
               <p class="saldo-nota" id="textoReputacion"></p>
               <form class="form-publicar retiro" id="formRetiro" novalidate>
                 <div class="form-fila tres">
@@ -431,14 +524,6 @@
               </div>
             </section>
 
-            <section class="panel-caja" aria-labelledby="tituloMias">
-              <div class="saldo-cabecera">
-                <h2 id="tituloMias"><svg class="icono"><use href="#i-etiqueta"/></svg>Mis publicaciones</h2>
-                <button type="button" class="btn-secundario" data-vista="vender">+ Publicar</button>
-              </div>
-              <div class="mis-cuentas" id="listaMias"></div>
-              <div class="panel-mensaje" id="mensajeMias" role="status" aria-live="polite"></div>
-            </section>
           </div>
         </div>
       </div>
@@ -462,12 +547,13 @@
 
           <div class="caja-compra">
             <p class="tarjeta-precio" id="detallePrecio"></p>
-            <span class="caja-compra-nota"><svg class="icono"><use href="#i-candado"/></svg>Tu dinero queda retenido hasta que confirmes</span>
+            <span class="caja-compra-nota"><svg class="icono"><use href="#i-candado"/></svg>Pagas con tu saldo y queda retenido hasta que confirmes</span>
             <label class="casilla casilla-garantia">
               <input type="checkbox" id="detalleGarantia">
               <span><strong>Garantía Extendida (+<span id="textoGarantia">1</span> USD):</strong> un administrador te acompaña a cambiar todos los datos de recuperación.</span>
             </label>
-            <button type="button" class="btn-juego" id="btnComprar">Comprar con intermediario</button>
+            <p class="detalle-saldo" id="detalleSaldo"></p>
+            <button type="button" class="btn-juego" id="btnComprar">Comprar con saldo</button>
             <div class="panel-mensaje" id="mensajeComprar" role="status" aria-live="polite"></div>
           </div>
 
@@ -514,6 +600,33 @@
     </div>
   </div>
 
+  <!-- Orden de recarga (estado, comprobante y chat con Level Up) -->
+  <div class="ventana oculto" id="ventanaRecarga" role="dialog" aria-modal="true" aria-labelledby="recargaTitulo">
+    <div class="ventana-caja ventana-trato">
+      <button type="button" class="ventana-cerrar" data-cerrar aria-label="Cerrar">✖</button>
+      <div class="detalle-cuerpo">
+        <span class="tarjeta-codigo" id="recargaCodigo"></span>
+        <h2 id="recargaTitulo"></h2>
+        <span class="pastilla" id="recargaEstado"></span>
+        <div class="recarga-detalle">
+          <a class="recarga-captura" id="recargaCapturaEnlace" target="_blank" rel="noopener"><img id="recargaCaptura" alt="Comprobante de pago (abrir en grande)"></a>
+          <dl class="ficha" id="recargaDatos"></dl>
+        </div>
+        <div class="chat">
+          <h3>Chat con Level Up</h3>
+          <p class="chat-nota">¿Dudas con esta recarga? Escríbenos aquí.</p>
+          <div class="chat-lista" id="recChatLista" aria-live="polite"></div>
+          <form class="chat-form" id="recChatForm">
+            <label for="recChatTexto" class="solo-lectores">Mensaje</label>
+            <textarea id="recChatTexto" rows="2" maxlength="1000" placeholder="Escribe un mensaje…"></textarea>
+            <button type="submit" class="btn-juego" id="recChatEnviar">Enviar</button>
+          </form>
+          <div class="panel-mensaje" id="recChatAviso" role="status" aria-live="polite"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
   <footer class="pie">
     <div class="contenedor">
       <div class="pie-interior">
@@ -527,6 +640,7 @@
             <li><button type="button" data-ir="cuentas">Comprar cuentas</button></li>
             <li><button type="button" data-vista="vender">Vender mi cuenta</button></li>
             <li><button type="button" data-vista="panel">Mi panel</button></li>
+            <li><button type="button" data-vista="saldo">Mi saldo</button></li>
           </ul>
         </div>
         <div class="pie-columna">
@@ -573,7 +687,7 @@
         $('estadoLista').textContent = 'No pudimos cargar el mercado. Revisa tu conexión y recarga la página.';
         return;
       }
-      const { crear, usd, fecha, codigoCuenta, codigoTrato, codigoRetiro, urlFoto } = M;
+      const { crear, usd, fecha, codigoCuenta, codigoTrato, codigoRetiro, codigoRecarga, urlFoto } = M;
       const POR_PAGINA = 12;
       const MAX_FOTOS = 6;
       const COLUMNAS = 'id,vendedor,titulo,nivel,region,vinculacion,precio_usd,destacados,descripcion,fotos,estado,creado';
@@ -586,7 +700,9 @@
       let fotosElegidas = [];
       let reputacion = new Map();   // vendedor → ventas cerradas
       let compraPendiente = null;   // { cuenta, garantia } si tocó "Comprar" sin sesión
-      let saldoDisponible = 0;
+      let saldoDisponible = 0;      // ganado vendiendo (se retira)
+      let saldoRecargado = 0;       // recargado (solo para comprar)
+      const saldoTotal = () => redondear(saldoDisponible + saldoRecargado);
       const yo = () => sesion?.user?.id || null;
       const redondear = (n) => Math.round(n * 100) / 100;
 
@@ -609,6 +725,8 @@
         document.querySelectorAll('[data-horas]').forEach((el) => { el.textContent = String(config.horas_revision); });
         $('statHoras').textContent = `${config.horas_revision} h`;
         $('textoGarantia').textContent = String(config.garantia_usd);
+        $('recMonto').min = String(config.recarga_minima || 1);
+        pintarMetodos();
         actualizarNeto();
         actualizarCalculadora();
       });
@@ -618,7 +736,8 @@
       // ---------------- Vistas ----------------
       const TITULOS = {
         vender: ['Vender mi cuenta', 'Publícala gratis. Recibes el precio completo y solo pagas al retirar.'],
-        panel: ['Mi panel', 'Tus compras, ventas, saldo y publicaciones.'],
+        panel: ['Mi panel', 'Tus compras, ventas y publicaciones.'],
+        saldo: ['Mi saldo', 'Recarga por Binance, PayPal o Pago Móvil y compra al instante.'],
       };
       function mostrarVista(nueva) {
         vista = nueva;
@@ -629,8 +748,9 @@
         $('cajaAcceso').classList.toggle('oculto', !app || !!sesion || nuevaClave);
         $('vistaVender').classList.toggle('oculto', nueva !== 'vender' || !sesion);
         $('vistaPanel').classList.toggle('oculto', nueva !== 'panel' || !sesion);
+        $('vistaSaldo').classList.toggle('oculto', nueva !== 'saldo' || !sesion);
         if (app) {
-          const [titulo, subtitulo] = sesion ? TITULOS[nueva] : [compraPendiente ? 'Entra para comprar' : nueva === 'vender' ? 'Entra para vender' : 'Entra a tu panel', 'Crea tu cuenta gratis en un minuto.'];
+          const [titulo, subtitulo] = sesion ? TITULOS[nueva] : [compraPendiente ? 'Entra para comprar' : nueva === 'vender' ? 'Entra para vender' : nueva === 'saldo' ? 'Entra para recargar' : 'Entra a tu panel', 'Crea tu cuenta gratis en un minuto.'];
           $('tituloApp').textContent = titulo;
           $('subtituloApp').textContent = subtitulo;
         }
@@ -639,10 +759,13 @@
         });
         toggleMenu(false);
         if (nueva === 'panel' && sesion) cargarPanel();
+        if (nueva === 'saldo' && sesion) { cargarSaldo(); cargarRecargas(); }
         try { history.replaceState(null, '', app ? `#${nueva}` : location.pathname); } catch (e) { /* sin historial */ }
         window.scrollTo({ top: 0 });
       }
       document.querySelectorAll('[data-vista]').forEach((b) => b.addEventListener('click', () => mostrarVista(b.dataset.vista)));
+      // Saltos dentro de "Mi saldo"
+      document.querySelectorAll('[data-saltar]').forEach((b) => b.addEventListener('click', () => $(b.dataset.saltar).scrollIntoView({ behavior: 'smooth', block: 'start' })));
       // Enlaces a secciones de la portada (vuelven al inicio si hace falta)
       document.querySelectorAll('[data-ir]').forEach((b) => b.addEventListener('click', () => {
         if (vista !== 'buscar') mostrarVista('buscar');
@@ -651,9 +774,11 @@
       }));
       function actualizarBotonPanel() {
         $('textoBotonPanel').textContent = sesion ? 'Mi panel' : 'Entrar';
+        $('chipSaldo').classList.toggle('oculto', !sesion);
         // Enlace al panel de administración solo para admins (la base de datos decide; esto solo lo muestra)
-        if (!sesion) { $('enlaceAdmin').classList.add('oculto'); return; }
-        cliente.rpc('es_admin').then(({ data }) => $('enlaceAdmin').classList.toggle('oculto', data !== true), () => {});
+        const enlaces = [$('enlaceAdmin'), $('enlaceAdminMenu')];
+        if (!sesion) { enlaces.forEach((el) => el.classList.add('oculto')); return; }
+        cliente.rpc('es_admin').then(({ data }) => enlaces.forEach((el) => el.classList.toggle('oculto', data !== true)), () => {});
       }
 
       // ---------------- Buscar ----------------
@@ -800,6 +925,7 @@
         $(id).classList.add('oculto');
         if (document.querySelectorAll('.ventana:not(.oculto)').length === 0) document.body.classList.remove('no-scroll');
         if (id === 'ventanaTrato') { chat.cerrar(); tratoAbierto = null; if (vista === 'panel' && sesion) cargarTratos(); }
+        if (id === 'ventanaRecarga') { chatRecarga.cerrar(); recargaAbierta = null; if (sesion) { cargarRecargas(); cargarSaldo(); } }
         ultimoFoco?.focus?.();
       }
       document.querySelectorAll('.ventana').forEach((v) => {
@@ -849,26 +975,33 @@
         }
         verFoto(0);
 
-        const propia = cuenta.vendedor === yo();
-        $('btnComprar').disabled = propia;
-        $('btnComprar').textContent = propia ? 'Es tu cuenta' : 'Comprar con intermediario';
         $('detalleGarantia').checked = false;
         const texto = `Hola Level Up, tengo una duda sobre la cuenta ${codigoCuenta(cuenta.id)} de Free Fire: "${cuenta.titulo}".`;
         $('detallePreguntar').href = `https://wa.me/${M.WHATSAPP}?text=${encodeURIComponent(texto)}`;
         actualizarPrecioDetalle();
         abrirVentana('ventanaDetalle');
       }
+      const totalCompra = (cuenta, garantia) => redondear(Number(cuenta.precio_usd) + (garantia ? config.garantia_usd : 0));
       function actualizarPrecioDetalle() {
         if (!cuentaAbierta) return;
         const garantia = $('detalleGarantia').checked;
-        const total = Number(cuentaAbierta.precio_usd) + (garantia ? config.garantia_usd : 0);
+        const total = totalCompra(cuentaAbierta, garantia);
         $('detallePrecio').textContent = garantia ? `${usd(total)} con garantía` : usd(total);
+        const propia = cuentaAbierta.vendedor === yo();
+        const alcanza = saldoTotal() >= total;
+        $('btnComprar').disabled = propia;
+        $('btnComprar').textContent = propia ? 'Es tu cuenta' : !sesion ? 'Entrar y comprar' : alcanza ? 'Comprar con saldo' : 'Recargar y comprar';
+        const nota = $('detalleSaldo');
+        nota.className = `detalle-saldo${sesion && !alcanza && !propia ? ' falta' : ''}`;
+        nota.textContent = !sesion ? 'Compras con tu saldo de Level Up. Recárgalo por Binance, PayPal o Pago Móvil.'
+          : alcanza ? `Tu saldo: ${usd(saldoTotal())}. Te quedan ${usd(redondear(saldoTotal() - total))} después de comprar.`
+            : `Tu saldo: ${usd(saldoTotal())}. Te faltan ${usd(redondear(total - saldoTotal()))}.`;
       }
       $('detalleGarantia').addEventListener('change', actualizarPrecioDetalle);
 
       $('btnComprar').addEventListener('click', () => {
         if (!cuentaAbierta) return;
-        const pedido = { cuenta: cuentaAbierta.id, garantia: $('detalleGarantia').checked };
+        const pedido = { cuenta: cuentaAbierta.id, garantia: $('detalleGarantia').checked, precio: cuentaAbierta.precio_usd, titulo: cuentaAbierta.titulo };
         if (!sesion) {
           compraPendiente = pedido;
           cerrarVentana('ventanaDetalle');
@@ -878,22 +1011,42 @@
         comprar(pedido);
       });
 
-      async function comprar({ cuenta, garantia }) {
+      // Lleva a "Mi saldo" con el monto que falta ya escrito
+      function irARecargar(falta, idCuenta) {
+        if (!$('ventanaDetalle').classList.contains('oculto')) cerrarVentana('ventanaDetalle');
+        mostrarVista('saldo');
+        $('recMonto').value = String(Math.max(config.recarga_minima || 1, Math.ceil(falta * 100) / 100));
+        M.mensaje($('avisoFalta'), `Te faltan ${usd(falta)} para comprar ${codigoCuenta(idCuenta)}. Recarga y vuelve a la cuenta cuando se acredite.`, 'aviso');
+        actualizarPagar();
+        setTimeout(() => $('cajaRecargar').scrollIntoView({ behavior: 'smooth', block: 'start' }), 60);
+      }
+
+      async function comprar({ cuenta, garantia, precio, titulo }) {
         const boton = $('btnComprar');
+        const enDetalle = !$('ventanaDetalle').classList.contains('oculto');
+        const avisar = (texto) => M.mensaje(enDetalle ? $('mensajeComprar') : $('mensajeTratos'), texto);
         boton.disabled = true;
-        boton.textContent = 'Reservando la cuenta…';
         try {
-          const idTrato = await M.rpc('venta_crear', { p_cuenta: cuenta, p_garantia: garantia }, 'No pudimos reservar la cuenta. Intenta de nuevo.');
+          await cargarSaldo();
+          const total = redondear(Number(precio) + (garantia ? config.garantia_usd : 0));
+          if (saldoTotal() < total) return irARecargar(redondear(total - saldoTotal()), cuenta);
+          if (!confirm(`¿Comprar ${codigoCuenta(cuenta)} por ${usd(total)}?\n\nSe descuenta de tu saldo y Level Up lo retiene hasta que recibas la cuenta y finalices.`)) return;
+          boton.textContent = 'Comprando…';
+          const idTrato = await M.rpc('venta_crear', { p_cuenta: cuenta, p_garantia: garantia }, 'No pudimos completar la compra. Intenta de nuevo.');
           if (!$('ventanaDetalle').classList.contains('oculto')) cerrarVentana('ventanaDetalle');
           buscar(true);
+          cargarSaldo();
           mostrarVista('panel');
           abrirTrato(idTrato);
         } catch (error) {
-          if ($('ventanaDetalle').classList.contains('oculto')) M.mensaje($('mensajeTratos'), error.message);
-          else M.mensaje($('mensajeComprar'), error.message);
+          if (String(error.message).startsWith('No tienes saldo')) {
+            await cargarSaldo();
+            return irARecargar(redondear(Number(precio) + (garantia ? config.garantia_usd : 0) - saldoTotal()), cuenta);
+          }
+          avisar(error.message);
         } finally {
           boton.disabled = false;
-          boton.textContent = 'Comprar con intermediario';
+          actualizarPrecioDetalle();
         }
       }
 
@@ -958,22 +1111,7 @@
       document.querySelectorAll('[data-salir]').forEach((b) => b.addEventListener('click', () => cliente.auth.signOut()));
 
       // ---------------- Publicar ----------------
-      // Comprime cada foto a WebP (máx. 1280 px, < 1 MB) en el navegador: sube rápido con datos móviles
-      async function comprimir(archivo) {
-        const bitmap = await createImageBitmap(archivo);
-        const escala = Math.min(1, 1280 / Math.max(bitmap.width, bitmap.height));
-        const lienzo = document.createElement('canvas');
-        lienzo.width = Math.round(bitmap.width * escala);
-        lienzo.height = Math.round(bitmap.height * escala);
-        lienzo.getContext('2d').drawImage(bitmap, 0, 0, lienzo.width, lienzo.height);
-        bitmap.close?.();
-        for (const calidad of [0.82, 0.7, 0.55]) {
-          let blob = await new Promise((r) => lienzo.toBlob(r, 'image/webp', calidad));
-          if (!blob || blob.type !== 'image/webp') blob = await new Promise((r) => lienzo.toBlob(r, 'image/jpeg', calidad)); // Safari viejo
-          if (blob && blob.size <= 1_000_000) return blob;
-        }
-        throw new Error('FOTO_GRANDE');
-      }
+      const comprimir = (archivo) => M.comprimir(archivo);
 
       function pintarFotos() {
         const caja = $('fotosVista');
@@ -1141,19 +1279,33 @@
 
       async function cargarSaldo() {
         if (!sesion) return;
+        const antes = saldoTotal();
         const [saldo, movimientos, retiros] = await Promise.all([
-          cliente.from('saldos_vendedor').select('disponible,ventas').eq('vendedor', yo()).maybeSingle(),
+          cliente.from('saldos_vendedor').select('disponible,recargado,ventas').eq('vendedor', yo()).maybeSingle(),
           cliente.from('movimientos_vendedor').select('tipo,monto,saldo_despues,detalle,creado').order('id', { ascending: false }).limit(20),
           cliente.from('retiros').select('id,monto_usd,neto_usd,metodo,estado,referencia,motivo,creado').order('id', { ascending: false }).limit(10),
         ]);
+        if (saldo.error) return;
         saldoDisponible = Number(saldo.data?.disponible || 0);
+        saldoRecargado = Number(saldo.data?.recargado || 0);
         const ventas = saldo.data?.ventas || 0;
-        $('textoSaldo').textContent = usd(saldoDisponible);
+        $('textoSaldo').textContent = usd(saldoTotal());
+        $('chipSaldoTexto').textContent = usd(saldoTotal());
+        $('saldoTotal').textContent = usd(saldoTotal());
+        $('saldoRecargado').textContent = usd(saldoRecargado);
+        $('saldoVentas').textContent = usd(saldoDisponible);
+        $('textoCuentaSaldo').textContent = sesion?.user?.email || '';
         $('statVentas').textContent = String(ventas);
+        // Un brillo corto cuando el saldo sube (p. ej., se aprobó una recarga)
+        if (saldoTotal() > antes && antes >= 0 && $('saldoTotal').dataset.listo) {
+          for (const el of [$('saldoTotal'), $('chipSaldo')]) { el.classList.remove('saldo-sube'); void el.offsetWidth; el.classList.add('saldo-sube'); }
+        }
+        $('saldoTotal').dataset.listo = '1';
         $('textoReputacion').textContent = saldoDisponible > 0
-          ? `Tienes ${usd(saldoDisponible)} disponibles. Los retiros se pagan los lunes.`
-          : 'Aquí se suma el precio de cada cuenta que vendas. Los retiros se pagan los lunes.';
+          ? `Tienes ${usd(saldoDisponible)} de ventas para retirar. Los retiros se pagan los lunes. El saldo recargado es solo para comprar.`
+          : 'Aquí se suma el precio de cada cuenta que vendas. Los retiros se pagan los lunes. El saldo recargado es solo para comprar.';
         actualizarNeto();
+        actualizarPrecioDetalle();
         pintarTabla($('tablaMovimientos'), movimientos.data || [], 'Todavía no hay movimientos.', (m) => [
           [fecha(m.creado)], [m.detalle || m.tipo],
           [`${m.monto > 0 ? '+' : ''}${usd(m.monto)}`, m.monto > 0 ? 'monto-mas' : 'monto-menos'], [usd(m.saldo_despues)],
@@ -1179,7 +1331,7 @@
         const monto = redondear(Number($('retMonto').value));
         const datos = $('retDatos').value.trim();
         if (!(monto >= config.retiro_minimo)) return M.mensaje(aviso, `El retiro mínimo es ${usd(config.retiro_minimo)}.`);
-        if (monto > saldoDisponible) return M.mensaje(aviso, `Tu saldo disponible es ${usd(saldoDisponible)}.`);
+        if (monto > saldoDisponible) return M.mensaje(aviso, `Puedes retirar hasta ${usd(saldoDisponible)} (lo ganado en ventas).`);
         if (datos.length < 5) return M.mensaje(aviso, 'Escribe tus datos de cobro (banco, teléfono y cédula, o tu correo de Binance).');
         if (!confirm(`¿Retirar ${usd(monto)}? Recibirás ${usd(redondear(monto * (100 - config.comision_retiro) / 100))} por ${$('retMetodo').value} el lunes.`)) return;
         const boton = $('btnRetiro');
@@ -1247,6 +1399,237 @@
         fila.append(img, datos);
         if (acciones.children.length) fila.append(acciones);
         return fila;
+      }
+
+      // ---------------- Recargas de saldo ----------------
+      const ICONO_METODO = { binance: 'i-moneda', pago_movil: 'i-movil', paypal: 'i-tarjeta' };
+      let metodoElegido = null;
+      let captura = null;   // { blob, vista }
+
+      function pintarMetodos() {
+        const caja = $('metodosRecarga');
+        const activos = M.metodosActivos(config);
+        caja.replaceChildren();
+        if (!activos.length) {
+          caja.append(crear('p', 'estado-lista', 'Las recargas estarán disponibles muy pronto. Escríbenos por WhatsApp si quieres recargar ya.'));
+          $('formRecarga').classList.add('oculto');
+          return;
+        }
+        if (!activos.includes(metodoElegido)) metodoElegido = null;
+        for (const m of activos) {
+          const datos = M.METODOS_RECARGA[m];
+          const b = crear('button', 'metodo');
+          b.type = 'button';
+          b.dataset.metodo = m;
+          b.setAttribute('aria-pressed', String(m === metodoElegido));
+          const ic = crear('span', 'metodo-icono');
+          ic.append(icono(ICONO_METODO[m]));
+          const sub = m === 'pago_movil' ? (config.tasa_bs > 0 ? `Bolívares · ${M.bs(config.tasa_bs)} por USD` : 'Bolívares al cambio del día')
+            : m === 'binance' ? 'USDT por Binance Pay'
+              : config.paypal_recargo > 0 ? `+${config.paypal_recargo} % de comisión de PayPal` : 'Saldo PayPal o tarjeta';
+          const texto = crear('span', 'metodo-texto');
+          texto.append(crear('strong', null, datos.nombre), crear('small', null, sub));
+          const marca = crear('span', 'metodo-marca');
+          marca.append(icono('i-check'));
+          b.append(ic, texto, marca);
+          b.addEventListener('click', () => elegirMetodo(m));
+          caja.append(b);
+        }
+        if (metodoElegido) elegirMetodo(metodoElegido, false);
+      }
+
+      function filaDato(etiqueta, valor, extra) {
+        const fila = crear('div', `dato-copiar${extra ? ` ${extra}` : ''}`);
+        const textos = crear('div');
+        textos.append(crear('span', null, etiqueta), crear('strong', null, valor));
+        const b = crear('button', 'boton-copiar');
+        b.type = 'button';
+        b.setAttribute('aria-label', `Copiar ${etiqueta.toLowerCase()}`);
+        b.append(icono('i-copiar'), icono('i-check', 'icono icono-ok'));
+        b.addEventListener('click', () => M.copiar(valor, b));
+        fila.append(textos, b);
+        return fila;
+      }
+
+      function elegirMetodo(m, enfocar = true) {
+        metodoElegido = m;
+        const datos = M.METODOS_RECARGA[m];
+        document.querySelectorAll('#metodosRecarga .metodo').forEach((b) => b.setAttribute('aria-pressed', String(b.dataset.metodo === m)));
+        const form = $('formRecarga');
+        const estabaOculto = form.classList.contains('oculto');
+        form.classList.remove('oculto');
+        if (estabaOculto) { form.classList.remove('aparecer'); void form.offsetWidth; form.classList.add('aparecer'); }
+        $('etiquetaReferencia').textContent = datos.referencia;
+        $('recReferencia').placeholder = m === 'pago_movil' ? 'Ej: 001234567' : m === 'binance' ? 'Ej: 298765432109876543' : 'Ej: 8AB12345CD678901E';
+        $('ayudaReferencia').textContent = datos.ayuda;
+        $('notaRecarga').textContent = config.instrucciones_pago || '';
+        actualizarPagar();
+        if (enfocar && !$('recMonto').value) $('recMonto').focus({ preventScroll: true });
+      }
+
+      function actualizarPagar() {
+        if (!metodoElegido) return;
+        const monto = redondear(Number($('recMonto').value));
+        const caja = $('datosMetodo');
+        caja.replaceChildren();
+        for (const [etiqueta, clave] of M.METODOS_RECARGA[metodoElegido].datos) {
+          const valor = String(config[clave] || '').trim();
+          if (valor) caja.append(filaDato(etiqueta, valor));
+        }
+        if (monto > 0) {
+          const pagar = M.montoPagar(metodoElegido, monto, config);
+          if (metodoElegido === 'pago_movil' && config.tasa_bs > 0) {
+            caja.append(filaDato('Monto a enviar', M.bs(monto * config.tasa_bs).replace(' Bs', ''), 'dato-monto'));
+            caja.lastChild.querySelector('strong').textContent = `${M.bs(monto * config.tasa_bs)} (${usd(monto)})`;
+          } else {
+            caja.append(filaDato('Monto a enviar', String(pagar), 'dato-monto'));
+            caja.lastChild.querySelector('strong').textContent = pagar !== monto ? `${usd(pagar)} (recibes ${usd(monto)})` : usd(pagar);
+          }
+        }
+        document.querySelectorAll('#montosRapidos button').forEach((b) => b.setAttribute('aria-pressed', String(Number(b.dataset.monto) === monto)));
+      }
+      $('recMonto').addEventListener('input', actualizarPagar);
+      document.querySelectorAll('#montosRapidos button').forEach((b) => b.addEventListener('click', () => { $('recMonto').value = b.dataset.monto; actualizarPagar(); }));
+      $('recReferencia').addEventListener('input', (e) => { e.target.value = e.target.value.toUpperCase().replace(/[^A-Z0-9-]/g, '').slice(0, 40); });
+
+      function quitarCaptura() {
+        if (captura) URL.revokeObjectURL(captura.vista);
+        captura = null;
+        $('capturaVista').classList.add('oculto');
+        $('capturaElegir').classList.remove('oculto');
+      }
+      $('capturaQuitar').addEventListener('click', quitarCaptura);
+      $('recCaptura').addEventListener('change', async (e) => {
+        const archivo = e.target.files[0];
+        e.target.value = '';
+        if (!archivo || !archivo.type.startsWith('image/')) return;
+        $('capturaTexto').textContent = 'Preparando la captura…';
+        try {
+          const blob = await M.comprimir(archivo, 1600);
+          quitarCaptura();
+          captura = { blob, vista: URL.createObjectURL(blob) };
+          $('capturaImg').src = captura.vista;
+          $('capturaVista').classList.remove('oculto');
+          $('capturaElegir').classList.add('oculto');
+          $('mensajeRecarga').textContent = '';
+        } catch (error) {
+          M.mensaje($('mensajeRecarga'), 'No pudimos usar esa imagen. Prueba con otra captura.');
+        } finally {
+          $('capturaTexto').textContent = 'Subir captura del pago';
+        }
+      });
+
+      $('formRecarga').addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const aviso = $('mensajeRecarga');
+        const monto = redondear(Number($('recMonto').value));
+        const referencia = $('recReferencia').value.trim();
+        const minimo = config.recarga_minima || 1;
+        if (!metodoElegido) return M.mensaje(aviso, 'Elige cómo vas a pagar.');
+        if (!(monto >= minimo && monto <= 2000)) return M.mensaje(aviso, `La recarga debe ser de ${usd(minimo)} a ${usd(2000)}.`);
+        if (!captura) return M.mensaje(aviso, 'Sube la captura del comprobante de pago.');
+        if (!/^[A-Z0-9-]{4,40}$/.test(referencia)) return M.mensaje(aviso, `Escribe el ${M.METODOS_RECARGA[metodoElegido].referencia.toLowerCase()} (solo letras y números).`);
+        const boton = $('btnRecarga');
+        boton.disabled = true;
+        boton.textContent = 'Subiendo captura…';
+        aviso.textContent = '';
+        const ruta = `${yo()}/${crypto.randomUUID().replaceAll('-', '')}.${captura.blob.type === 'image/webp' ? 'webp' : 'jpg'}`;
+        let subida = false;
+        try {
+          const { error } = await cliente.storage.from(M.BUCKET_COMPROBANTES).upload(ruta, captura.blob, { contentType: captura.blob.type, upsert: false });
+          if (error) throw error;
+          subida = true;
+          boton.textContent = 'Enviando orden…';
+          const id = await M.rpc('recarga_crear', { p_metodo: metodoElegido, p_monto: monto, p_referencia: referencia, p_captura: ruta }, 'No pudimos enviar la recarga. Intenta de nuevo.');
+          subida = false;
+          quitarCaptura();
+          $('formRecarga').reset();
+          $('avisoFalta').textContent = '';
+          actualizarPagar();
+          M.mensaje(aviso, `¡Orden ${codigoRecarga(id)} enviada! Te avisamos en su chat cuando la aprobemos.`, 'exito');
+          cargarRecargas();
+          abrirRecarga(id);
+        } catch (error) {
+          console.error('recarga', error);
+          M.mensaje(aviso, error.message || 'No pudimos subir la captura. Revisa tu conexión.');
+        } finally {
+          if (subida) cliente.storage.from(M.BUCKET_COMPROBANTES).remove([ruta]);
+          boton.disabled = false;
+          boton.textContent = 'Enviar orden de recarga';
+        }
+      });
+
+      const tieneRespuesta = (o) => o.msg_admin && (!o.msg_cliente || o.msg_admin > o.msg_cliente);
+      let recargasPendientes = 0;
+      async function cargarRecargas() {
+        if (!sesion) return;
+        const lista = $('listaRecargas');
+        const { data, error } = await cliente.from('ordenes_recarga')
+          .select('id,metodo,monto_usd,monto_pagar,monto_bs,referencia,estado,acreditado_usd,nota,msg_cliente,msg_admin,creado')
+          .order('id', { ascending: false }).limit(20);
+        if (error) return;
+        const antes = recargasPendientes;
+        recargasPendientes = data.filter((o) => o.estado === 'pendiente').length;
+        if (recargasPendientes < antes) cargarSaldo();
+        lista.replaceChildren();
+        if (!data.length) return lista.append(crear('p', 'estado-lista', 'Todavía no has recargado. Elige un método arriba para empezar.'));
+        for (const o of data) {
+          const fila = crear('button', `trato-fila${tieneRespuesta(o) ? ' trato-fila-toca' : ''}`);
+          fila.type = 'button';
+          const datos = crear('div', 'trato-fila-datos');
+          datos.append(
+            crear('span', 'tarjeta-codigo', `${codigoRecarga(o.id)} · ${M.METODOS_RECARGA[o.metodo].nombre} · ${fecha(o.creado)}`),
+            crear('strong', null, `Recarga de ${usd(o.estado === 'aprobada' ? o.acreditado_usd : o.monto_usd)}`),
+            crear('span', 'trato-personas', tieneRespuesta(o) ? 'Level Up te respondió en el chat' : o.estado === 'rechazada' && o.nota ? o.nota : `Ref. ${o.referencia}`),
+          );
+          const derecha = crear('div', 'trato-fila-derecha');
+          derecha.append(crear('span', `pastilla pastilla-recarga-${o.estado}`, M.TEXTO_ESTADO_RECARGA[o.estado]));
+          fila.append(datos, derecha);
+          fila.addEventListener('click', () => abrirRecarga(o.id));
+          lista.append(fila);
+        }
+      }
+      // Mientras hay recargas en revisión y estás en "Mi saldo", se revisa sola cada 20 s
+      setInterval(() => { if (sesion && vista === 'saldo' && recargasPendientes && !document.hidden && !recargaAbierta) cargarRecargas(); }, 20000);
+
+      let recargaAbierta = null;
+      const chatRecarga = M.crearChat({
+        lista: $('recChatLista'), form: $('recChatForm'), input: $('recChatTexto'), boton: $('recChatEnviar'), aviso: $('recChatAviso'), yo,
+        tabla: 'mensajes_recarga', campo: 'orden', funcion: 'recarga_mensaje', parametro: 'p_orden',
+        alNuevo: (mensajes) => { if (recargaAbierta && mensajes.some((m) => m.rol === 'sistema')) { refrescarRecarga(); cargarSaldo(); } },
+      });
+      async function abrirRecarga(id) {
+        recargaAbierta = id;
+        $('recargaDatos').replaceChildren();
+        $('recargaCaptura').removeAttribute('src');
+        abrirVentana('ventanaRecarga');
+        chatRecarga.abrir(id);
+        chatRecarga.habilitar(true);
+        await refrescarRecarga();
+      }
+      async function refrescarRecarga() {
+        const id = recargaAbierta;
+        const { data: o } = await cliente.from('ordenes_recarga').select('*').eq('id', id).maybeSingle();
+        if (!o || id !== recargaAbierta) return;
+        const metodo = M.METODOS_RECARGA[o.metodo];
+        $('recargaCodigo').textContent = `${codigoRecarga(o.id)} · ${fecha(o.creado)}`;
+        $('recargaTitulo').textContent = `Recarga de ${usd(o.monto_usd)} por ${metodo.nombre}`;
+        $('recargaEstado').className = `pastilla pastilla-recarga-${o.estado}`;
+        $('recargaEstado').textContent = M.TEXTO_ESTADO_RECARGA[o.estado];
+        const pares = [
+          ['Enviaste', o.monto_bs ? `${M.bs(o.monto_bs)} (${usd(o.monto_pagar)})` : usd(o.monto_pagar)],
+          [metodo.referencia, o.referencia],
+          ['Se acredita', o.estado === 'aprobada' ? `${usd(o.acreditado_usd)} · ${fecha(o.resuelto)}` : o.estado === 'rechazada' ? 'No se acreditó' : `${usd(o.monto_usd)} al aprobarse`],
+        ];
+        if (o.nota) pares.push(['Motivo', o.nota]);
+        const dl = crear('dl', 'ficha');
+        dl.id = 'recargaDatos';
+        for (const [k, v] of pares) dl.append(crear('dt', null, k), crear('dd', null, v));
+        $('recargaDatos').replaceWith(dl);
+        const url = await M.urlComprobante(o.captura);
+        if (id !== recargaAbierta) return;
+        $('recargaCaptura').src = url;
+        $('recargaCapturaEnlace').href = url || '#';
       }
 
       // ---------------- Trato ----------------
@@ -1352,7 +1735,7 @@
             await hecho('venta_entregar', { p_venta: v.id }, 'Listo. El comprador ya puede revisar la cuenta.');
           });
         } else if (v.estado === 'pagada') {
-          parrafo('Pago confirmado y retenido por Level Up. Espera a que el vendedor escriba los datos en este chat.', 'trato-texto destacado');
+          parrafo('Pagaste con tu saldo y Level Up lo retiene. Espera a que el vendedor escriba los datos en este chat.', 'trato-texto destacado');
           parrafo('Prepara la grabación de pantalla: desde que uses los datos tienes que grabar sin cortes. Sin video no hay reclamo.');
         } else if (v.estado === 'entregada' && rol === 'comprador') {
           parrafo('GRABA LA PANTALLA SIN CORTES desde que uses los datos (máximo 5 minutos después de la entrega).', 'trato-texto alerta');
@@ -1394,6 +1777,8 @@
             : `Trato cerrado. ${usd(v.precio_usd)} ya están en tu saldo de ventas.`, 'trato-texto destacado');
         } else if (v.estado === 'cancelada') {
           parrafo(`Trato cancelado. ${v.resolucion || ''}`, 'trato-texto');
+          const devuelto = redondear(Number(v.pagado_recargado || 0) + Number(v.pagado_disponible || 0));
+          if (rol === 'comprador' && devuelto > 0) parrafo(`Te devolvimos ${usd(devuelto)} a tu saldo.`, 'trato-texto destacado');
         }
       }
 
@@ -1412,6 +1797,8 @@
         if (evento === 'SIGNED_IN' || evento === 'SIGNED_OUT') {
           setTimeout(() => {
             mostrarVista(vista);
+            if (evento === 'SIGNED_IN') cargarSaldo();
+            if (evento === 'SIGNED_OUT') { saldoDisponible = 0; saldoRecargado = 0; }
             if (evento === 'SIGNED_IN' && compraPendiente) {
               const pedido = compraPendiente;
               compraPendiente = null;
@@ -1425,10 +1812,12 @@
         actualizarBotonPanel();
         const inicial = location.hash.replace('#', '');
         const trato = /^trato-(\d+)$/.exec(inicial);
-        mostrarVista(trato ? 'panel' : ['vender', 'panel'].includes(inicial) ? inicial : 'buscar');
+        const recarga = /^recarga-(\d+)$/.exec(inicial);
+        mostrarVista(trato ? 'panel' : recarga ? 'saldo' : ['vender', 'panel', 'saldo'].includes(inicial) ? inicial : 'buscar');
         if (trato && sesion) abrirTrato(Number(trato[1]));
+        if (recarga && sesion) abrirRecarga(Number(recarga[1]));
         if (['cuentas', 'como-funciona'].includes(inicial)) setTimeout(() => $(inicial).scrollIntoView({ block: 'start' }), 50);
-        if (sesion) cargarTratos();   // punto de aviso en "Mi panel"
+        if (sesion) { cargarTratos(); cargarSaldo(); }   // punto de aviso en "Mi panel" y saldo en la barra
       });
       buscar(true);
     });
