@@ -24,7 +24,7 @@ const titulo = (t) => console.log(`\n▶ ${t}`);
 
 // ---------- Supabase simulado ----------
 await db.exec(`
-  create role anon nologin; create role authenticated nologin;
+  create role anon nologin; create role authenticated nologin; create role service_role nologin;
   create schema auth;
   create table auth.users (id uuid primary key default gen_random_uuid(), email text, phone text unique, encrypted_password text,
     raw_user_meta_data jsonb default '{}', banned_until timestamptz, created_at timestamptz default now(), last_sign_in_at timestamptz);
@@ -39,8 +39,8 @@ await db.exec(`
     created_at timestamptz default now(), metadata jsonb default '{}');
   create function storage.foldername(name text) returns text[] language sql immutable as $$
     select (string_to_array(name, '/'))[1:array_length(string_to_array(name, '/'), 1) - 1] $$;
-  grant usage on schema auth, storage, public to anon, authenticated;
-  grant execute on function auth.uid(), auth.role() to anon, authenticated;
+  grant usage on schema auth, storage, public to anon, authenticated, service_role;
+  grant execute on function auth.uid(), auth.role() to anon, authenticated, service_role;
   create publication supabase_realtime;
 `);
 
@@ -64,6 +64,16 @@ async function rpc(uid, nombre, args = {}) {
   const lista = claves.map((k, i) => `${k} => $${i + 1}`).join(', ');
   try {
     const r = await db.query(`select public.${nombre}(${lista}) as r`, claves.map((k) => args[k]));
+    return r.rows[0]?.r;
+  } finally { await comoSuper(); }
+}
+// Como la Edge Function (service_role)
+async function rpcServicio(nombre, args = {}) {
+  await comoSuper();
+  await db.exec(`select set_config('request.jwt.claim.sub', '', false), set_config('request.jwt.claim.role', 'service_role', false); set role service_role;`);
+  const claves = Object.keys(args);
+  try {
+    const r = await db.query(`select public.${nombre}(${claves.map((k, i) => `${k} => $${i + 1}`).join(', ')}) as r`, claves.map((k) => args[k]));
     return r.rows[0]?.r;
   } finally { await comoSuper(); }
 }
@@ -232,6 +242,47 @@ ok((await avisos(comprador, 'soporte')).pop().correo === 'apagado', 'si el usuar
 const est = await rpc(admin, 'admin_estado');
 ok(est.correo.pg_net && est.correo.vault && est.correo.clave && est.correo.remitente === 'hola@levelup.test', 'admin_estado muestra el correo configurado');
 
+titulo('Notificaciones push (Edge Function simulada)');
+ok((await sql(`select count(*) n from notificaciones where push = 'sin_dispositivo'`))[0].n > 0, 'sin dispositivos los avisos quedan como sin_dispositivo');
+const sub = { p_endpoint: 'https://fcm.googleapis.com/fcm/send/abc123', p_p256dh: 'B' + 'x'.repeat(86), p_secreto: 'a'.repeat(22), p_navegador: 'Chrome Android' };
+await falla(rpc(null, 'push_guardar', sub), 'permission denied', 'sin sesión no se activa push');
+await falla(rpc(vendedor, 'push_guardar', { ...sub, p_endpoint: 'http://malo.test/x' }), 'DATO_INVALIDO', 'endpoint que no es https');
+await falla(rpc(vendedor, 'push_guardar', { ...sub, p_p256dh: '<script>' }), 'DATO_INVALIDO', 'clave con caracteres raros');
+await rpc(otro, 'push_guardar', sub);
+await rpc(vendedor, 'push_guardar', sub);
+const subs = await sql('select usuario from push_suscripciones');
+ok(subs.length === 1 && subs[0].usuario === vendedor, 'mismo navegador con otra cuenta: la suscripción pasa al nuevo usuario');
+await falla(leer(vendedor, 'select * from push_suscripciones'), 'permission denied', 'nadie lee las suscripciones desde la API');
+const subAdmin = { ...sub, p_endpoint: 'https://web.push.apple.com/QOk-admin' };
+await rpc(admin, 'push_guardar', subAdmin);
+ok(await rpc(admin, 'admin_push_prueba') === 'pendiente', 'prueba del admin: pedida a la función');
+const [pedido] = await sql('select url, body from net.enviados order by id desc limit 1');
+const [avPrueba] = await avisos(admin, 'prueba');
+ok(pedido.url.endsWith('/functions/v1/enviar-push') && Number(pedido.body.id) === Number(avPrueba.id) && !('titulo' in pedido.body),
+  'pg_net llama a enviar-push solo con el id del aviso');
+await falla(rpc(admin, 'push_tomar', { p_id: avPrueba.id }), 'permission denied', 'un usuario no puede tomar avisos');
+const tomado = await rpcServicio('push_tomar', { p_id: avPrueba.id });
+ok(tomado && tomado.ruta === 'admin-cuentas.html' && tomado.suscripciones.length === 1 && tomado.suscripciones[0].keys.auth === sub.p_secreto,
+  'la función recibe título, ruta y los dispositivos del dueño');
+ok(await rpcServicio('push_tomar', { p_id: avPrueba.id }) === null, 'cada aviso se manda una sola vez');
+await rpcServicio('push_resultado', { p_id: avPrueba.id, p_enviados: 0, p_caducadas: [subAdmin.p_endpoint] });
+ok((await avisos(admin, 'prueba'))[0].push === 'caducado', 'dispositivo desinstalado → caducado');
+igual((await sql('select count(*) n from push_suscripciones where usuario = $1', [admin]))[0].n, 0, 'y su suscripción se borra');
+await rpc(comprador, 'push_guardar', { ...sub, p_endpoint: 'https://fcm.googleapis.com/fcm/send/comprador' });
+await rpc(comprador, 'notificaciones_leer', {});
+await rpc(admin, 'soporte_mensaje', { p_usuario: comprador, p_texto: 'Contraseña: secreta123' });
+const avSop2 = (await avisos(comprador, 'soporte')).pop();
+const datosSop = await rpcServicio('push_tomar', { p_id: avSop2.id });
+ok(datosSop.ruta === 'index.html#soporte' && !JSON.stringify(datosSop).includes('secreta123'), 'la notificación nunca lleva el texto del chat');
+await rpcServicio('push_resultado', { p_id: avSop2.id, p_enviados: 1, p_caducadas: [] });
+ok((await avisos(comprador, 'soporte')).pop().push === 'enviado', 'resultado enviado');
+await rpc(otro, 'push_borrar', { p_endpoint: sub.p_endpoint });
+igual((await sql('select count(*) n from push_suscripciones where endpoint = $1', [sub.p_endpoint]))[0].n, 1, 'nadie puede borrar el dispositivo de otro');
+await rpc(vendedor, 'push_borrar', { p_endpoint: sub.p_endpoint });
+igual((await sql('select count(*) n from push_suscripciones where endpoint = $1', [sub.p_endpoint]))[0].n, 0, 'al cerrar sesión se quita');
+const estPush = (await rpc(admin, 'admin_estado')).push;
+ok(estPush.pg_net && estPush.dispositivos === 1 && estPush.ultimas_24h.enviado >= 1, 'admin_estado muestra las notificaciones push');
+
 titulo('Borrar cuenta');
 let rev = await rpc(nuevo, 'cuenta_eliminar_revisar');
 ok(rev.puede && !rev.historial, 'un usuario sin historial puede borrar su cuenta');
@@ -254,6 +305,7 @@ ok(res2.anonimizada, 'anonimizada');
 const [u] = await sql('select email, banned_until from auth.users where id = $1', [comprador]);
 ok(u.email.endsWith('@levelup.invalid') && u.banned_until, 'sin correo real y sin acceso');
 igual((await sql('select count(*) n from ventas_cuentas where comprador = $1', [comprador]))[0].n, 4, 'los tratos se conservan para la otra parte');
+igual((await sql('select count(*) n from push_suscripciones where usuario = $1', [comprador]))[0].n, 0, 'sus dispositivos ya no reciben avisos');
 
 titulo('Limpieza y estado');
 const vista = await rpc(admin, 'admin_limpiar', { p_dias: 7, p_que: ['avisos', 'errores'], p_ejecutar: false });

@@ -18,7 +18,7 @@
   <link rel="stylesheet" href="css/creadores.css">
   <link rel="stylesheet" href="css/billetera.css">
   <link rel="stylesheet" href="css/cuentas.css?v=3">
-  <link rel="stylesheet" href="css/tienda.css?v=11">
+  <link rel="stylesheet" href="css/tienda.css?v=12">
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.js" defer></script>
   <script src="js/mercado.js?v=8" defer></script>
 </head>
@@ -45,6 +45,7 @@
     <symbol id="i-buscar" viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="m20 20-4-4"/></symbol>
     <symbol id="i-servidor" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="7" rx="2"/><rect x="3" y="13" width="18" height="7" rx="2"/><path d="M7 7.5h.01M7 16.5h.01"/></symbol>
     <symbol id="i-correo" viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="m3 7 9 6 9-6"/></symbol>
+    <symbol id="i-campana" viewBox="0 0 24 24"><path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9"/><path d="M10.3 21a1.9 1.9 0 0 0 3.4 0"/></symbol>
     <symbol id="i-whatsapp" viewBox="0 0 24 24"><path d="M3 21l1.6-4.8A8.5 8.5 0 1 1 8 19.6L3 21z"/><path d="M9 9.5c.5 2 2.5 4 4.5 4.5l1-1.2 2 1-.5 1.7c-3.5.3-7.3-3.5-7-7l1.7-.5 1 2L9 9.5z"/></symbol>
   </svg>
 
@@ -301,8 +302,17 @@
               </div>
             </fieldset>
             <fieldset class="ajustes-grupo">
-              <legend><svg class="icono"><use href="#i-correo"/></svg>Correos automáticos<span class="pastilla" id="estadoCorreo"></span></legend>
-              <p class="campo-ayuda">Avisan por correo a tus clientes cuando les compran, les entregan, se aprueba su recarga o se paga su retiro, y a ti cuando hay recargas, reclamos o retiros nuevos. Se envían con Brevo (gratis hasta 300 al día). La clave de Brevo NO va aquí: va en Supabase → Vault (ver README).</p>
+              <legend><svg class="icono"><use href="#i-campana"/></svg>Notificaciones al celular<span class="pastilla" id="estadoPush"></span></legend>
+              <p class="campo-ayuda">Tus clientes instalan la tienda en su celular ("Mi panel → Tu cuenta → Instalar la app") y activan las notificaciones: les llegan aunque tengan Level Up cerrada cuando les compran, les entregan, se aprueba su recarga, se paga su retiro o les respondes. A ti te llegan las recargas, reclamos y retiros nuevos. Las envía la función <b>enviar-push</b> de Supabase (gratis); sus claves van en los secretos de esa función, no aquí (ver README).</p>
+              <p class="campo-ayuda">Para recibirlas tú: abre la tienda en tu celular con esta misma cuenta, entra a "Mi panel → Tu cuenta" y toca "Activar".</p>
+              <div class="guardar-grupo">
+                <button type="button" class="btn-secundario" id="btnPushPrueba">Enviarme una notificación de prueba</button>
+                <div class="panel-mensaje" id="mensajePush" role="status" aria-live="polite"></div>
+              </div>
+            </fieldset>
+            <fieldset class="ajustes-grupo">
+              <legend><svg class="icono"><use href="#i-correo"/></svg>Correos automáticos (opcional)<span class="pastilla" id="estadoCorreo"></span></legend>
+              <p class="campo-ayuda">Además de las notificaciones, se puede avisar por correo a tus clientes cuando les compran, les entregan, se aprueba su recarga o se paga su retiro, y a ti cuando hay recargas, reclamos o retiros nuevos. Se envían con Brevo (gratis hasta 300 al día). La clave de Brevo NO va aquí: va en Supabase → Vault (ver README).</p>
               <div class="form-fila tres">
                 <div class="campo"><label for="cfg_correo_remitente">Correo remitente</label><input type="text" id="cfg_correo_remitente" maxlength="120" inputmode="email" placeholder="El que verificaste en Brevo" autocomplete="off"></div>
                 <div class="campo"><label for="cfg_correo_nombre">Nombre remitente</label><input type="text" id="cfg_correo_nombre" maxlength="120" placeholder="Level Up" autocomplete="off"></div>
@@ -1086,6 +1096,18 @@
             ['De ventas aún sin liberar', usd(d.ventas_por_liberar)],
           ]),
         );
+        // Notificaciones push
+        const ep = e.push || {};
+        const envP = ep.ultimas_24h || {};
+        const faltaPush = textoFaltaPush(ep);
+        const tPush = tarjetaEstado('Notificaciones al celular', 'i-campana', faltaPush || envP.error ? 'aviso' : 'ok');
+        tPush.append(ficha([
+          ['Estado', faltaPush || 'Listas'],
+          ['Dispositivos activados', `${ep.dispositivos ?? 0} (${ep.usuarios ?? 0} persona/s)`],
+          ['Enviadas (24 h)', String(envP.enviado || 0)],
+          ['Sin dispositivo (24 h)', String(envP.sin_dispositivo || 0)],
+          ['Con error (24 h)', `${(envP.error || 0) + (envP.pendiente || 0) + (envP.enviando || 0)}${envP.pendiente ? ' · si quedan en "pendiente", la función enviar-push no está desplegada o le faltan las claves' : ''}`],
+        ]));
         // Correos automáticos
         const falta = textoFaltaCorreo(e.correo);
         const env = e.correo?.ultimas_24h || {};
@@ -1119,7 +1141,7 @@
         lista.append(enlace('Uso y límites del plan', `${PROYECTO}/settings/billing/usage`), enlace('Copias de seguridad', `${PROYECTO}/database/backups/scheduled`),
           enlace('Registros (errores)', `${PROYECTO}/logs/explorer`), enlace('Usuarios (Auth)', `${PROYECTO}/auth/users`), enlace('Archivos (Storage)', `${PROYECTO}/storage/buckets`));
         atajos.append(lista);
-        caja.append(conexion, bd, arch, vivo, usu, dinero, tCorreo, tErrores, atajos);
+        caja.append(conexion, bd, arch, vivo, usu, dinero, tPush, tCorreo, tErrores, atajos);
         pintarOpcionesLimpieza();
       }
 
@@ -1478,12 +1500,40 @@
       async function pintarEstadoCorreo() {
         const { data: e } = await cliente.rpc('admin_estado');
         const el = $('estadoCorreo');
+        pintarEstadoPush(e);
         if (!e) { el.textContent = ''; return; }
         const falta = textoFaltaCorreo(e.correo);
         el.className = `pastilla ${falta ? 'pastilla-recarga-rechazada' : 'pastilla-recarga-aprobada'}`;
         el.textContent = falta ? 'Sin configurar' : 'Activos';
         el.title = falta || '';
       }
+      const textoFaltaPush = (p = {}) => (!p.pg_net ? 'Activa la extensión pg_net en Supabase (Database → Extensions).'
+        : !p.url ? 'Falta la dirección de la función enviar-push.' : '');
+      // Pastilla de "Notificaciones al celular"
+      async function pintarEstadoPush(e) {
+        const el = $('estadoPush');
+        if (!e?.push) { el.textContent = ''; return; }
+        const falta = textoFaltaPush(e.push);
+        el.className = `pastilla ${falta ? 'pastilla-recarga-rechazada' : 'pastilla-recarga-aprobada'}`;
+        el.textContent = falta ? 'Sin configurar' : `${e.push.dispositivos} dispositivo/s`;
+        el.title = falta || '';
+      }
+      $('btnPushPrueba').addEventListener('click', async (e) => {
+        const b = e.currentTarget;
+        b.disabled = true;
+        try {
+          const r = await M.rpc('admin_push_prueba', {}, 'No se pudo enviar.');
+          M.mensaje($('mensajePush'), r === 'pendiente'
+            ? 'Enviada a tus dispositivos. Si no llega en un minuto: revisa que la función enviar-push esté desplegada con sus claves y mira Admin → Sistema.'
+            : r === 'sin_dispositivo' ? 'No tienes ningún dispositivo activado. En tu celular abre la tienda con esta cuenta → Mi panel → Tu cuenta → Activar.'
+              : `Todavía falta: ${textoFaltaPush((await cliente.rpc('admin_estado')).data?.push || {}) || 'revisa la configuración.'}`, r === 'pendiente' ? 'exito' : 'aviso');
+          setTimeout(pintarEstadoCorreo, 4000);
+        } catch (error) {
+          M.mensaje($('mensajePush'), error.message);
+        } finally {
+          b.disabled = false;
+        }
+      });
       const textoFaltaCorreo = (c = {}) => (!c.pg_net ? 'Activa la extensión pg_net en Supabase (Database → Extensions).'
         : !c.vault ? 'Tu proyecto no tiene Vault activo.'
           : !c.clave ? 'Guarda la clave de Brevo en Vault con el nombre brevo_api_key (ver README).'

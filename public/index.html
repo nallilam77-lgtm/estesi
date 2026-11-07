@@ -21,8 +21,12 @@
   <meta name="twitter:card" content="summary">
   <link rel="canonical" href="https://estesi-blond.vercel.app/">
   <link rel="icon" type="image/png" href="logo.png">
-  <link rel="apple-touch-icon" href="logo.png">
+  <link rel="apple-touch-icon" href="apple-touch-icon.png">
   <link rel="manifest" href="manifest.webmanifest">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-title" content="Level Up">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -31,7 +35,7 @@
   <link rel="stylesheet" href="css/creadores.css">
   <link rel="stylesheet" href="css/billetera.css">
   <link rel="stylesheet" href="css/cuentas.css?v=3">
-  <link rel="stylesheet" href="css/tienda.css?v=11">
+  <link rel="stylesheet" href="css/tienda.css?v=12">
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.js" defer></script>
   <script src="js/mercado.js?v=8" defer></script>
 </head>
@@ -123,8 +127,8 @@
       <button type="button" class="enlace-texto" id="btnLeerAvisos">Marcar todo como leído</button>
     </div>
     <button type="button" class="avisos-permiso oculto" id="btnPermisoAvisos">
-      <svg class="icono"><use href="#i-alerta"/></svg>
-      <span><strong>Activa los avisos del navegador</strong>Te avisamos aunque estés en otra pestaña cuando te compren, te entreguen o te respondan.</span>
+      <svg class="icono"><use href="#i-campana"/></svg>
+      <span><strong id="tituloPermisoAvisos">Activa las notificaciones</strong><span id="textoPermisoAvisos">Te llegan al celular aunque tengas Level Up cerrada cuando te compren, te entreguen o te respondan.</span></span>
     </button>
     <div class="avisos-lista" id="listaAvisos"></div>
   </section>
@@ -271,7 +275,7 @@
               <li><svg class="icono"><use href="#i-check"/></svg><span><strong>Publicar y vender es gratis.</strong> Recibes el precio completo en tu saldo.</span></li>
               <li><svg class="icono"><use href="#i-check"/></svg><span><strong>Solo <span data-comision>4 %</span> al retirar</strong> tu dinero, nada más.</span></li>
               <li><svg class="icono"><use href="#i-check"/></svg><span><strong>Retiros todos los lunes</strong> por Pago Móvil, Binance o Zinli.</span></li>
-              <li><svg class="icono"><use href="#i-check"/></svg><span><strong>Te avisamos por correo</strong> apenas te compren, para que entregues a tiempo.</span></li>
+              <li><svg class="icono"><use href="#i-check"/></svg><span><strong>Te avisamos al celular</strong> apenas te compren, para que entregues a tiempo (instala la app y activa las notificaciones).</span></li>
             </ul>
           </div>
         </div>
@@ -287,6 +291,7 @@
             <details><summary>¿Cómo sé que no me van a estafar?<svg class="icono"><use href="#i-mas"/></svg></summary><p>Tu dinero no va al vendedor: lo retiene Level Up. El vendedor solo cobra cuando tú tocas "Todo bien, finalizar", o cuando pasan <span data-horas>24</span> horas desde la entrega sin que hayas reclamado.</p></details>
             <details><summary>¿Qué pasa si la cuenta no es como la publicaron?<svg class="icono"><use href="#i-mas"/></svg></summary><p>Tocas "Tengo un problema" y adjuntas el enlace de tu video sin cortes, grabado desde que usaste los datos. Level Up revisa el caso y, si el reclamo es válido, te devuelve el dinero.</p></details>
             <details><summary>¿Por qué tengo que grabar la pantalla?<svg class="icono"><use href="#i-mas"/></svg></summary><p>Es la prueba que protege a las dos partes: demuestra si la cuenta llegó bien o no. Sin video continuo (que empiece como máximo 5 minutos después de la entrega) no se puede reclamar.</p></details>
+            <details><summary>¿Cómo me entero cuando me compran o me responden?<svg class="icono"><use href="#i-mas"/></svg></summary><p>Instala Level Up en tu celular: en Android toca "Instalar la app" en Mi panel → Tu cuenta; en iPhone, en Safari toca Compartir y luego "Agregar a inicio". Después activa las notificaciones ahí mismo: te llegan aunque tengas la app cerrada. Además, todo queda en la campana de arriba.</p></details>
             <details><summary>¿Cuánto cuesta vender?<svg class="icono"><use href="#i-mas"/></svg></summary><p>Publicar y vender es gratis y recibes el precio completo en tu saldo. Solo se descuenta un <span data-comision>4 %</span> cuando retiras tu dinero. Los retiros se pagan los lunes.</p></details>
             <details><summary>¿Cómo pago?<svg class="icono"><use href="#i-mas"/></svg></summary><p>Recargas saldo en "Mi saldo" por Binance, PayPal o Pago Móvil (al cambio del día): envías el pago, subes la captura y la referencia, y lo acreditamos apenas lo verificamos. Con ese saldo compras cualquier cuenta al instante.</p></details>
             <details><summary>¿Puedo retirar el saldo que recargué?<svg class="icono"><use href="#i-mas"/></svg></summary><p>El saldo recargado es para comprar cuentas. Lo que se retira es lo que ganas vendiendo (con un <span data-comision>4 %</span> de comisión, los lunes). Si un trato se cancela, lo que pagaste vuelve completo a tu saldo.</p></details>
@@ -362,7 +367,7 @@
           <div class="vender-layout oculto" id="vistaVender">
             <section class="panel-caja" aria-labelledby="tituloVender">
               <h2 id="tituloVender"><svg class="icono"><use href="#i-etiqueta"/></svg>Datos de la cuenta</h2>
-              <p>La revisamos antes de mostrarla. Te avisamos por correo cuando se publique y cuando alguien la compre.</p>
+              <p>La revisamos antes de mostrarla. Te avisamos cuando se publique y cuando alguien la compre (en la campana y con una notificación si la activaste).</p>
               <form class="form-publicar" id="formPublicar" novalidate>
                 <div class="campo">
                   <label for="pubTitulo">Título</label>
@@ -508,14 +513,18 @@
               <h2 id="tituloMiCuenta"><svg class="icono"><use href="#i-usuario"/></svg>Tu cuenta</h2>
               <p>Cómo te avisamos y tus datos.</p>
               <div class="cuenta-opciones">
-                <label class="opcion-interruptor">
+                <div class="opcion-interruptor oculto" id="filaInstalar">
+                  <span class="opcion-texto"><svg class="icono"><use href="#i-compartir"/></svg><span><strong>Instalar la app</strong><span id="textoInstalar">Agrégala a tu pantalla de inicio: se abre como una app y te avisa al momento.</span></span></span>
+                  <button type="button" class="btn-secundario" id="btnInstalar">Instalar</button>
+                </div>
+                <div class="opcion-interruptor">
+                  <span class="opcion-texto"><svg class="icono"><use href="#i-campana"/></svg><span><strong>Notificaciones en este dispositivo</strong><span id="textoPermiso">Te llegan aunque tengas Level Up cerrada.</span></span></span>
+                  <button type="button" class="btn-secundario" id="btnPermisoPanel">Activar</button>
+                </div>
+                <label class="opcion-interruptor oculto" id="filaCorreos">
                   <span class="opcion-texto"><svg class="icono"><use href="#i-correo"/></svg><span><strong>Avisos por correo</strong>Ventas, entregas, recargas, retiros y respuestas de Level Up.</span></span>
                   <input type="checkbox" class="interruptor" id="prefCorreos" checked>
                 </label>
-                <div class="opcion-interruptor">
-                  <span class="opcion-texto"><svg class="icono"><use href="#i-campana"/></svg><span><strong>Avisos del navegador</strong><span id="textoPermiso">Te avisamos aunque estés en otra pestaña.</span></span></span>
-                  <button type="button" class="btn-secundario" id="btnPermisoPanel">Activar</button>
-                </div>
               </div>
               <div class="zona-peligro">
                 <div>
@@ -915,6 +924,7 @@
         document.querySelectorAll('[data-entrega]').forEach((el) => { el.textContent = String(config.horas_entrega); });
         document.querySelectorAll('[data-liberacion]').forEach((el) => { el.textContent = String(config.dias_liberacion); });
         $('statHoras').textContent = `${config.horas_revision} h`;
+        $('filaCorreos').classList.toggle('oculto', !String(config.correo_remitente || '').trim());
         $('textoGarantia').textContent = String(config.garantia_usd);
         $('recMonto').min = String(config.recarga_minima || 1);
         pintarMetodos();
@@ -1360,7 +1370,7 @@
         mostrarVista('panel');
       });
 
-      document.querySelectorAll('[data-salir]').forEach((b) => b.addEventListener('click', () => cliente.auth.signOut()));
+      document.querySelectorAll('[data-salir]').forEach((b) => b.addEventListener('click', async () => { await soltarPush(false); cliente.auth.signOut(); }));
 
       // ---------------- Publicar ----------------
       const comprimir = (archivo) => M.comprimir(archivo);
@@ -1454,7 +1464,7 @@
             const { error: errorContacto } = await cliente.from('cuentas_contacto').insert({ cuenta: data.id, whatsapp: `+58${telefono}` });
             if (errorContacto) {
               console.error('contacto', errorContacto);
-              M.notificar('Tu cuenta se publicó, pero no pudimos guardar tu WhatsApp. No pasa nada: te avisamos por correo.', 'aviso');
+              M.notificar('Tu cuenta se publicó, pero no pudimos guardar tu WhatsApp. No pasa nada: te avisamos en la campana y con notificaciones.', 'aviso');
             }
           }
           fotosElegidas.forEach((f) => URL.revokeObjectURL(f.vista));
@@ -2171,7 +2181,6 @@
         apelacion: 'i-alerta', mensaje: 'i-chat', soporte: 'i-chat', chat: 'i-chat', recarga: 'i-billetera', retiro: 'i-billetera', ajuste: 'i-billetera', moderacion: 'i-etiqueta' };
       // Estos ya muestran su propio aviso flotante (chats y recargas en vivo): la campana solo los cuenta
       const SIN_FLOTANTE = ['mensaje', 'soporte', 'recarga', 'chat'];
-      const puedeNotificar = () => 'Notification' in window && window.isSecureContext;
       function haceCuanto(iso) {
         const min = Math.round((Date.now() - new Date(iso).getTime()) / 60000);
         if (min < 1) return 'ahora';
@@ -2196,7 +2205,7 @@
         $('numeroAvisos').classList.toggle('oculto', !sinLeer);
         $('btnAvisos').setAttribute('aria-label', sinLeer ? `Avisos: ${sinLeer} sin leer` : 'Avisos');
         $('btnLeerAvisos').classList.toggle('oculto', !sinLeer);
-        $('btnPermisoAvisos').classList.toggle('oculto', !puedeNotificar() || Notification.permission !== 'default');
+        pintarBannerPush();
         const lista = $('listaAvisos');
         lista.replaceChildren();
         if (!avisos.length) {
@@ -2231,12 +2240,13 @@
         b.classList.remove('llamando'); void b.offsetWidth; b.classList.add('llamando');
         if (/^trato-/.test(n.enlace)) cargarTratos();
         if (['cobro', 'retiro', 'ajuste', 'cancelado'].includes(n.tipo)) cargarSaldo();
-        // Pestaña en segundo plano: notificación del sistema (si dio permiso). Si no, aviso flotante.
-        if (document.hidden && puedeNotificar() && Notification.permission === 'granted') {
-          try {
-            const nota = new Notification(n.titulo, { body: n.texto, icon: 'logo.png', tag: `levelup-${n.id}` });
-            nota.onclick = () => { window.focus(); leerAvisos(n.enlace); irAAviso(n); nota.close(); };
-          } catch (e) { /* algunos móviles solo permiten avisos desde la app instalada */ }
+        // Pestaña en segundo plano: con push activo la notificación ya la muestra el service worker.
+        // Sin push (pero con permiso), la muestra la página. Con la página a la vista: aviso flotante.
+        if (document.hidden) {
+          if (!pushActivo && permisoNotif() === 'granted' && registroSW) {
+            registroSW.showNotification(n.titulo, { body: n.texto, icon: 'icono-192.png', badge: 'icono-insignia.png', tag: `levelup-${n.enlace || n.id}`,
+              data: { ruta: n.enlace?.startsWith('admin:') ? 'admin-cuentas.html' : `index.html${n.enlace ? `#${n.enlace}` : ''}` } }).catch(() => {});
+          }
         } else if (!SIN_FLOTANTE.includes(n.tipo)) {
           const tipo = ['cancelado', 'reclamo', 'apelacion'].includes(n.tipo) ? 'aviso' : 'exito';
           M.notificar(n.texto, tipo, { titulo: n.titulo, duracion: 9000, alTocar: () => { leerAvisos(n.enlace); irAAviso(n); } });
@@ -2264,23 +2274,151 @@
       $('btnAvisos').addEventListener('click', (e) => { e.stopPropagation(); if (avisosAbierto()) cerrarAvisos(); else abrirAvisos(); });
       document.addEventListener('click', (e) => { if (avisosAbierto() && !$('panelAvisos').contains(e.target)) cerrarAvisos(); });
       $('btnLeerAvisos').addEventListener('click', () => leerAvisos(null));
-      async function pedirPermiso() {
-        if (!puedeNotificar()) return M.notificar('Tu navegador no permite avisos. En iPhone, agrega Level Up a la pantalla de inicio y ábrelo desde ahí.', 'aviso');
-        const r = await Notification.requestPermission();
-        M.notificar(r === 'granted' ? 'Listo: te avisaremos aunque estés en otra pestaña.' : 'No diste permiso. Puedes activarlo después en el candado de la barra de direcciones.', r === 'granted' ? 'exito' : 'aviso');
-        pintarAvisos();
+      // ---------------- Notificaciones push y app instalada ----------------
+      // El service worker (sw.js) muestra las notificaciones aunque la tienda esté cerrada. Las manda la función
+      // enviar-push de Supabase; aquí solo se pide permiso y se guarda la suscripción de este navegador.
+      const URL_PUSH = `${M.SUPABASE_URL}/functions/v1/enviar-push`;
+      const esIOS = /iphone|ipad|ipod/i.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+      const instalada = () => window.matchMedia?.('(display-mode: standalone)').matches || navigator.standalone === true;
+      const soportaPush = () => window.isSecureContext && 'serviceWorker' in navigator && 'PushManager' in window && 'Notification' in window;
+      const permisoNotif = () => ('Notification' in window ? Notification.permission : 'default');
+      const iosSinInstalar = () => esIOS && !instalada();
+      let registroSW = null;
+      let pedidoInstalar = null;   // evento beforeinstallprompt (Android y computadora)
+      let pushActivo = false;
+      const aBytes = (b64) => {
+        const t = atob(b64.replace(/-/g, '+').replace(/_/g, '/') + '='.repeat((4 - (b64.length % 4)) % 4));
+        return Uint8Array.from(t, (ch) => ch.charCodeAt(0));
+      };
+      const aBase64 = (buf) => btoa(String.fromCharCode(...new Uint8Array(buf))).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
+      async function clavePublica() {
+        const r = await fetch(URL_PUSH, { method: 'GET' });
+        const d = await r.json().catch(() => null);
+        if (!r.ok || !d?.publica) throw new Error('SIN_PUSH');
+        return d.publica;
+      }
+      // Suscribe este navegador (o reutiliza la suscripción) y la guarda a nombre de quien tiene la sesión
+      async function suscribir(crear) {
+        let sub = await registroSW.pushManager.getSubscription();
+        let publica = null;
+        try { publica = await clavePublica(); } catch (e) { if (crear || !sub) throw e; }
+        if (sub && publica && sub.options?.applicationServerKey && aBase64(sub.options.applicationServerKey) !== publica) {
+          await sub.unsubscribe().catch(() => {});   // las claves cambiaron: hay que volver a suscribirse
+          sub = null;
+        }
+        if (!sub) sub = await registroSW.pushManager.subscribe({ userVisibleOnly: true, applicationServerKey: aBytes(publica) });
+        const j = sub.toJSON();
+        await M.rpc('push_guardar', { p_endpoint: j.endpoint, p_p256dh: j.keys.p256dh, p_secreto: j.keys.auth, p_navegador: navigator.userAgent.slice(0, 200) },
+          'No pudimos activar las notificaciones.');
+        pushActivo = true;
+      }
+      // Al entrar (o al abrir la página con sesión): si ya dio permiso, este dispositivo queda a su nombre
+      async function revisarPush() {
+        pushActivo = false;
+        if (sesion && registroSW && soportaPush() && permisoNotif() === 'granted') {
+          try { await suscribir(false); } catch (e) { /* se reintenta en la próxima visita */ }
+        }
         pintarPermiso();
       }
-      $('btnPermisoAvisos').addEventListener('click', pedirPermiso);
-      $('btnPermisoPanel').addEventListener('click', pedirPermiso);
+      async function activarPush() {
+        if (iosSinInstalar()) {
+          M.notificar('En iPhone primero instala Level Up: en Safari toca Compartir y luego "Agregar a inicio". Abre la app desde ese icono y activa las notificaciones ahí.', 'aviso', { titulo: 'Instala la app', duracion: 14000 });
+          return;
+        }
+        if (!soportaPush()) return M.notificar('Este navegador no permite notificaciones. Prueba con Chrome.', 'aviso');
+        if (!sesion) return;
+        const permiso = await Notification.requestPermission();
+        if (permiso !== 'granted') {
+          M.notificar('No diste permiso. Puedes darlo después en el candado de la barra de direcciones o en los ajustes del celular.', 'aviso');
+          pintarPermiso();
+          return;
+        }
+        const botones = [$('btnPermisoPanel'), $('btnPermisoAvisos')];
+        botones.forEach((b) => { b.disabled = true; });
+        try {
+          registroSW = registroSW || await navigator.serviceWorker.ready;
+          await suscribir(true);
+          M.notificar('Listo: te llegarán las notificaciones a este dispositivo aunque tengas Level Up cerrada.', 'exito', { titulo: 'Notificaciones activadas' });
+        } catch (error) {
+          if (error.message !== 'SIN_PUSH') M.registrarError(`activar push: ${error.message}`, error.stack || '');
+          M.notificar(error.message === 'SIN_PUSH' ? 'Las notificaciones todavía no están listas en Level Up. Intenta más tarde.'
+            : error.message.startsWith('No pudimos') ? error.message : 'No pudimos activar las notificaciones. Intenta de nuevo en un momento.', 'error');
+        } finally {
+          botones.forEach((b) => { b.disabled = false; });
+          pintarPermiso();
+        }
+      }
+      // Deja de mandar avisos de esta cuenta a este dispositivo (desactivar o cerrar sesión)
+      async function soltarPush(desuscribir) {
+        try {
+          const sub = await registroSW?.pushManager.getSubscription();
+          if (sub) {
+            if (sesion) await cliente.rpc('push_borrar', { p_endpoint: sub.endpoint });
+            if (desuscribir) await sub.unsubscribe();
+          }
+        } catch (e) { /* sin conexión: no pasa nada */ }
+        pushActivo = false;
+      }
+      if ('serviceWorker' in navigator && window.isSecureContext) {
+        navigator.serviceWorker.register('sw.js').then((r) => { registroSW = r; revisarPush(); }, () => {});
+        // Tocaron una notificación con la tienda ya abierta: se abre lo que corresponde sin recargar
+        navigator.serviceWorker.addEventListener('message', (e) => {
+          if (e.data?.tipo !== 'abrir-aviso') return;
+          const enlace = String(e.data.enlace || '');
+          leerAvisos(enlace);
+          irAAviso({ enlace });
+        });
+      }
+      window.addEventListener('beforeinstallprompt', (e) => { e.preventDefault(); pedidoInstalar = e; pintarPermiso(); });
+      window.addEventListener('appinstalled', () => {
+        pedidoInstalar = null;
+        pintarPermiso();
+        M.notificar('Level Up quedó instalada. Ábrela desde su icono y activa las notificaciones.', 'exito', { titulo: 'App instalada' });
+      });
+      $('btnInstalar').addEventListener('click', async () => {
+        if (!pedidoInstalar) return;
+        pedidoInstalar.prompt();
+        await pedidoInstalar.userChoice.catch(() => null);
+        pedidoInstalar = null;
+        pintarPermiso();
+      });
+      $('btnPermisoAvisos').addEventListener('click', activarPush);
+      $('btnPermisoPanel').addEventListener('click', async () => {
+        if (!pushActivo) return activarPush();
+        await soltarPush(true);
+        M.notificar('Notificaciones desactivadas en este dispositivo. Seguirás viendo los avisos en la campana.', 'exito');
+        pintarPermiso();
+      });
+      // Recuadro de la campana: invita a activar (o a instalar en iPhone) mientras no estén activas
+      function pintarBannerPush() {
+        const ver = Boolean(sesion) && !pushActivo && (iosSinInstalar() || (soportaPush() && permisoNotif() !== 'denied'));
+        $('btnPermisoAvisos').classList.toggle('oculto', !ver);
+        $('tituloPermisoAvisos').textContent = iosSinInstalar() ? 'Instala Level Up para recibir notificaciones' : 'Activa las notificaciones';
+        $('textoPermisoAvisos').textContent = iosSinInstalar()
+          ? 'En Safari toca Compartir y luego "Agregar a inicio". Abre la app desde ese icono y actívalas ahí.'
+          : 'Te llegan al celular aunque tengas Level Up cerrada cuando te compren, te entreguen o te respondan.';
+      }
 
       // ---------------- Tu cuenta (preferencias y borrar) ----------------
       function pintarPermiso() {
         const b = $('btnPermisoPanel');
-        if (!puedeNotificar()) { $('textoPermiso').textContent = 'Este navegador no los permite (en iPhone: agrega la tienda a tu pantalla de inicio).'; b.classList.add('oculto'); return; }
-        const p = Notification.permission;
-        $('textoPermiso').textContent = p === 'granted' ? 'Activados en este dispositivo.' : p === 'denied' ? 'Bloqueados: actívalos en el candado de la barra de direcciones.' : 'Te avisamos aunque estés en otra pestaña.';
-        b.classList.toggle('oculto', p !== 'default');
+        const t = $('textoPermiso');
+        b.classList.remove('oculto');
+        if (iosSinInstalar()) { t.textContent = 'En iPhone primero instala la app (arriba) y actívalas desde ella.'; b.classList.add('oculto'); }
+        else if (!soportaPush()) { t.textContent = 'Este navegador no las permite. Prueba con Chrome.'; b.classList.add('oculto'); }
+        else if (permisoNotif() === 'denied') { t.textContent = 'Bloqueadas: permítelas en el candado de la barra de direcciones o en los ajustes del celular.'; b.classList.add('oculto'); }
+        else if (pushActivo) { t.textContent = 'Activadas: te llegan aunque tengas Level Up cerrada.'; b.textContent = 'Desactivar'; }
+        else { t.textContent = 'Te llegan aunque tengas Level Up cerrada: ventas, entregas, recargas y respuestas.'; b.textContent = 'Activar'; }
+        const fila = $('filaInstalar');
+        if (instalada() || (!pedidoInstalar && !esIOS)) fila.classList.add('oculto');
+        else {
+          fila.classList.remove('oculto');
+          $('btnInstalar').classList.toggle('oculto', !pedidoInstalar);
+          $('textoInstalar').textContent = pedidoInstalar
+            ? 'Agrégala a tu pantalla de inicio: se abre como una app y te avisa al momento.'
+            : 'En Safari toca Compartir y luego "Agregar a inicio". Después ábrela desde ese icono.';
+        }
+        pintarBannerPush();
       }
       async function cargarPreferencias() {
         pintarPermiso();
@@ -2563,10 +2701,10 @@
         if (evento === 'SIGNED_IN' || evento === 'SIGNED_OUT') {
           setTimeout(() => {
             mostrarVista(vista);
-            if (evento === 'SIGNED_IN') { cargarSaldo(); vigilar(); pintarSoporte(); cargarMiPerfil(); }
+            if (evento === 'SIGNED_IN') { cargarSaldo(); vigilar(); pintarSoporte(); cargarMiPerfil(); revisarPush(); }
             if (evento === 'SIGNED_OUT') {
               saldoDisponible = 0; saldoRecargado = 0; saldoRetirable = 0; cortarVigilancia(); chatSoporte.cerrar(); pintarSoporte();
-              avisos = []; cerrarAvisos(); $('btnAvisos').classList.add('oculto');
+              avisos = []; cerrarAvisos(); $('btnAvisos').classList.add('oculto'); pushActivo = false; pintarPermiso();
             }
             if (evento === 'SIGNED_IN' && compraPendiente) {
               const pedido = compraPendiente;

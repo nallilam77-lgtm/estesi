@@ -11,14 +11,15 @@
   <meta name="theme-color" content="#0f172a">
   <title>Privacidad - Level Up</title>
   <link rel="icon" type="image/png" href="logo.png">
-  <link rel="apple-touch-icon" href="logo.png">
+  <link rel="apple-touch-icon" href="apple-touch-icon.png">
+  <link rel="manifest" href="manifest.webmanifest">
 
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@800;900&family=Poppins:wght@300;400;600;800&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="css/paginas-legales.css">
   <link rel="stylesheet" href="css/cuentas.css?v=3">
-  <link rel="stylesheet" href="css/tienda.css?v=11">
+  <link rel="stylesheet" href="css/tienda.css?v=12">
 </head>
 <body class="tienda">
 
@@ -60,13 +61,14 @@
           <li><strong>Tus publicaciones:</strong> título, datos y fotos de las cuentas que vendes, y tu WhatsApp si decides dejarlo (solo lo ve Level Up).</li>
           <li><strong>Tu dinero:</strong> recargas (monto, método, referencia y la captura del comprobante), saldo, compras, ventas, retiros y los datos de cobro que escribes para recibir tus retiros.</li>
           <li><strong>Los chats:</strong> los mensajes de tus tratos, de tus recargas y del chat de soporte.</li>
+          <li><strong>Notificaciones:</strong> si las activas, un identificador de tu navegador para poder enviártelas. Se borra al desactivarlas, al cerrar sesión o al borrar tu cuenta.</li>
           <li><strong>Errores técnicos:</strong> si la página falla en tu navegador, guardamos el mensaje del error y el tipo de navegador para poder arreglarlo. No incluye lo que escribes.</li>
         </ul>
 
         <h2>2. Para qué los usamos</h2>
         <ul>
           <li>Para que funcionen las compras con dinero retenido, las entregas en el chat, los reclamos y los retiros.</li>
-          <li>Para avisarte por correo y en la web cuando te compran, te entregan una cuenta, se aprueba tu recarga, te pagamos un retiro o te respondemos. Puedes apagar los correos en "Mi panel → Tu cuenta".</li>
+          <li>Para avisarte en la web y con notificaciones en tu celular o computadora (si las activas) cuando te compran, te entregan una cuenta, se aprueba tu recarga, te pagamos un retiro o te respondemos. Las notificaciones nunca llevan lo que se escribe en los chats. Puedes desactivarlas en "Mi panel → Tu cuenta".</li>
           <li>Para resolver reclamos y prevenir fraudes (por ejemplo, referencias de pago repetidas o cuentas recuperadas después de vendidas).</li>
         </ul>
 
@@ -74,7 +76,7 @@
         <ul>
           <li><strong>La otra parte de un trato</strong> ve tu nombre público y lo que escribes en el chat de ese trato. Nunca ve tu correo ni tu teléfono.</li>
           <li><strong>Los administradores de Level Up</strong> ven lo necesario para revisar pagos, publicaciones, reclamos y retiros.</li>
-          <li>Usamos <strong>Supabase</strong> (base de datos y archivos), <strong>Vercel</strong> (la página) y <strong>Brevo</strong> (envío de correos). Solo procesan los datos para darnos ese servicio.</li>
+          <li>Usamos <strong>Supabase</strong> (base de datos, archivos y envío de notificaciones) y <strong>Vercel</strong> (la página). Las notificaciones las entrega el servicio de tu navegador (Google, Apple o Mozilla). Solo procesan los datos para darnos ese servicio.</li>
         </ul>
 
         <h2>4. Cuánto tiempo los guardamos</h2>

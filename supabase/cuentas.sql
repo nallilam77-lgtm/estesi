@@ -69,7 +69,9 @@ insert into public.mercado_config (clave, valor) values
   -- Correos automáticos (Brevo). La clave de Brevo va en Supabase Vault con el nombre 'brevo_api_key', nunca aquí.
   ('correo_remitente', ''),        -- correo verificado en Brevo (vacío = no se envían correos)
   ('correo_nombre', 'Level Up'),
-  ('sitio_url', 'https://estesi-blond.vercel.app')
+  ('sitio_url', 'https://estesi-blond.vercel.app'),
+  -- Notificaciones push: la Edge Function 'enviar-push' (supabase/functions/enviar-push). Sus claves VAPID van en los secretos de la función.
+  ('push_url', 'https://qaxgvfzpzywfgcwnalfr.supabase.co/functions/v1/enviar-push')
 on conflict (clave) do nothing;
 -- Desde que existe el saldo, este texto es la nota que ve quien recarga
 update public.mercado_config set valor = 'Envía el monto exacto, toma captura del comprobante y súbela aquí con la referencia o número de orden. Te acreditamos en minutos (horario de atención).'
@@ -355,6 +357,22 @@ create table if not exists public.errores_cliente (
 );
 create index if not exists errores_cliente_recientes on public.errores_cliente (ultimo desc);
 
+-- NOTIFICACIONES PUSH: la tienda instalada como app (celular o computadora) recibe los avisos aunque esté cerrada.
+-- Cada navegador que activa los avisos guarda aquí su suscripción (es por dispositivo, no por cuenta: al cambiar
+-- de usuario se reasigna). Las manda la Edge Function 'enviar-push' con las claves VAPID de sus secretos.
+create table if not exists public.push_suscripciones (
+  endpoint   text primary key check (endpoint ~ '^https://' and char_length(endpoint) <= 1000),
+  usuario    uuid not null references auth.users (id) on delete cascade,
+  p256dh     text not null,
+  secreto    text not null,
+  navegador  text not null default '',
+  creado     timestamptz not null default now(),
+  usado      timestamptz not null default now()
+);
+create index if not exists push_suscripciones_por_usuario on public.push_suscripciones (usuario);
+-- null = no se intentó; 'pendiente' (pedida a la función), 'enviando', 'enviado', 'sin_dispositivo', 'sin_config', 'caducado' o 'error'
+alter table public.notificaciones add column if not exists push text;
+
 -- Escapa texto para meterlo en el HTML de un correo
 create or replace function public._html(p text)
 returns text language sql immutable set search_path = public as $$
@@ -405,7 +423,23 @@ exception when others then
   return 'error';
 end $$;
 
--- Deja un aviso para un usuario (campana + en vivo) y, si p_correo, también le escribe por correo.
+-- Pide a la Edge Function que mande la notificación push de un aviso (asíncrono con pg_net: sale cuando
+-- la transacción termina bien; la función lee el aviso con push_tomar). Nunca falla.
+create or replace function public._enviar_push(p_id bigint, p_usuario uuid)
+returns text language plpgsql security definer set search_path = public as $$
+declare destino text;
+begin
+  if not exists (select 1 from push_suscripciones where usuario = p_usuario) then return 'sin_dispositivo'; end if;
+  select nullif(trim(valor), '') into destino from mercado_config where clave = 'push_url';
+  if destino is null or to_regprocedure('net.http_post(text,jsonb,jsonb,jsonb,integer)') is null then return 'sin_config'; end if;
+  execute 'select net.http_post(url := $1, body := $2, params := ''{}''::jsonb, headers := $3, timeout_milliseconds := 10000)'
+    using destino, jsonb_build_object('id', p_id), jsonb_build_object('content-type', 'application/json');
+  return 'pendiente';
+exception when others then
+  return 'error';
+end $$;
+
+-- Deja un aviso para un usuario (campana + en vivo + notificación push en sus dispositivos) y, si p_correo, también le escribe por correo.
 -- p_agrupar: si ya tiene un aviso SIN LEER del mismo tipo y enlace, no se repite (chats: un aviso por conversación).
 create or replace function public._notificar(p_usuario uuid, p_tipo text, p_titulo text, p_texto text, p_enlace text,
                                              p_correo boolean default false, p_agrupar boolean default false)
@@ -420,6 +454,7 @@ begin
   insert into notificaciones (usuario, tipo, titulo, texto, enlace)
   values (p_usuario, p_tipo, left(p_titulo, 120), left(p_texto, 600), coalesce(p_enlace, ''))
   returning id into n_id;
+  update notificaciones set push = _enviar_push(n_id, p_usuario) where id = n_id;
   if p_correo then
     if exists (select 1 from preferencias where usuario = p_usuario and not correos) then
       estado := 'apagado';
@@ -458,6 +493,64 @@ begin
   if auth.uid() is null then raise exception 'SIN_SESION'; end if;
   insert into preferencias (usuario, correos) values (auth.uid(), coalesce(p_correos, true))
   on conflict (usuario) do update set correos = excluded.correos;
+end $$;
+
+-- Guarda la suscripción push de ESTE navegador para el usuario que llama (si era de otro usuario, pasa a este)
+create or replace function public.push_guardar(p_endpoint text, p_p256dh text, p_secreto text, p_navegador text)
+returns void language plpgsql security definer set search_path = public as $$
+declare uid uuid := auth.uid();
+begin
+  if uid is null then raise exception 'SIN_SESION'; end if;
+  if coalesce(p_endpoint, '') !~ '^https://[^[:space:]]+$' or char_length(p_endpoint) > 1000
+     or coalesce(p_p256dh, '') !~ '^[A-Za-z0-9_=+/-]{20,200}$' or coalesce(p_secreto, '') !~ '^[A-Za-z0-9_=+/-]{8,100}$' then
+    raise exception 'DATO_INVALIDO';
+  end if;
+  insert into push_suscripciones (endpoint, usuario, p256dh, secreto, navegador)
+  values (p_endpoint, uid, p_p256dh, p_secreto, left(coalesce(p_navegador, ''), 200))
+  on conflict (endpoint) do update set usuario = excluded.usuario, p256dh = excluded.p256dh, secreto = excluded.secreto,
+                                       navegador = excluded.navegador, usado = now();
+  -- Máximo 10 dispositivos por usuario: se quitan los menos usados
+  delete from push_suscripciones where usuario = uid
+     and endpoint not in (select endpoint from push_suscripciones where usuario = uid order by usado desc limit 10);
+end $$;
+
+-- Quita la suscripción de este navegador (al cerrar sesión o desactivar los avisos)
+create or replace function public.push_borrar(p_endpoint text)
+returns void language plpgsql security definer set search_path = public as $$
+begin
+  if auth.uid() is null then return; end if;
+  delete from push_suscripciones where endpoint = p_endpoint and usuario = auth.uid();
+end $$;
+
+-- Solo la Edge Function (service_role): toma un aviso pendiente UNA vez y devuelve qué mandar y a qué dispositivos.
+-- Si alguien llama a la función con un id cualquiera no pasa nada: cada aviso se manda una sola vez y solo a su dueño.
+create or replace function public.push_tomar(p_id bigint)
+returns jsonb language plpgsql security definer set search_path = public as $$
+declare n notificaciones;
+begin
+  if coalesce(auth.role(), '') <> 'service_role' then raise exception 'SOLO_ADMIN'; end if;
+  update notificaciones set push = 'enviando'
+   where id = p_id and push = 'pendiente' and creado > now() - interval '15 minutes'
+  returning * into n;
+  if n.id is null then return null; end if;
+  return jsonb_build_object(
+    'id', n.id, 'titulo', n.titulo, 'texto', n.texto,
+    'ruta', case when n.enlace like 'admin:%' then 'admin-cuentas.html' when n.enlace = '' then 'index.html' else 'index.html#' || n.enlace end,
+    'etiqueta', 'levelup-' || coalesce(nullif(n.enlace, ''), n.id::text),
+    'suscripciones', (select coalesce(jsonb_agg(jsonb_build_object('endpoint', s.endpoint,
+                                                                   'keys', jsonb_build_object('p256dh', s.p256dh, 'auth', s.secreto))), '[]'::jsonb)
+                        from push_suscripciones s where s.usuario = n.usuario));
+end $$;
+
+-- Solo la Edge Function: guarda el resultado y borra los dispositivos que ya no existen (desinstalaron o quitaron el permiso)
+create or replace function public.push_resultado(p_id bigint, p_enviados int, p_caducadas text[])
+returns void language plpgsql security definer set search_path = public as $$
+begin
+  if coalesce(auth.role(), '') <> 'service_role' then raise exception 'SOLO_ADMIN'; end if;
+  delete from push_suscripciones where endpoint = any (coalesce(p_caducadas, '{}'::text[]));
+  update notificaciones
+     set push = case when coalesce(p_enviados, 0) > 0 then 'enviado' when cardinality(coalesce(p_caducadas, '{}'::text[])) > 0 then 'caducado' else 'error' end
+   where id = p_id and push = 'enviando';
 end $$;
 
 -- Cualquier visitante puede reportar un error de la página. Límite: los repetidos se suman y hay un tope por minuto.
@@ -1268,6 +1361,17 @@ begin
     E'Si lees esto, los correos automáticos funcionan.\nTus clientes recibirán avisos de ventas, entregas, recargas y retiros.', 'admin:sistema');
 end $$;
 
+-- Notificación de prueba al admin que la pide (a todos sus dispositivos con los avisos activados).
+-- Devuelve 'pendiente' (pedida a la función), 'sin_dispositivo' o 'sin_config'.
+create or replace function public.admin_push_prueba()
+returns text language plpgsql security definer set search_path = public as $$
+begin
+  perform _exigir_admin();
+  perform _notificar(auth.uid(), 'prueba', 'Notificación de prueba',
+    'Si ves esto en tu celular o computadora, las notificaciones de Level Up funcionan.', 'admin:sistema');
+  return (select push from notificaciones where usuario = auth.uid() order by id desc limit 1);
+end $$;
+
 -- Buscar cuentas registradas por correo (vacío = las más nuevas) con su saldo y actividad
 drop function if exists public.admin_buscar_usuarios(text);
 create or replace function public.admin_buscar_usuarios(p_texto text)
@@ -1323,6 +1427,13 @@ begin
       'remitente', (select nullif(trim(valor), '') from mercado_config where clave = 'correo_remitente'),
       'ultimas_24h', (select coalesce(jsonb_object_agg(correo, n), '{}'::jsonb)
                         from (select correo, count(*) n from notificaciones where correo is not null and creado > now() - interval '1 day' group by correo) x)),
+    'push', jsonb_build_object(
+      'pg_net', to_regprocedure('net.http_post(text,jsonb,jsonb,jsonb,integer)') is not null,
+      'url', (select nullif(trim(valor), '') from mercado_config where clave = 'push_url'),
+      'dispositivos', (select count(*) from push_suscripciones),
+      'usuarios', (select count(distinct usuario) from push_suscripciones),
+      'ultimas_24h', (select coalesce(jsonb_object_agg(push, n), '{}'::jsonb)
+                        from (select push, count(*) n from notificaciones where push is not null and creado > now() - interval '1 day' group by push) x)),
     'errores_24h', (select coalesce(sum(veces), 0) from errores_cliente where ultimo > now() - interval '1 day'),
     'errores', (select coalesce(jsonb_agg(to_jsonb(e) - 'usuario' order by e.ultimo desc), '[]'::jsonb)
                   from (select * from errores_cliente order by ultimo desc limit 15) e),
@@ -1520,6 +1631,7 @@ begin
     delete from cuentas_venta where vendedor = uid;          -- los tratos se quedan (cuenta = null) y su contacto se borra
     delete from perfiles where usuario = uid;
     delete from preferencias where usuario = uid;
+    delete from push_suscripciones where usuario = uid;
     delete from notificaciones where usuario = uid;
     delete from mensajes_soporte where usuario = uid;
     delete from soporte_chats where usuario = uid;
@@ -1562,6 +1674,7 @@ alter table public.mensajes_soporte enable row level security;
 alter table public.notificaciones enable row level security;
 alter table public.preferencias enable row level security;
 alter table public.errores_cliente enable row level security;
+alter table public.push_suscripciones enable row level security;   -- sin políticas: solo por funciones
 
 drop policy if exists "soy admin" on public.mercado_admins;
 create policy "soy admin" on public.mercado_admins for select to authenticated using (usuario = auth.uid());
@@ -1663,6 +1776,17 @@ revoke execute on function public.notificaciones_leer(text), public.preferencias
 grant execute on function public.notificaciones_leer(text), public.preferencias_guardar(boolean), public.mi_saldo(),
   public.cuenta_eliminar_revisar(), public.cuenta_eliminar(text), public.admin_correo_prueba() to authenticated;
 grant execute on function public.error_registrar(text, text, text, text) to anon, authenticated;
+-- Notificaciones push
+revoke all on public.push_suscripciones from anon, authenticated;
+revoke execute on function public._enviar_push(bigint, uuid) from public, anon, authenticated;
+revoke execute on function public.push_guardar(text, text, text, text), public.push_borrar(text), public.admin_push_prueba() from public, anon;
+grant execute on function public.push_guardar(text, text, text, text), public.push_borrar(text), public.admin_push_prueba() to authenticated;
+revoke execute on function public.push_tomar(bigint), public.push_resultado(bigint, int, text[]) from public, anon, authenticated;
+do $$ begin
+  if exists (select 1 from pg_roles where rolname = 'service_role') then
+    grant execute on function public.push_tomar(bigint), public.push_resultado(bigint, int, text[]) to service_role;
+  end if;
+end $$;
 
 -- ---------------------------------------------------------------------
 -- SEGURIDAD EXTRA

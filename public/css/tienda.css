@@ -1057,3 +1057,9 @@ div.opcion-interruptor { cursor: default; }
 /* Enlaces del pie en páginas legales */
 .pie-legal-texto a { color: var(--text-muted); text-decoration: underline; text-underline-offset: 3px; }
 .pie-legal-texto a:hover, .pie-legal-texto a:focus-visible { color: var(--game-text); }
+
+/* Tu cuenta en celulares: el botón (Instalar / Activar) va debajo del texto, a todo el ancho */
+@media (max-width: 480px) {
+  div.opcion-interruptor { flex-wrap: wrap; }
+  div.opcion-interruptor .btn-secundario { width: 100%; }
+}

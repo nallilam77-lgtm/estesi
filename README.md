@@ -24,7 +24,14 @@ Es un sitio estático (Vercel) que habla directo con **Supabase**. La publishabl
 4. (Recomendado) **Database → Extensions → pg_cron** y volver a correr el SQL: los tratos vencidos se cierran solos cada 10 min.
 5. **Vercel**: importar este repositorio (sin build; la carpeta publicada es `public/`).
 6. En `admin-cuentas.html` → **Ajustes**: escribir tus datos de Binance, Pago Móvil (y la tasa en Bs) y PayPal. Un método sin datos no aparece en la tienda.
-7. **Correos automáticos** (recomendado; sin esto los avisos solo se ven dentro de la web):
+7. **Notificaciones al celular** (recomendado; sin esto los avisos solo se ven dentro de la web). El cliente instala la tienda como app (*Mi panel → Tu cuenta → Instalar la app*; en iPhone: Safari → Compartir → *Agregar a inicio*) y toca *Activar*: le llegan aunque tenga la app cerrada.
+   1. **Supabase → Database → Extensions**: activar **pg_net**.
+   2. En TU computadora (no la pegues en ningún chat): `npx web-push generate-vapid-keys`. Salen una *Public Key* y una *Private Key*.
+   3. **Supabase → Edge Functions → Deploy a new function → Via Editor**: nombre **`enviar-push`**, pegar todo `supabase/functions/enviar-push/index.ts` y desplegar. En los detalles de la función, **apagar "Verify JWT"** (la llama la base de datos; es seguro, ver el comentario del archivo). Con la CLI: `supabase functions deploy enviar-push --no-verify-jwt`.
+   4. **Edge Functions → Secrets**: agregar `VAPID_PUBLICA` (la Public Key), `VAPID_PRIVADA` (la Private Key) y, opcional, `VAPID_CONTACTO` (`mailto:tucorreo@gmail.com`).
+   5. En tu celular: abrir la tienda con tu cuenta de admin → *Mi panel → Tu cuenta → Activar*. Luego en el admin → **Ajustes → Notificaciones al celular → "Enviarme una notificación de prueba"**. Admin → Sistema muestra dispositivos y envíos.
+   Si cambias las claves VAPID, los dispositivos se vuelven a suscribir solos la próxima vez que abran la tienda. La dirección de la función está en `mercado_config.push_url`.
+8. **Correos automáticos** (opcional; necesita un correo remitente que Brevo acepte):
    1. Crear una cuenta gratis en [Brevo](https://www.brevo.com) (300 correos al día). En *Senders, Domains & Dedicated IPs → Senders* agregar y verificar el correo remitente (puede ser tu Gmail).
    2. En Brevo: *SMTP & API → API Keys → Generate a new API key*. Copiarla (empieza con `xkeysib-`).
    3. **Supabase → Database → Extensions**: activar **pg_net**.
@@ -34,7 +41,7 @@ Es un sitio estático (Vercel) que habla directo con **Supabase**. La publishabl
       ```
       Para cambiarla después: `select vault.update_secret((select id from vault.secrets where name = 'brevo_api_key'), 'xkeysib-NUEVA');`
    5. En el admin → **Ajustes → Correos automáticos**: escribir el correo remitente verificado, guardar y tocar **"Enviarme un correo de prueba"**. Admin → Sistema muestra cuántos se enviaron.
-8. Si usas otro dominio (no `estesi-blond.vercel.app`), cámbialo en Ajustes → *Dirección de la tienda* y en `public/sitemap.xml`, `public/robots.txt` y las etiquetas `og:` / `canonical` de `public/index.html`.
+9. Si usas otro dominio (no `estesi-blond.vercel.app`), cámbialo en Ajustes → *Dirección de la tienda* y en `public/sitemap.xml`, `public/robots.txt` y las etiquetas `og:` / `canonical` de `public/index.html`.
 
 ## Dónde se guarda cada cosa (Supabase)
 
@@ -56,7 +63,7 @@ Si cambias `horas_entrega`, `horas_revision`, `dias_liberacion` o la comisión, 
 
 ## Avisos, errores y cuentas borradas
 
-- **Avisos** (tabla `notificaciones`): los crean las funciones del SQL con `_notificar` (venta nueva, entrega, cobro, cancelación, reclamo, recarga aprobada o rechazada, retiro pagado, respuestas de Level Up…). Se ven en la campana de la tienda, llegan en vivo y, si el usuario da permiso, como notificación del navegador. Los importantes también se envían por **correo** (Brevo, ver paso 7). Los avisos de chat nunca copian el texto del mensaje (puede llevar contraseñas) y se agrupan: uno por conversación hasta que se lea. Cada usuario puede apagar los correos en *Mi panel → Tu cuenta*.
+- **Avisos** (tabla `notificaciones`): los crean las funciones del SQL con `_notificar` (venta nueva, entrega, cobro, cancelación, reclamo, recarga aprobada o rechazada, retiro pagado, respuestas de Level Up…). Se ven en la campana de la tienda, llegan en vivo y, si el usuario las activó, como **notificación push** en sus dispositivos (`push_suscripciones`, `public/sw.js`, Edge Function `enviar-push`; ver paso 7). Los importantes también pueden ir por **correo** (Brevo, paso 8). Los avisos de chat nunca copian el texto del mensaje (puede llevar contraseñas) y se agrupan: uno por conversación hasta que se lea. Cada usuario puede apagar los correos en *Mi panel → Tu cuenta*.
 - **Errores de la web** (tabla `errores_cliente`): los errores de JavaScript en los navegadores de los clientes se reportan solos (`Mercado.registrarError`) y se ven en Admin → Sistema.
 - **Borrar cuenta** (*Mi panel → Tu cuenta*): sin tratos se borra todo; con tratos se borran los datos personales y se conservan los tratos y movimientos de dinero sin correo ni nombre. Exige no tener tratos abiertos ni saldo.
 
