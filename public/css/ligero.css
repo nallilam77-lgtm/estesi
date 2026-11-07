@@ -49,3 +49,7 @@
 .ligero .saldo-sube { animation-duration: 0.6s !important; }
 .ligero .soporte, .ligero .aviso-vivo { animation-duration: 0.25s !important; }
 .ligero .chat-flotante.llamando { animation-duration: 0.8s !important; }
+
+/* Panel de avisos: fondo sólido (sin desenfoque); la campana se mueve una vez cuando llega algo */
+.ligero .panel-avisos { background-color: var(--bg-base) !important; animation-duration: 0.2s !important; }
+.ligero .btn-campana.llamando .icono { animation-duration: 0.8s !important; }

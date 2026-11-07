@@ -16,12 +16,15 @@
 --
 -- FLUJO DE UN TRATO (reglas en public/reglas-cuentas.html):
 --   pagada         → el comprador tocó "Comprar con saldo": se descuenta de su saldo, la cuenta queda "reservada"
---                    y el dinero queda RETENIDO por Level Up.
---   (pendiente_pago → solo tratos viejos, de antes del saldo: el comprador informaba el pago y un admin lo confirmaba.)
+--                    y el dinero queda RETENIDO por Level Up. Si el vendedor no entrega en `horas_entrega`
+--                    (y nadie llamó a Level Up), el trato se cancela solo, el dinero vuelve y la cuenta queda pausada.
+--   (pendiente_pago → solo tratos viejos, de antes del saldo. Ya no se crean; un admin puede cancelarlos.)
 --   entregada      → el vendedor entregó los datos en el chat del trato. El comprador tiene `horas_revision`
 --                    para "Finalizar" o "Tengo un problema" (con video); si no hace nada, se cierra solo.
 --   en_reclamo     → un admin decide: a favor del vendedor (se cierra) o del comprador (se cancela y se reembolsa).
---   cerrada        → el precio COMPLETO pasa al saldo del vendedor y la cuenta queda "vendida".
+--   cerrada        → el precio COMPLETO pasa al saldo del vendedor y la cuenta queda "vendida". Se puede usar
+--                    para comprar al momento, pero se RETIRA después de `dias_liberacion` días (por si el dueño
+--                    anterior recupera la cuenta por su Facebook/Google).
 --   cancelada      → no hubo venta: lo pagado vuelve solo al saldo del comprador.
 --
 -- COMISIÓN: comprar y vender no cuesta nada. Solo al RETIRAR se descuenta `comision_retiro` % (4).
@@ -60,7 +63,13 @@ insert into public.mercado_config (clave, valor) values
   ('paypal_recargo', '0'),         -- % extra que paga quien recarga por PayPal (comisión de PayPal)
   ('binance_pay_id', ''), ('binance_nombre', ''),
   ('paypal_correo', ''), ('paypal_nombre', ''),
-  ('pm_banco', ''), ('pm_telefono', ''), ('pm_cedula', ''), ('pm_titular', '')
+  ('pm_banco', ''), ('pm_telefono', ''), ('pm_cedula', ''), ('pm_titular', ''),
+  ('horas_entrega', '12'),         -- el vendedor tiene este tiempo para entregar; si no, se devuelve el dinero solo (0 = nunca)
+  ('dias_liberacion', '3'),        -- lo cobrado por una venta se puede RETIRAR después de estos días (0 = al momento)
+  -- Correos automáticos (Brevo). La clave de Brevo va en Supabase Vault con el nombre 'brevo_api_key', nunca aquí.
+  ('correo_remitente', ''),        -- correo verificado en Brevo (vacío = no se envían correos)
+  ('correo_nombre', 'Level Up'),
+  ('sitio_url', 'https://estesi-blond.vercel.app')
 on conflict (clave) do nothing;
 -- Desde que existe el saldo, este texto es la nota que ve quien recarga
 update public.mercado_config set valor = 'Envía el monto exacto, toma captura del comprobante y súbela aquí con la referencia o número de orden. Te acreditamos en minutos (horario de atención).'
@@ -308,6 +317,164 @@ create unique index if not exists movimientos_vendedor_venta_unica on public.mov
 create index if not exists movimientos_vendedor_por_usuario on public.movimientos_vendedor (vendedor, creado desc);
 
 -- ---------------------------------------------------------------------
+-- AVISOS: campana de la tienda (en vivo), notificación del navegador y CORREO para lo importante.
+-- enlace = hash de index.html ('trato-12', 'recarga-3', 'saldo', 'panel', 'soporte', 'cuenta-5')
+--          o 'admin:<pestaña>' para los avisos de administradores (abren admin-cuentas.html).
+-- ---------------------------------------------------------------------
+create table if not exists public.notificaciones (
+  id      bigint generated always as identity primary key,
+  usuario uuid not null references auth.users (id) on delete cascade,
+  tipo    text not null,
+  titulo  text not null check (char_length(titulo) between 1 and 120),
+  texto   text not null check (char_length(texto) between 1 and 600),
+  enlace  text not null default '',
+  leida   boolean not null default false,
+  correo  text,          -- null = sin correo; 'enviado', 'sin_config', 'sin_correo', 'apagado' o 'error'
+  creado  timestamptz not null default now()
+);
+create index if not exists notificaciones_por_usuario on public.notificaciones (usuario, id desc);
+create index if not exists notificaciones_sin_leer on public.notificaciones (usuario, enlace) where not leida;
+
+-- Preferencias de cada usuario (por ahora: si quiere correos)
+create table if not exists public.preferencias (
+  usuario  uuid primary key references auth.users (id) on delete cascade,
+  correos  boolean not null default true
+);
+
+-- Errores de la web que ocurren en el navegador de los clientes (para enterarte sin que te avisen)
+create table if not exists public.errores_cliente (
+  id         bigint generated always as identity primary key,
+  usuario    uuid references auth.users (id) on delete set null,
+  pagina     text not null,
+  mensaje    text not null,
+  detalle    text not null default '',
+  navegador  text not null default '',
+  veces      int not null default 1,
+  creado     timestamptz not null default now(),
+  ultimo     timestamptz not null default now()
+);
+create index if not exists errores_cliente_recientes on public.errores_cliente (ultimo desc);
+
+-- Escapa texto para meterlo en el HTML de un correo
+create or replace function public._html(p text)
+returns text language sql immutable set search_path = public as $$
+  select replace(replace(replace(replace(coalesce(p, ''), '&', '&amp;'), '<', '&lt;'), '>', '&gt;'), '"', '&quot;');
+$$;
+
+-- Envía un correo con Brevo usando pg_net (asíncrono: sale cuando la transacción termina bien).
+-- Necesita: extensión pg_net, la clave en Vault ('brevo_api_key') y 'correo_remitente' en Ajustes.
+-- Nunca falla: si algo no está configurado devuelve el motivo y el resto del trato sigue.
+create or replace function public._enviar_correo(p_para text, p_asunto text, p_texto text, p_enlace text)
+returns text language plpgsql security definer set search_path = public as $$
+declare
+  api_key text; remitente text; nombre text; sitio text; url text; cuerpo text;
+begin
+  if coalesce(p_para, '') !~ '^[^@\s]+@[^@\s]+\.[^@\s]+$' or p_para like '%@levelup.invalid' then return 'sin_correo'; end if;
+  if to_regprocedure('net.http_post(text,jsonb,jsonb,jsonb,integer)') is null or to_regclass('vault.decrypted_secrets') is null then
+    return 'sin_config';
+  end if;
+  select nullif(trim(valor), '') into remitente from mercado_config where clave = 'correo_remitente';
+  execute 'select decrypted_secret from vault.decrypted_secrets where name = $1 order by created_at desc limit 1' into api_key using 'brevo_api_key';
+  if remitente is null or nullif(trim(coalesce(api_key, '')), '') is null then return 'sin_config'; end if;
+  select coalesce(nullif(trim(valor), ''), 'Level Up') into nombre from mercado_config where clave = 'correo_nombre';
+  select rtrim(coalesce(nullif(trim(valor), ''), 'https://estesi-blond.vercel.app'), '/') into sitio from mercado_config where clave = 'sitio_url';
+  nombre := coalesce(nombre, 'Level Up');
+  sitio := coalesce(sitio, 'https://estesi-blond.vercel.app');
+  url := case when p_enlace like 'admin:%' then sitio || '/admin-cuentas.html'
+              when coalesce(p_enlace, '') = '' then sitio || '/index.html'
+              else sitio || '/index.html#' || p_enlace end;
+  cuerpo := format(
+    '<div style="background:#0b1120;padding:32px 16px;font-family:Arial,Helvetica,sans-serif">'
+    || '<div style="max-width:520px;margin:0 auto;background:#0f172a;border:1px solid #1e293b;border-radius:16px;padding:28px">'
+    || '<p style="margin:0 0 16px;font-weight:900;letter-spacing:1px;color:#f1f5f9">LEVEL <span style="color:#ff9900">UP</span></p>'
+    || '<h1 style="margin:0 0 12px;font-size:20px;color:#f1f5f9">%s</h1>'
+    || '<p style="margin:0 0 24px;font-size:15px;line-height:1.6;color:#cbd5e1;white-space:pre-line">%s</p>'
+    || '<a href="%s" style="display:inline-block;padding:14px 22px;border-radius:12px;background:#ff9900;color:#0f172a;font-weight:700;text-decoration:none">Abrir Level Up</a>'
+    || '<p style="margin:24px 0 0;font-size:12px;line-height:1.5;color:#94a3b8">Te escribimos porque tienes una cuenta en Level Up. Puedes apagar estos correos en Mi panel → Tu cuenta.</p>'
+    || '</div></div>',
+    _html(p_asunto), _html(p_texto), _html(url));
+  execute 'select net.http_post(url := $1, body := $2, params := ''{}''::jsonb, headers := $3, timeout_milliseconds := 8000)'
+    using 'https://api.brevo.com/v3/smtp/email',
+          jsonb_build_object('sender', jsonb_build_object('email', remitente, 'name', nombre),
+                             'to', jsonb_build_array(jsonb_build_object('email', p_para)),
+                             'subject', left(p_asunto, 150), 'htmlContent', cuerpo,
+                             'textContent', p_texto || E'\n\n' || url),
+          jsonb_build_object('api-key', api_key, 'content-type', 'application/json', 'accept', 'application/json');
+  return 'enviado';
+exception when others then
+  return 'error';
+end $$;
+
+-- Deja un aviso para un usuario (campana + en vivo) y, si p_correo, también le escribe por correo.
+-- p_agrupar: si ya tiene un aviso SIN LEER del mismo tipo y enlace, no se repite (chats: un aviso por conversación).
+create or replace function public._notificar(p_usuario uuid, p_tipo text, p_titulo text, p_texto text, p_enlace text,
+                                             p_correo boolean default false, p_agrupar boolean default false)
+returns void language plpgsql security definer set search_path = public as $$
+declare n_id bigint; estado text; para text;
+begin
+  if p_usuario is null then return; end if;
+  if p_agrupar and exists (select 1 from notificaciones where usuario = p_usuario and tipo = p_tipo
+                                                         and enlace = coalesce(p_enlace, '') and not leida) then
+    return;
+  end if;
+  insert into notificaciones (usuario, tipo, titulo, texto, enlace)
+  values (p_usuario, p_tipo, left(p_titulo, 120), left(p_texto, 600), coalesce(p_enlace, ''))
+  returning id into n_id;
+  if p_correo then
+    if exists (select 1 from preferencias where usuario = p_usuario and not correos) then
+      estado := 'apagado';
+    else
+      select email into para from auth.users where id = p_usuario;
+      estado := _enviar_correo(para, p_titulo, p_texto, p_enlace);
+    end if;
+    update notificaciones set correo = estado where id = n_id;
+  end if;
+end $$;
+
+-- Lo mismo para todos los administradores
+create or replace function public._notificar_admins(p_tipo text, p_titulo text, p_texto text, p_enlace text,
+                                                    p_correo boolean default false, p_agrupar boolean default false)
+returns void language plpgsql security definer set search_path = public as $$
+declare a uuid;
+begin
+  for a in select usuario from mercado_admins loop
+    perform _notificar(a, p_tipo, p_titulo, p_texto, p_enlace, p_correo, p_agrupar);
+  end loop;
+end $$;
+
+-- Marca como leídos los avisos del que llama: todos (null), los de un enlace exacto o los que empiezan con un prefijo ('admin:%')
+create or replace function public.notificaciones_leer(p_enlace text default null)
+returns void language plpgsql security definer set search_path = public as $$
+begin
+  if auth.uid() is null then raise exception 'SIN_SESION'; end if;
+  update notificaciones set leida = true
+   where usuario = auth.uid() and not leida
+     and (p_enlace is null or enlace = p_enlace or (p_enlace like '%\%' and enlace like p_enlace));
+end $$;
+
+create or replace function public.preferencias_guardar(p_correos boolean)
+returns void language plpgsql security definer set search_path = public as $$
+begin
+  if auth.uid() is null then raise exception 'SIN_SESION'; end if;
+  insert into preferencias (usuario, correos) values (auth.uid(), coalesce(p_correos, true))
+  on conflict (usuario) do update set correos = excluded.correos;
+end $$;
+
+-- Cualquier visitante puede reportar un error de la página. Límite: los repetidos se suman y hay un tope por minuto.
+create or replace function public.error_registrar(p_pagina text, p_mensaje text, p_detalle text, p_navegador text)
+returns void language plpgsql security definer set search_path = public as $$
+declare msg text := left(trim(coalesce(p_mensaje, '')), 300); pag text := left(trim(coalesce(p_pagina, '')), 120);
+begin
+  if msg = '' then return; end if;
+  update errores_cliente set veces = veces + 1, ultimo = now()
+   where mensaje = msg and pagina = pag and ultimo > now() - interval '1 day';
+  if found then return; end if;
+  if (select count(*) from errores_cliente where creado > now() - interval '1 minute') >= 30 then return; end if;
+  insert into errores_cliente (usuario, pagina, mensaje, detalle, navegador)
+  values (auth.uid(), pag, msg, left(coalesce(p_detalle, ''), 1500), left(coalesce(p_navegador, ''), 200));
+end $$;
+
+-- ---------------------------------------------------------------------
 -- Funciones internas (no se pueden llamar desde el navegador)
 -- ---------------------------------------------------------------------
 create or replace function public._mensaje_sistema(p_venta bigint, p_texto text)
@@ -365,6 +532,16 @@ begin
   update cuentas_venta set estado = 'vendida' where id = v.cuenta;
   perform _mover_saldo(v.vendedor, v.precio_usd, 'venta', v.id, null, format('Venta T-%s · %s', v.id, v.titulo));
   perform _mensaje_sistema(p_venta, format('Trato cerrado. %s USD pasaron al saldo del vendedor. %s', v.precio_usd, coalesce(p_detalle, '')));
+  perform _notificar(v.vendedor, 'cobro', format('Cobraste %s USD por T-%s', v.precio_usd, v.id),
+    format('El trato "%s" se cerró y el precio completo ya está en tu saldo de ventas.%s', v.titulo,
+      case when _config_num('dias_liberacion', 3) > 0
+           then format(' Puedes usarlo para comprar ya mismo y retirarlo desde el %s.',
+                       to_char((now() + make_interval(days => _config_num('dias_liberacion', 3)::int)) at time zone 'America/Caracas', 'DD/MM'))
+           else '' end),
+    'trato-' || v.id, true);
+  perform _notificar(v.comprador, 'calificar', format('Trato T-%s cerrado', v.id),
+    format('La cuenta "%s" es tuya. Cuéntales a otros compradores cómo te fue: califica al vendedor.', v.titulo),
+    'trato-' || v.id, false);
 end $$;
 
 create or replace function public._venta_cancelar(p_venta bigint, p_motivo text, p_estado_cuenta text)
@@ -391,6 +568,14 @@ begin
   perform _mensaje_sistema(p_venta, 'Trato cancelado. ' || p_motivo
     || case when v.pagado_recargado + v.pagado_disponible > 0
             then format(' Se devolvieron %s USD al saldo del comprador.', v.pagado_recargado + v.pagado_disponible) else '' end);
+  perform _notificar(v.comprador, 'cancelado', format('Trato T-%s cancelado', v.id),
+    p_motivo || case when v.pagado_recargado + v.pagado_disponible > 0
+                     then format(E'\nTe devolvimos %s USD a tu saldo.', v.pagado_recargado + v.pagado_disponible) else '' end,
+    'trato-' || v.id, true);
+  perform _notificar(v.vendedor, 'cancelado', format('Trato T-%s cancelado', v.id),
+    format('El trato por "%s" se canceló: %s', v.titulo, p_motivo)
+    || case when p_estado_cuenta = 'pausada' then E'\nTu publicación quedó pausada: reanúdala en Mi panel cuando puedas entregar.' else '' end,
+    'trato-' || v.id, true);
 end $$;
 
 -- Rol de quien llama dentro de un trato (o null si no participa)
@@ -421,6 +606,44 @@ begin
             for update skip locked loop
     perform _venta_cerrar(r.id, 'Cierre automático: pasó el tiempo de revisión sin reclamo.');
   end loop;
+  -- El vendedor no entregó a tiempo (y nadie llamó a Level Up): se devuelve el dinero y la publicación queda pausada
+  if _config_num('horas_entrega', 12) > 0 then
+    for r in select id from ventas_cuentas
+              where estado = 'pagada' and apelada_en is null
+                and coalesce(pagada_en, creado) < now() - make_interval(mins => (_config_num('horas_entrega', 12) * 60)::int)
+              for update skip locked loop
+      perform _venta_cancelar(r.id, format('El vendedor no entregó los datos en %s h. Se cancela solo.', _config_num('horas_entrega', 12)), 'pausada');
+    end loop;
+  end if;
+end $$;
+
+-- Lo cobrado por ventas que todavía no se puede RETIRAR (cerradas hace menos de `dias_liberacion` días).
+-- Sirve para comprar igual. Si el usuario ya gastó parte, lo retenido nunca supera su saldo de ventas.
+create or replace function public._ventas_por_liberar(p_usuario uuid)
+returns numeric language sql stable security definer set search_path = public as $$
+  select least(
+    coalesce((select disponible from saldos_vendedor where vendedor = p_usuario), 0),
+    coalesce((select sum(precio_usd) from ventas_cuentas
+               where vendedor = p_usuario and estado = 'cerrada'
+                 and cerrada_en > now() - make_interval(days => _config_num('dias_liberacion', 3)::int)), 0));
+$$;
+
+-- Saldo del que llama: cuánto puede retirar ya y cuándo se libera lo demás
+create or replace function public.mi_saldo()
+returns jsonb language plpgsql stable security definer set search_path = public as $$
+declare s saldos_vendedor; retenido numeric; dias int := _config_num('dias_liberacion', 3)::int;
+begin
+  if auth.uid() is null then raise exception 'SIN_SESION'; end if;
+  select * into s from saldos_vendedor where vendedor = auth.uid();
+  retenido := _ventas_por_liberar(auth.uid());
+  return jsonb_build_object(
+    'disponible', coalesce(s.disponible, 0),
+    'recargado', coalesce(s.recargado, 0),
+    'por_liberar', retenido,
+    'retirable', greatest(coalesce(s.disponible, 0) - retenido, 0),
+    'dias_liberacion', dias,
+    'proxima_liberacion', (select min(cerrada_en) + make_interval(days => dias) from ventas_cuentas
+                            where vendedor = auth.uid() and estado = 'cerrada' and cerrada_en > now() - make_interval(days => dias)));
 end $$;
 
 -- ---------------------------------------------------------------------
@@ -461,22 +684,19 @@ begin
   perform _mensaje_sistema(v_id, format(
     'Trato T-%s por la cuenta FF-%s. El comprador pagó %s USD con su saldo%s y Level Up los RETIENE hasta el cierre. VENDEDOR: entrega aquí el correo/usuario y la contraseña de la cuenta y luego toca "Ya entregué los datos". Nadie debe entregar datos fuera de este chat.',
     v_id, c.id, total, case when p_garantia then ' (incluye Garantía Extendida)' else '' end));
+  perform _notificar(c.vendedor, 'venta', format('¡Vendiste FF-%s! Entrega los datos', c.id),
+    format(E'Alguien compró "%s" por %s USD y Level Up retiene el dinero.\nEntra al chat del trato T-%s y entrega el correo/usuario y la contraseña%s.',
+      c.titulo, c.precio_usd, v_id,
+      case when _config_num('horas_entrega', 12) > 0
+           then format(' antes de %s h, o el trato se cancela solo y el dinero vuelve al comprador', _config_num('horas_entrega', 12))
+           else '' end),
+    'trato-' || v_id, true);
   return v_id;
 end $$;
 
-create or replace function public.venta_informar_pago(p_venta bigint, p_metodo text, p_referencia text)
-returns void language plpgsql security definer set search_path = public as $$
-declare v ventas_cuentas;
-begin
-  select * into v from ventas_cuentas where id = p_venta for update;
-  if not found or v.comprador is distinct from auth.uid() then raise exception 'NO_PERMITIDO'; end if;
-  if v.estado <> 'pendiente_pago' then raise exception 'ESTADO_INVALIDO'; end if;
-  if p_metodo not in ('Pago Móvil', 'Binance', 'Zinli', 'Otro') then raise exception 'DATO_INVALIDO'; end if;
-  if coalesce(p_referencia, '') !~ '^[A-Za-z0-9-]{4,40}$' then raise exception 'DATO_INVALIDO'; end if;
-  update ventas_cuentas set metodo_pago = p_metodo, referencia_pago = p_referencia, pago_informado_en = now(), actualizado = now()
-   where id = p_venta;
-  perform _mensaje_sistema(p_venta, format('El comprador informó su pago por %s (referencia %s). Level Up lo está verificando.', p_metodo, p_referencia));
-end $$;
+-- Pago manual de antes del saldo: ya no existe (se compra con saldo al instante)
+drop function if exists public.venta_informar_pago(bigint, text, text);
+drop function if exists public.admin_confirmar_pago(bigint);
 
 create or replace function public.venta_finalizar(p_venta bigint)
 returns void language plpgsql security definer set search_path = public as $$
@@ -502,6 +722,11 @@ begin
   update ventas_cuentas set estado = 'en_reclamo', reclamo_motivo = trim(p_motivo), reclamo_video = p_video, actualizado = now()
    where id = p_venta;
   perform _mensaje_sistema(p_venta, 'El comprador abrió un reclamo con video. Level Up lo revisará y decidirá. El dinero sigue retenido.');
+  perform _notificar(v.vendedor, 'reclamo', format('Reclamo en el trato T-%s', p_venta),
+    format(E'El comprador de "%s" abrió un reclamo: %s\nLevel Up revisará el video y decidirá. Responde en el chat del trato.', v.titulo, trim(p_motivo)),
+    'trato-' || p_venta, true);
+  perform _notificar_admins('reclamo', format('Reclamo nuevo · T-%s', p_venta),
+    format(E'"%s" (%s USD)\nMotivo: %s', v.titulo, v.total_usd, trim(p_motivo)), 'admin:tratos', true);
 end $$;
 
 -- El comprador puede cancelar mientras no haya pagado (o mientras Level Up no haya confirmado el pago)
@@ -529,6 +754,10 @@ begin
   perform _mensaje_sistema(p_venta, format(
     'El vendedor marcó los datos como entregados. COMPRADOR: graba la pantalla SIN CORTES desde que uses los datos (máx. 5 min después de este mensaje). Tienes %s h para tocar "Todo bien, finalizar" o "Tengo un problema"; si no, el trato se cierra solo.',
     _config_num('horas_revision', 24)));
+  perform _notificar(v.comprador, 'entrega', format('Te entregaron los datos · T-%s', p_venta),
+    format(E'El vendedor de "%s" escribió los datos en el chat del trato.\nGRABA LA PANTALLA SIN CORTES desde que los uses. Tienes %s h para finalizar o reclamar; si no, se cierra solo.',
+      v.titulo, _config_num('horas_revision', 24)),
+    'trato-' || p_venta, true);
 end $$;
 
 create or replace function public.retiro_solicitar(p_monto numeric, p_metodo text, p_datos text)
@@ -542,12 +771,16 @@ begin
   if exists (select 1 from retiros where vendedor = auth.uid() and estado = 'pendiente') then raise exception 'RETIRO_PENDIENTE'; end if;
   select * into s from saldos_vendedor where vendedor = auth.uid() for update;
   if not found or s.disponible < monto then raise exception 'SALDO_INSUFICIENTE'; end if;
+  -- Lo de ventas recientes se libera después de `dias_liberacion` días (protege si el dueño anterior recupera la cuenta)
+  if s.disponible - _ventas_por_liberar(auth.uid()) < monto then raise exception 'SALDO_RETENIDO'; end if;
 
   comision := round(monto * _config_num('comision_retiro', 4) / 100, 2);
   insert into retiros (vendedor, monto_usd, comision_usd, neto_usd, metodo, datos)
   values (auth.uid(), monto, comision, monto - comision, p_metodo, trim(p_datos))
   returning id into r_id;
   perform _mover_saldo(auth.uid(), -monto, 'retiro', null, r_id, format('Retiro R-%s (%s USD - %s USD de comisión)', r_id, monto, comision));
+  perform _notificar_admins('retiro', format('Retiro pedido · R-%s', r_id),
+    format('%s USD por %s (recibe %s USD). Se paga el lunes.', monto, p_metodo, monto - comision), 'admin:retiros', true, true);
   return r_id;
 end $$;
 
@@ -591,6 +824,8 @@ begin
   end;
   perform _mensaje_recarga(o_id, format('Orden RC-%s recibida: %s USD por %s (referencia %s). Level Up la está verificando y te avisa aquí. Si tienes una duda, escríbela en este chat.',
     o_id, monto, nombre, ref));
+  perform _notificar_admins('recarga', format('Recarga por aprobar · RC-%s', o_id),
+    format('%s USD por %s (referencia %s). Revisa la captura y apruébala.', monto, nombre, ref), 'admin:recargas', true, true);
   return o_id;
 end $$;
 
@@ -610,8 +845,12 @@ begin
   insert into mensajes_recarga (orden, autor, rol, texto) values (p_orden, auth.uid(), rol, texto) returning id into m_id;
   if rol = 'cliente' then
     update ordenes_recarga set msg_cliente = now() where id = p_orden;
+    perform _notificar_admins('chat', 'Mensaje nuevo en una recarga', format('RC-%s · %s USD: el cliente te escribió en el chat.', p_orden, o.monto_usd),
+      'admin:chats', true, true);
   else
     update ordenes_recarga set msg_admin = now() where id = p_orden;
+    perform _notificar(o.usuario, 'mensaje', format('Level Up te respondió · RC-%s', p_orden),
+      'Tienes un mensaje nuevo de Level Up sobre tu recarga.', 'recarga-' || p_orden, true, true);
   end if;
   return m_id;
 end $$;
@@ -634,6 +873,17 @@ begin
   insert into mensajes_venta (venta, autor, rol, texto) values (p_venta, auth.uid(), rol, texto) returning id into m_id;
   if rol = 'admin' and v.apelada_en is not null then
     update ventas_cuentas set apelada_en = null, apelada_por = null where id = p_venta;
+  end if;
+  -- Aviso a los demás del trato (sin copiar el texto: puede llevar datos de acceso). Uno por conversación sin leer.
+  if rol <> 'comprador' then
+    perform _notificar(v.comprador, 'mensaje', format('Mensaje nuevo · T-%s', p_venta),
+      format('%s te escribió en el chat del trato "%s".', case rol when 'admin' then 'Level Up' else 'El vendedor' end, v.titulo),
+      'trato-' || p_venta, true, true);
+  end if;
+  if rol <> 'vendedor' then
+    perform _notificar(v.vendedor, 'mensaje', format('Mensaje nuevo · T-%s', p_venta),
+      format('%s te escribió en el chat del trato "%s".', case rol when 'admin' then 'Level Up' else 'El comprador' end, v.titulo),
+      'trato-' || p_venta, true, true);
   end if;
   return m_id;
 end $$;
@@ -681,6 +931,11 @@ begin
          msg_cliente = case when rol = 'cliente' then now() else msg_cliente end,
          msg_admin = case when rol = 'admin' then now() else msg_admin end
    where usuario = conv;
+  if rol = 'admin' then
+    perform _notificar(conv, 'soporte', 'Level Up te respondió', 'Tienes una respuesta nueva en el chat de soporte.', 'soporte', true, true);
+  else
+    perform _notificar_admins('chat', 'Mensaje nuevo en soporte', left(texto, 200), 'admin:chats', true, true);
+  end if;
   return m_id;
 end $$;
 
@@ -771,8 +1026,9 @@ language sql stable security definer set search_path = public as $$
            (select count(*)::int from calificaciones k where k.vendedor = u.id) as opiniones,
            u.created_at
       from auth.users u
-     where exists (select 1 from cuentas_venta c where c.vendedor = u.id and c.estado in ('publicada', 'reservada', 'vendida'))
-        or exists (select 1 from saldos_vendedor s where s.vendedor = u.id and s.ventas > 0)
+     where (exists (select 1 from cuentas_venta c where c.vendedor = u.id and c.estado in ('publicada', 'reservada', 'vendida'))
+            or exists (select 1 from saldos_vendedor s where s.vendedor = u.id and s.ventas > 0))
+       and coalesce(u.email, '') not like '%@levelup.invalid'    -- cuentas borradas por su dueño
   )
   select v.id, pf.nombre, coalesce(pf.descripcion, ''), v.ventas, v.estrellas, v.opiniones, v.publicadas, v.created_at
     from vendedores v
@@ -801,6 +1057,10 @@ begin
   if char_length(motivo) < 5 then raise exception 'DATO_INVALIDO'; end if;
   update ventas_cuentas set apelada_en = now(), apelada_por = rol, actualizado = now() where id = p_venta;
   perform _mensaje_sistema(p_venta, format('APELACIÓN: el %s llamó a Level Up. Motivo: %s. Un administrador entrará a este chat; mientras tanto no entreguen ni cambien nada.', rol, motivo));
+  perform _notificar_admins('apelacion', format('Te llamaron al trato T-%s', p_venta),
+    format(E'El %s de "%s" pide ayuda: %s', rol, v.titulo, motivo), 'admin:tratos', true);
+  perform _notificar(case when rol = 'comprador' then v.vendedor else v.comprador end, 'mensaje', format('Level Up fue llamado · T-%s', p_venta),
+    format('El %s llamó a Level Up al chat del trato "%s". Un administrador entrará en breve.', rol, v.titulo), 'trato-' || p_venta, true, true);
 end $$;
 
 -- El comprador califica al vendedor cuando el trato se cerró (una sola vez)
@@ -847,6 +1107,7 @@ end $$;
 
 create or replace function public.admin_moderar_cuenta(p_cuenta bigint, p_aprobar boolean, p_motivo text default null)
 returns void language plpgsql security definer set search_path = public as $$
+declare c cuentas_venta;
 begin
   perform _exigir_admin();
   perform set_config('mercado.sistema', '1', true);
@@ -857,18 +1118,15 @@ begin
      where id = p_cuenta and estado in ('revision', 'publicada', 'pausada');
   end if;
   if not found then raise exception 'ESTADO_INVALIDO'; end if;
-end $$;
-
-create or replace function public.admin_confirmar_pago(p_venta bigint)
-returns void language plpgsql security definer set search_path = public as $$
-declare v ventas_cuentas;
-begin
-  perform _exigir_admin();
-  select * into v from ventas_cuentas where id = p_venta for update;
-  if not found or v.estado <> 'pendiente_pago' then raise exception 'ESTADO_INVALIDO'; end if;
-  update ventas_cuentas set estado = 'pagada', pagada_en = now(), actualizado = now() where id = p_venta;
-  perform _mensaje_sistema(p_venta, format(
-    'Level Up confirmó el pago de %s USD: el dinero queda RETENIDO hasta el cierre. VENDEDOR: entrega aquí el correo/usuario y la contraseña de la cuenta y luego toca "Ya entregué los datos".', v.total_usd));
+  select * into c from cuentas_venta where id = p_cuenta;
+  if p_aprobar then
+    perform _notificar(c.vendedor, 'moderacion', format('Tu cuenta FF-%s ya está a la venta', c.id),
+      format('Aprobamos "%s" y ya aparece en el mercado por %s USD. Te avisamos apenas alguien la compre.', c.titulo, c.precio_usd),
+      'cuenta-' || c.id, true);
+  else
+    perform _notificar(c.vendedor, 'moderacion', format('Tu cuenta FF-%s no se publicó', c.id),
+      format(E'Revisamos "%s" y no la pudimos publicar.\nMotivo: %s', c.titulo, c.motivo_rechazo), 'panel', true);
+  end if;
 end $$;
 
 -- A favor del vendedor: se cierra y cobra. A favor del comprador: se cancela, lo pagado vuelve a su saldo y la cuenta queda rechazada.
@@ -907,9 +1165,13 @@ begin
   if not found or r.estado <> 'pendiente' then raise exception 'ESTADO_INVALIDO'; end if;
   if p_pagado then
     update retiros set estado = 'pagado', referencia = left(trim(coalesce(p_texto, '')), 80), resuelto = now() where id = p_retiro;
+    perform _notificar(r.vendedor, 'retiro', format('Te pagamos el retiro R-%s', r.id),
+      format('Enviamos %s USD por %s. Referencia: %s.', r.neto_usd, r.metodo, coalesce(nullif(left(trim(coalesce(p_texto, '')), 80), ''), '—')), 'saldo', true);
   else
     update retiros set estado = 'rechazado', motivo = left(trim(coalesce(p_texto, '')), 200), resuelto = now() where id = p_retiro;
     perform _mover_saldo(r.vendedor, r.monto_usd, 'retiro_devuelto', null, r.id, format('Retiro R-%s rechazado: %s', r.id, coalesce(nullif(trim(p_texto), ''), 'sin motivo')));
+    perform _notificar(r.vendedor, 'retiro', format('Retiro R-%s rechazado', r.id),
+      format(E'Motivo: %s\nLos %s USD volvieron a tu saldo. Revisa tus datos de cobro y pídelo otra vez.', coalesce(nullif(trim(p_texto), ''), 'sin motivo'), r.monto_usd), 'saldo', true);
   end if;
 end $$;
 
@@ -917,6 +1179,8 @@ create or replace function public.admin_ajustar_saldo(p_vendedor uuid, p_monto n
 returns numeric language plpgsql security definer set search_path = public as $$
 begin
   perform _exigir_admin();
+  perform _notificar(p_vendedor, 'ajuste', format('Ajuste de saldo: %s%s USD', case when p_monto > 0 then '+' else '' end, round(p_monto, 2)),
+    left(coalesce(nullif(trim(p_detalle), ''), 'Ajuste de Level Up'), 200), 'saldo', false);
   return _mover_saldo(p_vendedor, round(p_monto, 2), 'ajuste', null, null, left(coalesce(p_detalle, 'Ajuste'), 200));
 end $$;
 
@@ -934,6 +1198,10 @@ begin
   perform _mover_recargado(o.usuario, monto, 'recarga', null, o.id, format('Recarga RC-%s', o.id));
   perform _mensaje_recarga(p_orden, format('Recarga aprobada: %s USD ya están en tu saldo. ¡Ya puedes comprar!', monto)
     || case when monto <> o.monto_usd then format(' (Pediste %s USD; acreditamos lo que llegó.)', o.monto_usd) else '' end);
+  perform _notificar(o.usuario, 'recarga', format('Recarga aprobada: +%s USD', monto),
+    format('Tu recarga RC-%s ya está en tu saldo. ¡Ya puedes comprar cuentas!', o.id)
+    || case when monto <> o.monto_usd then format(' (Pediste %s USD; acreditamos lo que llegó.)', o.monto_usd) else '' end,
+    'recarga-' || o.id, true);
 end $$;
 
 create or replace function public.admin_recarga_rechazar(p_orden bigint, p_motivo text)
@@ -945,6 +1213,8 @@ begin
   if not found or o.estado <> 'pendiente' then raise exception 'ESTADO_INVALIDO'; end if;
   update ordenes_recarga set estado = 'rechazada', nota = motivo, resuelto = now() where id = p_orden;
   perform _mensaje_recarga(p_orden, 'Recarga rechazada: ' || motivo || '. Si crees que es un error, respóndenos en este chat.');
+  perform _notificar(o.usuario, 'recarga', format('Recarga RC-%s rechazada', o.id),
+    format(E'Motivo: %s\nSi crees que es un error, respóndenos en el chat de la recarga.', motivo), 'recarga-' || o.id, true);
 end $$;
 
 -- Eliminar una orden (y su chat). Si estaba aprobada y p_revertir, descuenta del saldo lo acreditado.
@@ -967,19 +1237,35 @@ end $$;
 
 create or replace function public.admin_config(p_clave text, p_valor text)
 returns void language plpgsql security definer set search_path = public as $$
-declare numericas text[] := array['comision_retiro', 'retiro_minimo', 'garantia_usd', 'horas_pago', 'horas_revision', 'tasa_bs', 'recarga_minima', 'paypal_recargo'];
+declare numericas text[] := array['comision_retiro', 'retiro_minimo', 'garantia_usd', 'horas_pago', 'horas_revision', 'tasa_bs', 'recarga_minima', 'paypal_recargo',
+                                  'horas_entrega', 'dias_liberacion'];
 begin
   perform _exigir_admin();
   if not (p_clave = any (numericas) or p_clave in ('instrucciones_pago', 'binance_pay_id', 'binance_nombre', 'paypal_correo', 'paypal_nombre',
-                                                   'pm_banco', 'pm_telefono', 'pm_cedula', 'pm_titular')) then
+                                                   'pm_banco', 'pm_telefono', 'pm_cedula', 'pm_titular',
+                                                   'correo_remitente', 'correo_nombre', 'sitio_url')) then
     raise exception 'DATO_INVALIDO';
   end if;
   if p_clave = any (numericas) and nullif(trim(p_valor), '') is not null and trim(p_valor) !~ '^[0-9]+(\.[0-9]+)?$' then
     raise exception 'DATO_INVALIDO';
   end if;
+  if p_clave in ('horas_entrega', 'dias_liberacion') and coalesce(nullif(trim(p_valor), ''), '0')::numeric > 720 then raise exception 'DATO_INVALIDO'; end if;
+  if p_clave = 'correo_remitente' and nullif(trim(p_valor), '') is not null and trim(p_valor) !~ '^[^@\s]+@[^@\s]+\.[^@\s]+$' then raise exception 'DATO_INVALIDO'; end if;
+  if p_clave = 'sitio_url' and trim(coalesce(p_valor, '')) !~ '^https://[A-Za-z0-9.-]+(:[0-9]+)?/?$' then raise exception 'DATO_INVALIDO'; end if;
   insert into mercado_config (clave, valor)
   values (p_clave, left(trim(coalesce(p_valor, '')), case when p_clave = 'instrucciones_pago' then 600 else 120 end))
   on conflict (clave) do update set valor = excluded.valor;
+end $$;
+
+-- Correo de prueba al admin que lo pide: devuelve 'enviado' o el motivo (sin_config, sin_correo, error)
+create or replace function public.admin_correo_prueba()
+returns text language plpgsql security definer set search_path = public as $$
+declare para text;
+begin
+  perform _exigir_admin();
+  select email into para from auth.users where id = auth.uid();
+  return _enviar_correo(para, 'Correo de prueba de Level Up',
+    E'Si lees esto, los correos automáticos funcionan.\nTus clientes recibirán avisos de ventas, entregas, recargas y retiros.', 'admin:sistema');
 end $$;
 
 -- Buscar cuentas registradas por correo (vacío = las más nuevas) con su saldo y actividad
@@ -1013,6 +1299,8 @@ returns numeric language plpgsql security definer set search_path = public as $$
 begin
   perform _exigir_admin();
   if p_monto is null or p_monto = 0 or abs(p_monto) > 5000 then raise exception 'DATO_INVALIDO'; end if;
+  perform _notificar(p_usuario, 'ajuste', format('Ajuste de saldo: %s%s USD', case when p_monto > 0 then '+' else '' end, round(p_monto, 2)),
+    left(coalesce(nullif(trim(p_detalle), ''), 'Ajuste de Level Up'), 200), 'saldo', false);
   return _mover_recargado(p_usuario, round(p_monto, 2), 'ajuste', null, null, left(coalesce(nullif(trim(p_detalle), ''), 'Ajuste de Level Up'), 200));
 exception when check_violation then
   raise exception 'SALDO_GASTADO';
@@ -1021,9 +1309,26 @@ end $$;
 -- ESTADO DEL SISTEMA para el panel: tamaño de la base y de los archivos, conteos, dinero y salud
 create or replace function public.admin_estado()
 returns jsonb language plpgsql stable security definer set search_path = public as $$
+declare hay_clave boolean := false;
 begin
   perform _exigir_admin();
+  if to_regclass('vault.secrets') is not null then
+    execute 'select exists (select 1 from vault.secrets where name = $1)' into hay_clave using 'brevo_api_key';
+  end if;
   return jsonb_build_object(
+    'correo', jsonb_build_object(
+      'pg_net', to_regprocedure('net.http_post(text,jsonb,jsonb,jsonb,integer)') is not null,
+      'vault', to_regclass('vault.decrypted_secrets') is not null,
+      'clave', hay_clave,
+      'remitente', (select nullif(trim(valor), '') from mercado_config where clave = 'correo_remitente'),
+      'ultimas_24h', (select coalesce(jsonb_object_agg(correo, n), '{}'::jsonb)
+                        from (select correo, count(*) n from notificaciones where correo is not null and creado > now() - interval '1 day' group by correo) x)),
+    'errores_24h', (select coalesce(sum(veces), 0) from errores_cliente where ultimo > now() - interval '1 day'),
+    'errores', (select coalesce(jsonb_agg(to_jsonb(e) - 'usuario' order by e.ultimo desc), '[]'::jsonb)
+                  from (select * from errores_cliente order by ultimo desc limit 15) e),
+    'sin_entregar_vencidos', (select count(*) from ventas_cuentas where estado = 'pagada' and apelada_en is null
+                                and _config_num('horas_entrega', 12) > 0
+                                and coalesce(pagada_en, creado) < now() - make_interval(mins => (_config_num('horas_entrega', 12) * 60)::int)),
     'hora_servidor', now(),
     'version_postgres', split_part(version(), ' ', 2),
     'bd_bytes', pg_database_size(current_database()),
@@ -1041,7 +1346,9 @@ begin
       'Mensajes de soporte', (select count(*) from mensajes_soporte),
       'Movimientos de saldo', (select count(*) from movimientos_vendedor),
       'Retiros', (select count(*) from retiros),
-      'Calificaciones', (select count(*) from calificaciones)),
+      'Calificaciones', (select count(*) from calificaciones),
+      'Avisos', (select count(*) from notificaciones),
+      'Errores de la web', (select count(*) from errores_cliente)),
     'archivos', (select coalesce(jsonb_object_agg(bucket_id, jsonb_build_object('archivos', n, 'bytes', b)), '{}'::jsonb)
                    from (select o.bucket_id, count(*) n, coalesce(sum((o.metadata ->> 'size')::bigint), 0) b
                            from storage.objects o where o.bucket_id in ('cuentas-fotos', 'comprobantes') group by o.bucket_id) x),
@@ -1051,7 +1358,8 @@ begin
       'retenido_en_tratos', (select coalesce(sum(total_usd), 0) from ventas_cuentas where estado in ('pagada', 'entregada', 'en_reclamo')),
       'retiros_por_pagar', (select coalesce(sum(neto_usd), 0) from retiros where estado = 'pendiente'),
       'comisiones_cobradas', (select coalesce(sum(comision_usd), 0) from retiros where estado = 'pagado'),
-      'garantias_cobradas', (select coalesce(sum(total_usd - precio_usd), 0) from ventas_cuentas where estado = 'cerrada')),
+      'garantias_cobradas', (select coalesce(sum(total_usd - precio_usd), 0) from ventas_cuentas where estado = 'cerrada'),
+      'ventas_por_liberar', (select coalesce(sum(_ventas_por_liberar(vendedor)), 0) from saldos_vendedor where disponible > 0)),
     -- Si esto no es 0, el mantenimiento automático no está corriendo
     'tratos_vencidos', (select count(*) from ventas_cuentas where estado = 'entregada'
                           and entregada_en < now() - make_interval(hours => _config_num('horas_revision', 24)::int)),
@@ -1063,7 +1371,8 @@ begin
   );
 end $$;
 
--- LIMPIEZA de lo viejo. p_que: 'chats_tratos', 'recargas_rechazadas', 'capturas_aprobadas', 'publicaciones', 'soporte', 'huerfanos'.
+-- LIMPIEZA de lo viejo. p_que: 'chats_tratos', 'recargas_rechazadas', 'capturas_aprobadas', 'publicaciones', 'soporte', 'huerfanos',
+-- 'avisos' (avisos leídos) y 'errores' (errores de la web).
 -- Nunca toca dinero: saldos, movimientos, retiros, tratos y recargas aprobadas se conservan siempre.
 -- Con p_ejecutar = false solo cuenta. Con true borra y devuelve las rutas de archivos para que el panel los borre del Storage.
 create or replace function public.admin_limpiar(p_dias int, p_que text[], p_ejecutar boolean default false)
@@ -1141,6 +1450,18 @@ begin
     end if;
   end if;
 
+  if 'avisos' = any (p_que) then
+    select count(*) into n from notificaciones where leida and creado < corte;
+    conteos := conteos || jsonb_build_object('avisos', n);
+    if p_ejecutar then delete from notificaciones where leida and creado < corte; end if;
+  end if;
+
+  if 'errores' = any (p_que) then
+    select count(*) into n from errores_cliente where ultimo < corte;
+    conteos := conteos || jsonb_build_object('errores', n);
+    if p_ejecutar then delete from errores_cliente where ultimo < corte; end if;
+  end if;
+
   fotos := array(select distinct x from unnest(fotos) x);
   capturas := array(select distinct x from unnest(capturas) x);
   return jsonb_build_object('conteos', conteos,
@@ -1154,6 +1475,70 @@ returns table (id uuid, email text) language plpgsql stable security definer set
 begin
   perform _exigir_admin();
   return query select u.id, u.email::text from auth.users u where u.id = any (p_ids[1:200]);
+end $$;
+
+-- ---------------------------------------------------------------------
+-- BORRAR MI CUENTA (lo pide el propio usuario desde Mi panel)
+-- Sin tratos ni retiros: se borra todo (Auth incluido). Con historial: se borra lo personal (perfil, publicaciones,
+-- soporte, avisos, acceso) y se conservan los tratos y movimientos de dinero, que la otra parte y la contabilidad necesitan.
+-- Devuelve las rutas de archivos para que la página los borre del Storage.
+-- ---------------------------------------------------------------------
+create or replace function public.cuenta_eliminar_revisar()
+returns jsonb language plpgsql stable security definer set search_path = public as $$
+declare s saldos_vendedor; abiertos int; total numeric; motivo text;
+begin
+  if auth.uid() is null then raise exception 'SIN_SESION'; end if;
+  select * into s from saldos_vendedor where vendedor = auth.uid();
+  total := coalesce(s.disponible, 0) + coalesce(s.recargado, 0);
+  select count(*) into abiertos from ventas_cuentas
+   where (comprador = auth.uid() or vendedor = auth.uid()) and estado not in ('cerrada', 'cancelada');
+  motivo := case
+    when public.es_admin() then 'Eres administrador. Otro admin debe quitarte de mercado_admins antes de borrar tu cuenta.'
+    when abiertos > 0 then format('Tienes %s trato(s) abierto(s). Termínalos antes de borrar tu cuenta.', abiertos)
+    when exists (select 1 from retiros where vendedor = auth.uid() and estado = 'pendiente') then 'Tienes un retiro pendiente. Espera a que te lo paguemos.'
+    when exists (select 1 from ordenes_recarga where usuario = auth.uid() and estado = 'pendiente') then 'Tienes una recarga en revisión. Espera a que la aprobemos o rechacemos.'
+    when total > 0 then format('Todavía tienes %s USD de saldo. Úsalo o retíralo (o escríbenos al chat de soporte) antes de borrar tu cuenta.', total)
+  end;
+  return jsonb_build_object('puede', motivo is null, 'motivo', motivo,
+    'historial', exists (select 1 from ventas_cuentas where comprador = auth.uid() or vendedor = auth.uid())
+                 or exists (select 1 from retiros where vendedor = auth.uid()));
+end $$;
+
+create or replace function public.cuenta_eliminar(p_confirmacion text)
+returns jsonb language plpgsql security definer set search_path = public as $$
+declare uid uuid := auth.uid(); revision jsonb; fotos text[]; capturas text[] := '{}'; historial boolean;
+begin
+  if uid is null then raise exception 'SIN_SESION'; end if;
+  if upper(trim(coalesce(p_confirmacion, ''))) <> 'ELIMINAR' then raise exception 'DATO_INVALIDO'; end if;
+  revision := cuenta_eliminar_revisar();
+  if not (revision ->> 'puede')::boolean then raise exception 'NO_SE_PUEDE_BORRAR'; end if;
+  historial := (revision ->> 'historial')::boolean;
+  perform set_config('mercado.sistema', '1', true);
+  fotos := array(select o.name from storage.objects o where o.bucket_id = 'cuentas-fotos' and o.name like uid::text || '/%');
+
+  if historial then
+    delete from cuentas_venta where vendedor = uid;          -- los tratos se quedan (cuenta = null) y su contacto se borra
+    delete from perfiles where usuario = uid;
+    delete from preferencias where usuario = uid;
+    delete from notificaciones where usuario = uid;
+    delete from mensajes_soporte where usuario = uid;
+    delete from soporte_chats where usuario = uid;
+    capturas := array(select captura from ordenes_recarga where usuario = uid and estado = 'rechazada' and captura <> '');
+    delete from ordenes_recarga where usuario = uid and estado = 'rechazada';
+    -- Sin acceso y sin datos personales en Auth (el registro queda solo para que los tratos sigan cuadrando)
+    begin execute 'delete from auth.identities where user_id = $1' using uid; exception when others then null; end;
+    begin execute 'delete from auth.sessions where user_id = $1' using uid; exception when others then null; end;
+    begin execute 'delete from auth.refresh_tokens where user_id = $1' using uid::text; exception when others then null; end;
+    execute 'update auth.users set email = $2, phone = null, encrypted_password = '''', raw_user_meta_data = ''{}''::jsonb,
+                                   banned_until = ''infinity''::timestamptz where id = $1'
+      using uid, 'borrado-' || replace(uid::text, '-', '') || '@levelup.invalid';
+  else
+    capturas := array(select o.name from storage.objects o where o.bucket_id = 'comprobantes' and o.name like uid::text || '/%');
+    begin execute 'update storage.objects set owner = null where owner = $1' using uid; exception when others then null; end;
+    delete from auth.users where id = uid;                     -- todo lo demás se borra en cascada
+  end if;
+  return jsonb_build_object('anonimizada', historial,
+    'archivos', jsonb_build_object('cuentas-fotos', to_jsonb(coalesce(fotos, '{}')), 'comprobantes', to_jsonb(coalesce(capturas, '{}'))));
 end $$;
 
 -- ---------------------------------------------------------------------
@@ -1174,6 +1559,9 @@ alter table public.soporte_chats enable row level security;
 alter table public.calificaciones enable row level security;
 alter table public.perfiles enable row level security;
 alter table public.mensajes_soporte enable row level security;
+alter table public.notificaciones enable row level security;
+alter table public.preferencias enable row level security;
+alter table public.errores_cliente enable row level security;
 
 drop policy if exists "soy admin" on public.mercado_admins;
 create policy "soy admin" on public.mercado_admins for select to authenticated using (usuario = auth.uid());
@@ -1228,6 +1616,12 @@ drop policy if exists "soporte propio" on public.soporte_chats;
 create policy "soporte propio" on public.soporte_chats for select to authenticated using (usuario = auth.uid() or public.es_admin());
 drop policy if exists "mensajes de soporte propios" on public.mensajes_soporte;
 create policy "mensajes de soporte propios" on public.mensajes_soporte for select to authenticated using (usuario = auth.uid() or public.es_admin());
+drop policy if exists "avisos propios" on public.notificaciones;
+create policy "avisos propios" on public.notificaciones for select to authenticated using (usuario = auth.uid());
+drop policy if exists "preferencias propias" on public.preferencias;
+create policy "preferencias propias" on public.preferencias for select to authenticated using (usuario = auth.uid());
+drop policy if exists "errores admin" on public.errores_cliente;
+create policy "errores admin" on public.errores_cliente for select to authenticated using (public.es_admin());
 
 -- Permisos de tabla (además del RLS)
 grant select on public.cuentas_venta, public.mercado_config to anon, authenticated;
@@ -1260,6 +1654,15 @@ grant execute on function public.mercado_perfil(uuid) to anon, authenticated;
 grant execute on function public.mercado_vendedores(text, text) to anon, authenticated;
 revoke execute on function public.admin_estado(), public.admin_limpiar(int, text[], boolean) from public, anon;
 grant execute on function public.admin_estado(), public.admin_limpiar(int, text[], boolean) to authenticated;
+-- Avisos, preferencias, saldo retirable, borrar cuenta y errores de la web
+grant select on public.notificaciones, public.preferencias, public.errores_cliente to authenticated;
+revoke all on public.notificaciones, public.preferencias, public.errores_cliente from anon;
+revoke insert, update, delete, truncate on public.notificaciones, public.preferencias, public.errores_cliente from authenticated;
+revoke execute on function public.notificaciones_leer(text), public.preferencias_guardar(boolean), public.mi_saldo(),
+  public.cuenta_eliminar_revisar(), public.cuenta_eliminar(text), public.admin_correo_prueba() from public, anon;
+grant execute on function public.notificaciones_leer(text), public.preferencias_guardar(boolean), public.mi_saldo(),
+  public.cuenta_eliminar_revisar(), public.cuenta_eliminar(text), public.admin_correo_prueba() to authenticated;
+grant execute on function public.error_registrar(text, text, text, text) to anon, authenticated;
 
 -- ---------------------------------------------------------------------
 -- SEGURIDAD EXTRA
@@ -1287,20 +1690,23 @@ revoke execute on function public._exigir_admin() from public, anon, authenticat
 revoke execute on function public._config_num(text, numeric) from public, anon, authenticated;
 revoke execute on function public._mover_recargado(uuid, numeric, text, bigint, bigint, text) from public, anon, authenticated;
 revoke execute on function public._mensaje_recarga(bigint, text) from public, anon, authenticated;
+revoke execute on function public._enviar_correo(text, text, text, text), public._html(text),
+  public._notificar(uuid, text, text, text, text, boolean, boolean), public._notificar_admins(text, text, text, text, boolean, boolean),
+  public._ventas_por_liberar(uuid) from public, anon, authenticated;
 -- Las de usuario y admin requieren sesión (las de admin comprueban además es_admin())
-revoke execute on function public.venta_crear(bigint, boolean), public.venta_informar_pago(bigint, text, text),
+revoke execute on function public.venta_crear(bigint, boolean),
   public.venta_finalizar(bigint), public.venta_reclamar(bigint, text, text), public.venta_cancelar(bigint),
   public.venta_entregar(bigint), public.retiro_solicitar(numeric, text, text), public.mensaje_enviar(bigint, text),
-  public.admin_moderar_cuenta(bigint, boolean, text), public.admin_confirmar_pago(bigint), public.admin_resolver(bigint, text, text),
+  public.admin_moderar_cuenta(bigint, boolean, text), public.admin_resolver(bigint, text, text),
   public.admin_cancelar(bigint, text, boolean), public.admin_resolver_retiro(bigint, boolean, text),
   public.admin_ajustar_saldo(uuid, numeric, text), public.admin_config(text, text), public.admin_correos(uuid[]),
   public.recarga_crear(text, numeric, text, text), public.recarga_mensaje(bigint, text),
   public.admin_recarga_aprobar(bigint, numeric), public.admin_recarga_rechazar(bigint, text), public.admin_recarga_eliminar(bigint, boolean)
   from public, anon;
-grant execute on function public.venta_crear(bigint, boolean), public.venta_informar_pago(bigint, text, text),
+grant execute on function public.venta_crear(bigint, boolean),
   public.venta_finalizar(bigint), public.venta_reclamar(bigint, text, text), public.venta_cancelar(bigint),
   public.venta_entregar(bigint), public.retiro_solicitar(numeric, text, text), public.mensaje_enviar(bigint, text),
-  public.admin_moderar_cuenta(bigint, boolean, text), public.admin_confirmar_pago(bigint), public.admin_resolver(bigint, text, text),
+  public.admin_moderar_cuenta(bigint, boolean, text), public.admin_resolver(bigint, text, text),
   public.admin_cancelar(bigint, text, boolean), public.admin_resolver_retiro(bigint, boolean, text),
   public.admin_ajustar_saldo(uuid, numeric, text), public.admin_config(text, text), public.admin_correos(uuid[]),
   public.recarga_crear(text, numeric, text, text), public.recarga_mensaje(bigint, text),
@@ -1365,7 +1771,7 @@ do $$
 declare t text;
 begin
   if exists (select 1 from pg_publication where pubname = 'supabase_realtime') then
-    foreach t in array array['mensajes_venta', 'mensajes_recarga', 'mensajes_soporte', 'ordenes_recarga'] loop
+    foreach t in array array['mensajes_venta', 'mensajes_recarga', 'mensajes_soporte', 'ordenes_recarga', 'notificaciones'] loop
       if not exists (select 1 from pg_publication_tables where pubname = 'supabase_realtime' and schemaname = 'public' and tablename = t) then
         execute format('alter publication supabase_realtime add table public.%I', t);
       end if;

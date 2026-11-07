@@ -1,0 +1,14 @@
+{
+  "name": "Level Up · Cuentas de Free Fire",
+  "short_name": "Level Up",
+  "description": "Compra y vende cuentas de Free Fire con intermediario: el dinero queda retenido hasta la entrega.",
+  "lang": "es",
+  "start_url": "/index.html",
+  "scope": "/",
+  "display": "standalone",
+  "background_color": "#0b1120",
+  "theme_color": "#0b1120",
+  "icons": [
+    { "src": "logo.png", "sizes": "256x249", "type": "image/png", "purpose": "any" }
+  ]
+}

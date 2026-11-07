@@ -19,7 +19,6 @@
     SIN_SESION: 'Tu sesión venció. Vuelve a entrar.',
     NO_DISPONIBLE: 'Esa cuenta ya no está disponible: alguien más la está comprando o el vendedor la retiró.',
     ES_TUYA: 'No puedes comprar tu propia cuenta.',
-    DEMASIADAS_PENDIENTES: 'Ya tienes 2 compras esperando pago. Págalas o cancélalas antes de abrir otra.',
     ESTADO_INVALIDO: 'El trato cambió de estado. Actualizamos la pantalla.',
     DATO_INVALIDO: 'Revisa los datos que escribiste.',
     FUERA_DE_PLAZO: 'Ya pasó el plazo para reclamar.',
@@ -39,6 +38,11 @@
     SALDO_GASTADO: 'El usuario ya gastó parte de ese saldo: no se puede descontar completo.',
     APELACION_ACTIVA: 'Ya llamaste a Level Up en este trato: un administrador entrará al chat en breve.',
     YA_CALIFICADO: 'Ya calificaste este trato.',
+    SALDO_RETENIDO: 'Parte de ese saldo es de ventas recientes y todavía no se puede retirar. Mira cuándo se libera en "Mi saldo".',
+    NOMBRE_USADO: 'Ese nombre ya lo usa otra persona. Prueba con otro.',
+    NOMBRE_RESERVADO: 'Ese nombre está reservado. Elige otro.',
+    NOMBRE_INVALIDO: 'Usa de 3 a 24 letras o números (puedes usar espacio, punto o guion).',
+    NO_SE_PUEDE_BORRAR: 'Todavía no se puede borrar tu cuenta. Revisa el motivo y vuelve a intentarlo.',
   };
 
   const TEXTO_ESTADO_CUENTA = {
@@ -58,9 +62,11 @@
     paypal: { nombre: 'PayPal', referencia: 'ID de transacción', ayuda: 'En PayPal: Actividad → toca el pago → "ID de transacción".', datos: [['Correo de PayPal', 'paypal_correo'], ['Nombre', 'paypal_nombre']] },
   };
   const CLAVE_METODO = { binance: 'binance_pay_id', pago_movil: 'pm_telefono', paypal: 'paypal_correo' };
-  const CONFIG_NUMERICA = ['comision_retiro', 'retiro_minimo', 'garantia_usd', 'horas_pago', 'horas_revision', 'tasa_bs', 'recarga_minima', 'paypal_recargo'];
+  const CONFIG_NUMERICA = ['comision_retiro', 'retiro_minimo', 'garantia_usd', 'horas_pago', 'horas_revision', 'tasa_bs', 'recarga_minima', 'paypal_recargo',
+    'horas_entrega', 'dias_liberacion'];
 
   let cliente = null;
+  let errores = 0;   // errores reportados en esta visita
 
   const Mercado = {
     SUPABASE_URL,
@@ -69,7 +75,6 @@
     METODOS_RECARGA,
     TEXTO_ESTADO_RECARGA,
     WHATSAPP: '584228887089',
-    METODOS: ['Pago Móvil', 'Binance', 'Zinli', 'Otro'],
     TEXTO_ESTADO_CUENTA,
     TEXTO_ESTADO_TRATO,
     TEXTO_ROL,
@@ -110,6 +115,10 @@
       const { data, error } = await Mercado.cliente().rpc(nombre, parametros);
       if (error) {
         console.error(nombre, error);
+        // Un error que no es una regla conocida (ESTADO_INVALIDO, SALDO_COMPRA…) es un fallo: se reporta
+        if (!Object.keys(ERRORES).some((k) => String(error.message || '').includes(k))) {
+          Mercado.registrarError(`rpc ${nombre}: ${error.message || error.code || 'sin mensaje'}`, error.details || error.hint || '');
+        }
         const e = new Error(Mercado.textoError(error, porDefecto));
         e.estadoCambiado = String(error.message || '').includes('ESTADO_INVALIDO');
         throw e;
@@ -117,9 +126,24 @@
       return data;
     },
 
+    // Reporta un error de la página a Level Up (Admin → Sistema). Máximo 5 por visita; nunca lanza.
+    registrarError(mensaje, detalle = '') {
+      try {
+        if (errores >= 5 || !Mercado.cliente()) return;
+        const texto = String(mensaje || '').slice(0, 300);
+        if (!texto || /ResizeObserver|Script error\.|AbortError|Failed to fetch|NetworkError|Load failed/i.test(texto)) return;   // ruido del navegador o sin conexión
+        errores += 1;
+        Mercado.cliente().rpc('error_registrar', {
+          p_pagina: location.pathname.split('/').pop() || 'index.html',
+          p_mensaje: texto, p_detalle: String(detalle || '').slice(0, 1500), p_navegador: navigator.userAgent.slice(0, 200),
+        }).then(() => {}, () => {});
+      } catch (e) { /* nunca romper la página por reportar */ }
+    },
+
     // mercado_config → { comision_retiro: 4, ..., instrucciones_pago: '...', binance_pay_id: '...' }
     async config() {
-      const valores = { comision_retiro: 4, retiro_minimo: 5, garantia_usd: 1, horas_pago: 2, horas_revision: 24, tasa_bs: 0, recarga_minima: 1, paypal_recargo: 0, instrucciones_pago: '' };
+      const valores = { comision_retiro: 4, retiro_minimo: 5, garantia_usd: 1, horas_pago: 2, horas_revision: 24, tasa_bs: 0, recarga_minima: 1, paypal_recargo: 0,
+        horas_entrega: 12, dias_liberacion: 3, instrucciones_pago: '' };
       const { data, error } = await Mercado.cliente().from('mercado_config').select('clave,valor');
       if (!error) {
         for (const { clave, valor } of data) {
@@ -421,4 +445,12 @@
   };
 
   window.Mercado = Mercado;
+
+  // Errores que nadie atrapó: se reportan solos
+  window.addEventListener('error', (e) => {
+    if (!e.filename || e.filename.startsWith(location.origin)) {
+      Mercado.registrarError(e.message, `${e.filename || ''}:${e.lineno || ''}:${e.colno || ''}\n${e.error?.stack || ''}`);
+    }
+  });
+  window.addEventListener('unhandledrejection', (e) => Mercado.registrarError(`Promesa: ${e.reason?.message || e.reason}`, e.reason?.stack || ''));
 })();

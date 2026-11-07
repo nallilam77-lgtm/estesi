@@ -8,6 +8,7 @@ Mercado de cuentas de Free Fire con **Level Up como intermediario**: el comprado
 |---|---|
 | `index.html` | Tienda: buscar cuentas, vender, "Mi panel" (tratos con chat y mis publicaciones) y "Mi saldo" (recargas con captura y chat, retiros) |
 | `reglas-cuentas.html` | Reglas del Intermediario |
+| `privacidad.html` | Política de privacidad (qué datos se guardan y cómo borrar la cuenta) |
 | `admin-cuentas.html` | Panel de administración: aprobar/rechazar/eliminar recargas y responder su chat, aprobar publicaciones, resolver reclamos, pagar retiros y ajustes (tus datos de Binance, PayPal y Pago Móvil) |
 
 Es un sitio estático (Vercel) que habla directo con **Supabase**. La publishable key de `public/js/mercado.js` no es secreta: lo que cada usuario puede ver o cambiar lo deciden las reglas de `supabase/cuentas.sql` (RLS + funciones). El navegador solo lee; cada cambio (comprar, entregar, finalizar, retirar…) lo valida la base de datos.
@@ -23,6 +24,17 @@ Es un sitio estático (Vercel) que habla directo con **Supabase**. La publishabl
 4. (Recomendado) **Database → Extensions → pg_cron** y volver a correr el SQL: los tratos vencidos se cierran solos cada 10 min.
 5. **Vercel**: importar este repositorio (sin build; la carpeta publicada es `public/`).
 6. En `admin-cuentas.html` → **Ajustes**: escribir tus datos de Binance, Pago Móvil (y la tasa en Bs) y PayPal. Un método sin datos no aparece en la tienda.
+7. **Correos automáticos** (recomendado; sin esto los avisos solo se ven dentro de la web):
+   1. Crear una cuenta gratis en [Brevo](https://www.brevo.com) (300 correos al día). En *Senders, Domains & Dedicated IPs → Senders* agregar y verificar el correo remitente (puede ser tu Gmail).
+   2. En Brevo: *SMTP & API → API Keys → Generate a new API key*. Copiarla (empieza con `xkeysib-`).
+   3. **Supabase → Database → Extensions**: activar **pg_net**.
+   4. **Supabase → SQL Editor** (pegando TU clave en lugar de la de ejemplo; la clave queda cifrada en Vault y nunca va en el código):
+      ```sql
+      select vault.create_secret('xkeysib-PEGA-AQUI-TU-CLAVE', 'brevo_api_key');
+      ```
+      Para cambiarla después: `select vault.update_secret((select id from vault.secrets where name = 'brevo_api_key'), 'xkeysib-NUEVA');`
+   5. En el admin → **Ajustes → Correos automáticos**: escribir el correo remitente verificado, guardar y tocar **"Enviarme un correo de prueba"**. Admin → Sistema muestra cuántos se enviaron.
+8. Si usas otro dominio (no `estesi-blond.vercel.app`), cámbialo en Ajustes → *Dirección de la tienda* y en `public/sitemap.xml`, `public/robots.txt` y las etiquetas `og:` / `canonical` de `public/index.html`.
 
 ## Dónde se guarda cada cosa (Supabase)
 
@@ -38,4 +50,20 @@ Entrar en `/admin-cuentas.html` (por ejemplo https://estesi-blond.vercel.app/adm
 
 ## Valores que se cambian desde Ajustes (tabla `mercado_config`)
 
-`comision_retiro` (4), `retiro_minimo` (5 USD), `garantia_usd` (1), `horas_revision` (24), `tasa_bs`, `instrucciones_pago` (nota para quien recarga), `recarga_minima` (1 USD), `paypal_recargo` (%), `binance_pay_id`, `binance_nombre`, `paypal_correo`, `paypal_nombre`, `pm_banco`, `pm_telefono`, `pm_cedula`, `pm_titular`. (`horas_pago` solo aplica a tratos viejos sin saldo.)
+`comision_retiro` (4), `retiro_minimo` (5 USD), `garantia_usd` (1), `horas_entrega` (12: si el vendedor no entrega en ese tiempo, el trato se cancela solo y se reembolsa; 0 = nunca), `horas_revision` (24), `dias_liberacion` (3: lo cobrado por una venta se usa para comprar al momento pero se retira pasados esos días; 0 = al momento), `tasa_bs`, `instrucciones_pago` (nota para quien recarga), `recarga_minima` (1 USD), `paypal_recargo` (%), `binance_pay_id`, `binance_nombre`, `paypal_correo`, `paypal_nombre`, `pm_banco`, `pm_telefono`, `pm_cedula`, `pm_titular`, `correo_remitente`, `correo_nombre`, `sitio_url`. (`horas_pago` solo aplica a tratos viejos sin saldo.)
+
+Si cambias `horas_entrega`, `horas_revision`, `dias_liberacion` o la comisión, actualiza también el texto de `public/reglas-cuentas.html` (ahí van escritos 12 h, 24 h, 3 días y 4 %).
+
+## Avisos, errores y cuentas borradas
+
+- **Avisos** (tabla `notificaciones`): los crean las funciones del SQL con `_notificar` (venta nueva, entrega, cobro, cancelación, reclamo, recarga aprobada o rechazada, retiro pagado, respuestas de Level Up…). Se ven en la campana de la tienda, llegan en vivo y, si el usuario da permiso, como notificación del navegador. Los importantes también se envían por **correo** (Brevo, ver paso 7). Los avisos de chat nunca copian el texto del mensaje (puede llevar contraseñas) y se agrupan: uno por conversación hasta que se lea. Cada usuario puede apagar los correos en *Mi panel → Tu cuenta*.
+- **Errores de la web** (tabla `errores_cliente`): los errores de JavaScript en los navegadores de los clientes se reportan solos (`Mercado.registrarError`) y se ven en Admin → Sistema.
+- **Borrar cuenta** (*Mi panel → Tu cuenta*): sin tratos se borra todo; con tratos se borran los datos personales y se conservan los tratos y movimientos de dinero sin correo ni nombre. Exige no tener tratos abiertos ni saldo.
+
+## Pruebas
+
+`pruebas/flujo.mjs` levanta un Postgres en memoria (PGlite) con Auth, Storage, pg_net y Vault simulados, corre `supabase/cuentas.sql` tres veces y recorre todo el flujo (recarga, compra, chat, entrega, cierre, retiros con liberación, reembolso automático, reclamo, avisos, correos, errores, borrar cuenta) comprobando al final que el dinero cuadra:
+
+```
+cd pruebas && npm install && npm test
+```

@@ -1,0 +1,113 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <script>
+    // Modo ligero en todos los celulares y tablets (pantalla táctil), con ahorro de datos o "reducir movimiento": sin desenfoque, animaciones ni transiciones (css/ligero.css)
+    (function () { var n = navigator, c = n.connection || {}; if ((n.deviceMemory && n.deviceMemory <= 2) || (n.hardwareConcurrency && n.hardwareConcurrency <= 4) || c.saveData || /(^|\D)2g/.test(c.effectiveType || '') || (window.matchMedia && (matchMedia('(pointer: coarse)').matches || matchMedia('(prefers-reduced-motion: reduce)').matches))) { document.documentElement.classList.add('ligero'); var l = document.createElement('link'); l.rel = 'stylesheet'; l.href = 'css/ligero.css?v=6'; document.head.appendChild(l); } })();
+  </script>
+  <meta name="description" content="Qué datos guarda Level Up cuando compras o vendes cuentas de Free Fire, para qué los usa, cuánto tiempo los conserva y cómo borrar tu cuenta.">
+  <meta name="theme-color" content="#0f172a">
+  <title>Privacidad - Level Up</title>
+  <link rel="icon" type="image/png" href="logo.png">
+  <link rel="apple-touch-icon" href="logo.png">
+
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@800;900&family=Poppins:wght@300;400;600;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="css/paginas-legales.css">
+  <link rel="stylesheet" href="css/cuentas.css?v=3">
+  <link rel="stylesheet" href="css/tienda.css?v=11">
+</head>
+<body class="tienda">
+
+  <header class="nav">
+    <div class="contenedor nav-interior">
+      <a href="index.html" class="nav-marca" aria-label="Level Up, inicio">
+        <img src="logo-chico.png" alt="" width="36" height="35">
+        <div>LEVEL <span>UP</span><small>Cuentas Free Fire</small></div>
+      </a>
+      <nav class="nav-enlaces" aria-label="Principal">
+        <a class="nav-enlace" href="index.html#cuentas">Comprar</a>
+        <a class="nav-enlace" href="index.html#vender">Vender</a>
+        <a class="nav-enlace" href="reglas-cuentas.html">Reglas</a>
+      </nav>
+      <div class="nav-acciones">
+        <a class="btn-nav" href="index.html">Ir a la tienda</a>
+      </div>
+    </div>
+  </header>
+
+  <main>
+    <header class="animate-up">
+      <h1 class="titulo-principal">Privacidad</h1>
+      <p class="subtitulo">Qué datos guardamos, para qué y cómo borrarlos</p>
+      <p class="fecha-actualizacion">Última actualización: 7 de noviembre de 2026</p>
+    </header>
+
+    <section class="terminos-container animate-up">
+      <div class="terminos-box">
+
+        <div class="resumen-legal">
+          <p><strong>En pocas palabras:</strong> guardamos solo lo necesario para que compres y vendas con seguridad. <strong>Tu correo nunca se muestra</strong> a otros usuarios, no vendemos tus datos a nadie y puedes <strong>borrar tu cuenta</strong> cuando quieras desde "Mi panel → Tu cuenta".</p>
+        </div>
+
+        <h2>1. Qué datos guardamos</h2>
+        <ul>
+          <li><strong>Tu cuenta:</strong> correo y contraseña (la contraseña se guarda cifrada; nadie de Level Up puede verla).</li>
+          <li><strong>Tu perfil público:</strong> el nombre que eliges, una descripción opcional, tus ventas y las estrellas que te dan los compradores. Es lo único que ven los demás.</li>
+          <li><strong>Tus publicaciones:</strong> título, datos y fotos de las cuentas que vendes, y tu WhatsApp si decides dejarlo (solo lo ve Level Up).</li>
+          <li><strong>Tu dinero:</strong> recargas (monto, método, referencia y la captura del comprobante), saldo, compras, ventas, retiros y los datos de cobro que escribes para recibir tus retiros.</li>
+          <li><strong>Los chats:</strong> los mensajes de tus tratos, de tus recargas y del chat de soporte.</li>
+          <li><strong>Errores técnicos:</strong> si la página falla en tu navegador, guardamos el mensaje del error y el tipo de navegador para poder arreglarlo. No incluye lo que escribes.</li>
+        </ul>
+
+        <h2>2. Para qué los usamos</h2>
+        <ul>
+          <li>Para que funcionen las compras con dinero retenido, las entregas en el chat, los reclamos y los retiros.</li>
+          <li>Para avisarte por correo y en la web cuando te compran, te entregan una cuenta, se aprueba tu recarga, te pagamos un retiro o te respondemos. Puedes apagar los correos en "Mi panel → Tu cuenta".</li>
+          <li>Para resolver reclamos y prevenir fraudes (por ejemplo, referencias de pago repetidas o cuentas recuperadas después de vendidas).</li>
+        </ul>
+
+        <h2>3. Quién más los ve</h2>
+        <ul>
+          <li><strong>La otra parte de un trato</strong> ve tu nombre público y lo que escribes en el chat de ese trato. Nunca ve tu correo ni tu teléfono.</li>
+          <li><strong>Los administradores de Level Up</strong> ven lo necesario para revisar pagos, publicaciones, reclamos y retiros.</li>
+          <li>Usamos <strong>Supabase</strong> (base de datos y archivos), <strong>Vercel</strong> (la página) y <strong>Brevo</strong> (envío de correos). Solo procesan los datos para darnos ese servicio.</li>
+        </ul>
+
+        <h2>4. Cuánto tiempo los guardamos</h2>
+        <ul>
+          <li>Los mensajes de tratos terminados, las capturas de recargas ya aprobadas y los avisos leídos se borran periódicamente.</li>
+          <li>Los registros de dinero (recargas aprobadas, compras, ventas, retiros y movimientos de saldo) se conservan para que las cuentas cuadren y para resolver cualquier reclamo.</li>
+        </ul>
+
+        <h2>5. Borrar tu cuenta</h2>
+        <p>En "Mi panel → Tu cuenta → Borrar mi cuenta". Antes debes terminar tus tratos abiertos y usar o retirar tu saldo (si necesitas ayuda, escríbenos al chat de soporte).</p>
+        <ul>
+          <li>Si nunca compraste ni vendiste, <strong>se borra todo</strong>.</li>
+          <li>Si ya hiciste tratos, se borran tu perfil, tus publicaciones, tus avisos, tu chat de soporte y tu acceso. Los tratos y movimientos de dinero quedan <strong>sin tu correo ni tu nombre</strong>, porque la otra parte del trato también los necesita.</li>
+        </ul>
+
+        <h2>6. Contacto</h2>
+        <p>Si tienes dudas sobre tus datos, escríbenos por el chat en vivo de la tienda o por <a href="https://wa.me/584228887089" target="_blank" rel="noopener noreferrer">WhatsApp</a>.</p>
+
+        <a href="index.html" class="btn-volver">← Volver a la tienda</a>
+
+      </div>
+    </section>
+  </main>
+
+  <footer class="pie">
+    <div class="contenedor">
+      <div class="pie-legal-texto">
+        <p>Level Up es un servicio independiente. No está afiliado, patrocinado ni respaldado por Garena (Free Fire). Todas las marcas y logotipos pertenecen a sus respectivos dueños.</p>
+        <p><a href="privacidad.html">Privacidad</a> · <a href="reglas-cuentas.html">Reglas del Intermediario</a></p>
+        <p>&copy; 2026 <strong>Level Up</strong>. Todos los derechos reservados.</p>
+      </div>
+    </div>
+  </footer>
+
+</body>
+</html>

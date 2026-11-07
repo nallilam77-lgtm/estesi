@@ -940,3 +940,120 @@ body.soporte-abierto .chat-flotante { display: none; }
   .barra-vendedores { grid-template-columns: 1fr 220px; }
 }
 @media (min-width: 900px) { .grid-vendedores { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
+
+/* =====================================================================
+   Avisos (campana de la barra), "Tu cuenta" y otros agregados
+   ===================================================================== */
+:root { --fondo-panel: rgba(11, 17, 32, 0.92); --peligro-linea: rgba(255, 59, 59, 0.3); --peligro-fondo: rgba(255, 59, 59, 0.05); }
+.btn-campana {
+  position: relative; display: inline-flex; align-items: center; justify-content: center; width: 44px; height: 44px; border-radius: 12px; cursor: pointer;
+  border: 1px solid var(--linea); background: var(--fondo-hundido); color: var(--text-main); transition: border-color 0.2s ease, color 0.2s ease;
+}
+.btn-campana:hover, .btn-campana:focus-visible, .btn-campana[aria-expanded="true"] { border-color: var(--game-line); color: var(--game-text); outline: none; }
+.btn-campana.llamando .icono { animation: llamando 0.8s ease 2; }
+.campana-numero {
+  position: absolute; top: -6px; right: -6px; min-width: 20px; height: 20px; padding: 0 5px; border-radius: 999px; display: grid; place-items: center;
+  font-family: 'Montserrat', sans-serif; font-weight: 900; font-size: 10px; line-height: 1; color: var(--game-on); background: var(--game-gradient); border: 2px solid var(--bg-deep);
+}
+.panel-avisos {
+  position: fixed; top: 76px; right: 16px; left: 16px; z-index: 1350; display: grid; grid-template-rows: auto auto minmax(0, 1fr); max-height: min(560px, calc(100vh - 96px));
+  margin-left: auto; max-width: 400px; border-radius: 18px; overflow: hidden;
+  background: var(--fondo-panel); backdrop-filter: blur(var(--glass-blur)); -webkit-backdrop-filter: blur(var(--glass-blur));
+  border: 1px solid var(--linea); box-shadow: var(--shadow-lg), var(--shadow-glow); animation: aviso-entra 0.22s ease both;
+}
+.avisos-cabecera { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 12px 12px 12px 20px; border-bottom: 1px solid var(--linea); }
+.avisos-cabecera h2 { display: flex; align-items: center; gap: 8px; font-family: 'Montserrat', sans-serif; font-weight: 900; font-size: 16px; color: var(--text-main); }
+.avisos-cabecera h2 .icono { color: var(--game-text); }
+.avisos-cabecera .enlace-texto { margin: 0; font-size: 12px; }
+.avisos-permiso {
+  display: flex; gap: 12px; align-items: flex-start; margin: 12px 12px 0; padding: 12px 14px; border-radius: 14px; cursor: pointer; text-align: left; font: inherit;
+  background: var(--cyan-soft); border: 1px solid var(--cyan-line); color: var(--text-main);
+}
+.avisos-permiso .icono { color: var(--primary); margin-top: 2px; }
+.avisos-permiso span { display: grid; gap: 2px; font-size: 12px; line-height: 1.5; color: var(--text-muted); }
+.avisos-permiso strong { font-size: 13px; color: var(--text-main); }
+.avisos-lista { overflow-y: auto; overscroll-behavior: contain; padding: 8px; display: flex; flex-direction: column; gap: 4px; min-height: 0; }
+.avisos-vacio { padding: 24px 16px; font-size: 13px; line-height: 1.6; color: var(--text-muted); text-align: center; }
+.aviso-item {
+  flex: 0 0 auto; display: flex; gap: 12px; align-items: flex-start; width: 100%; min-height: 64px; padding: 12px; border-radius: 12px; border: 1px solid transparent; cursor: pointer;
+  text-align: left; font: inherit; background: transparent; color: var(--text-main); transition: background 0.2s ease, border-color 0.2s ease;
+}
+.aviso-item:hover, .aviso-item:focus-visible { background: var(--fondo-hundido); border-color: var(--linea); outline: none; }
+.aviso-item .icono-caja { flex: 0 0 auto; width: 36px; height: 36px; border-radius: 10px; }
+.aviso-item .icono-caja .icono { width: 18px; height: 18px; }
+.aviso-item-texto { flex: 1 1 auto; min-width: 0; display: grid; gap: 2px; }
+.aviso-item-texto strong { font-size: 13px; line-height: 1.4; color: var(--text-muted); font-weight: 600; }
+.aviso-item-texto span { font-size: 12px; line-height: 1.5; color: var(--text-muted); white-space: pre-line; display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; }
+.aviso-item-texto small { font-size: 11px; color: var(--text-muted); opacity: 0.8; }
+.aviso-item.sin-leer { background: var(--game-soft); border-color: var(--game-line); }
+.aviso-item.sin-leer .aviso-item-texto strong { color: var(--text-main); font-weight: 800; }
+.aviso-item.sin-leer .icono-caja { color: var(--game-text); }
+
+/* Tu cuenta: interruptores y zona de peligro */
+.cuenta-opciones { display: grid; gap: 12px; }
+.opcion-interruptor {
+  display: flex; align-items: center; justify-content: space-between; gap: 16px; min-height: 64px; padding: 14px 16px; border-radius: 14px;
+  background: var(--fondo-hundido); border: 1px solid var(--linea); cursor: pointer;
+}
+div.opcion-interruptor { cursor: default; }
+.opcion-texto { display: flex; gap: 12px; align-items: flex-start; min-width: 0; }
+.opcion-texto > .icono { margin-top: 2px; color: var(--game-text); }
+.opcion-texto > span { display: grid; gap: 2px; font-size: 12px; line-height: 1.5; color: var(--text-muted); }
+.opcion-texto strong { font-size: 14px; color: var(--text-main); }
+.opcion-interruptor .btn-secundario { flex: 0 0 auto; min-height: 44px; }
+.interruptor {
+  appearance: none; -webkit-appearance: none; flex: 0 0 auto; position: relative; width: 48px; height: 28px; margin: 0; border-radius: 999px; cursor: pointer;
+  background: var(--bg-deep); border: 1px solid var(--linea); transition: background 0.2s ease, border-color 0.2s ease;
+}
+.interruptor::after {
+  content: ''; position: absolute; top: 3px; left: 3px; width: 20px; height: 20px; border-radius: 50%; background: var(--text-muted); transition: transform 0.2s ease, background 0.2s ease;
+}
+.interruptor:checked { background: var(--game-soft); border-color: var(--game-text); }
+.interruptor:checked::after { transform: translateX(20px); background: var(--game-text); }
+.interruptor:focus-visible { outline: 2px solid var(--game-text); outline-offset: 2px; }
+.zona-peligro {
+  display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 16px; margin-top: 24px; padding: 16px; border-radius: 14px;
+  border: 1px solid var(--peligro-linea); background: var(--peligro-fondo);
+}
+.zona-peligro > div { flex: 1 1 260px; display: grid; gap: 4px; }
+.zona-peligro strong { font-size: 14px; color: var(--text-main); }
+.zona-peligro p { font-size: 12px; line-height: 1.6; color: var(--text-muted); }
+.zona-peligro a { color: var(--game-text); font-weight: 700; }
+.zona-peligro .btn-secundario { display: inline-flex; align-items: center; gap: 8px; min-height: 44px; }
+
+/* Detalle: compartir y preguntar */
+.detalle-enlaces { display: flex; flex-wrap: wrap; align-items: center; justify-content: center; gap: 8px 16px; }
+.detalle-enlaces .btn-secundario { display: inline-flex; align-items: center; gap: 8px; min-height: 44px; }
+.acceso-legal { margin-top: 12px; font-size: 12px; line-height: 1.6; color: var(--text-muted); text-align: center; }
+.acceso-legal a { color: var(--game-text); font-weight: 600; }
+
+/* Filtros de cuentas: buscador + 4 selectores (región, vinculación, precio, orden) */
+#filtroOrden { grid-column: auto; }
+@media (min-width: 600px) {
+  #formFiltros { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+  #formFiltros .campo-buscar { grid-column: 1 / -1; }
+}
+@media (min-width: 1000px) {
+  #formFiltros { grid-template-columns: minmax(0, 2fr) repeat(4, minmax(0, 1fr)); }
+  #formFiltros .campo-buscar { grid-column: auto; }
+}
+
+/* Barra en celulares con sesión: solo el logo (sin el texto) para que quepan saldo, avisos, panel y menú */
+@media (max-width: 599px) {
+  .btn-campana, .nav-menu { width: 40px; height: 40px; }
+  .nav-acciones { gap: 6px; }
+}
+@media (max-width: 420px) {
+  .nav-interior:has(.chip-saldo:not(.oculto)) .nav-marca div { display: none; }
+}
+@media (prefers-reduced-motion: reduce) { .btn-campana.llamando .icono, .panel-avisos { animation: none; } }
+
+/* Admin → Sistema: lista de errores de la web */
+.errores-lista { display: grid; gap: 8px; margin-top: 12px; list-style: none; padding: 0; }
+.errores-lista li { display: grid; gap: 2px; padding: 10px 12px; border-radius: 10px; background: var(--fondo-hundido); border: 1px solid var(--linea); }
+.errores-lista strong { font-size: 12px; line-height: 1.5; color: var(--text-main); overflow-wrap: anywhere; }
+.errores-lista small { font-size: 11px; color: var(--text-muted); }
+
+/* Enlaces del pie en páginas legales */
+.pie-legal-texto a { color: var(--text-muted); text-decoration: underline; text-underline-offset: 3px; }
+.pie-legal-texto a:hover, .pie-legal-texto a:focus-visible { color: var(--game-text); }

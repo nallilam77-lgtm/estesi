@@ -6,7 +6,7 @@
   <meta name="robots" content="noindex, nofollow">
   <script>
     // Modo ligero (css/ligero.css): mismo script que el resto de las páginas
-    (function () { var n = navigator, c = n.connection || {}; if ((n.deviceMemory && n.deviceMemory <= 2) || (n.hardwareConcurrency && n.hardwareConcurrency <= 4) || c.saveData || /(^|\D)2g/.test(c.effectiveType || '') || (window.matchMedia && (matchMedia('(pointer: coarse)').matches || matchMedia('(prefers-reduced-motion: reduce)').matches))) { document.documentElement.classList.add('ligero'); var l = document.createElement('link'); l.rel = 'stylesheet'; l.href = 'css/ligero.css?v=5'; document.head.appendChild(l); } })();
+    (function () { var n = navigator, c = n.connection || {}; if ((n.deviceMemory && n.deviceMemory <= 2) || (n.hardwareConcurrency && n.hardwareConcurrency <= 4) || c.saveData || /(^|\D)2g/.test(c.effectiveType || '') || (window.matchMedia && (matchMedia('(pointer: coarse)').matches || matchMedia('(prefers-reduced-motion: reduce)').matches))) { document.documentElement.classList.add('ligero'); var l = document.createElement('link'); l.rel = 'stylesheet'; l.href = 'css/ligero.css?v=6'; document.head.appendChild(l); } })();
   </script>
   <meta name="theme-color" content="#0b1120">
   <title>Admin · Level Up Cuentas</title>
@@ -18,9 +18,9 @@
   <link rel="stylesheet" href="css/creadores.css">
   <link rel="stylesheet" href="css/billetera.css">
   <link rel="stylesheet" href="css/cuentas.css?v=3">
-  <link rel="stylesheet" href="css/tienda.css?v=9">
+  <link rel="stylesheet" href="css/tienda.css?v=11">
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.js" defer></script>
-  <script src="js/mercado.js?v=7" defer></script>
+  <script src="js/mercado.js?v=8" defer></script>
 </head>
 <body class="tienda">
 
@@ -44,6 +44,7 @@
     <symbol id="i-soporte" viewBox="0 0 24 24"><path d="M4 13v-1a8 8 0 0 1 16 0v1"/><rect x="3" y="13" width="4" height="6" rx="1.5"/><rect x="17" y="13" width="4" height="6" rx="1.5"/><path d="M19 19a3 3 0 0 1-3 3h-3"/></symbol>
     <symbol id="i-buscar" viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="m20 20-4-4"/></symbol>
     <symbol id="i-servidor" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="7" rx="2"/><rect x="3" y="13" width="18" height="7" rx="2"/><path d="M7 7.5h.01M7 16.5h.01"/></symbol>
+    <symbol id="i-correo" viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="m3 7 9 6 9-6"/></symbol>
     <symbol id="i-whatsapp" viewBox="0 0 24 24"><path d="M3 21l1.6-4.8A8.5 8.5 0 1 1 8 19.6L3 21z"/><path d="M9 9.5c.5 2 2.5 4 4.5 4.5l1-1.2 2 1-.5 1.7c-3.5.3-7.3-3.5-7-7l1.7-.5 1 2L9 9.5z"/></symbol>
   </svg>
 
@@ -155,7 +156,7 @@
         <section class="admin-seccion oculto" id="vistaRevision" aria-labelledby="tituloRevision">
           <div class="admin-seccion-cabecera">
             <h2 id="tituloRevision">Publicaciones por revisar</h2>
-            <p>Revisa que las fotos sean reales y no muestren datos de acceso. El WhatsApp del vendedor solo lo ves tú.</p>
+            <p>Revisa que las fotos sean reales y no muestren datos de acceso. El WhatsApp del vendedor (si lo dejó) solo lo ves tú.</p>
           </div>
           <div class="admin-lista" id="listaRevision"></div>
         </section>
@@ -168,7 +169,6 @@
           </div>
           <div class="chips" id="filtroTratos" role="group" aria-label="Filtrar tratos">
             <button type="button" class="chip" data-filtro="abiertos" aria-pressed="true">Abiertos</button>
-            <button type="button" class="chip" data-filtro="por_confirmar" aria-pressed="false">Pagos por confirmar</button>
             <button type="button" class="chip" data-filtro="pagada" aria-pressed="false">Pago retenido</button>
             <button type="button" class="chip" data-filtro="entregada" aria-pressed="false">Entregados</button>
             <button type="button" class="chip" data-filtro="en_reclamo" aria-pressed="false">Reclamos</button>
@@ -294,7 +294,25 @@
             </fieldset>
             <fieldset class="ajustes-grupo">
               <legend><svg class="icono"><use href="#i-revision"/></svg>Plazos</legend>
-              <div class="campo"><label for="cfg_horas_revision">Horas de revisión</label><input type="text" id="cfg_horas_revision" inputmode="numeric"><p class="campo-ayuda">Tras la entrega, el comprador tiene este tiempo para reclamar; si no, el trato se cierra solo y el vendedor cobra.</p></div>
+              <div class="form-fila tres">
+                <div class="campo"><label for="cfg_horas_entrega">Horas para entregar</label><input type="text" id="cfg_horas_entrega" inputmode="numeric"><p class="campo-ayuda">Si el vendedor no entrega en este tiempo, el trato se cancela solo y el dinero vuelve al comprador (0 = nunca).</p></div>
+                <div class="campo"><label for="cfg_horas_revision">Horas de revisión</label><input type="text" id="cfg_horas_revision" inputmode="numeric"><p class="campo-ayuda">Tras la entrega, el comprador tiene este tiempo para reclamar; si no, el trato se cierra solo y el vendedor cobra.</p></div>
+                <div class="campo"><label for="cfg_dias_liberacion">Días para retirar una venta</label><input type="text" id="cfg_dias_liberacion" inputmode="numeric"><p class="campo-ayuda">Lo cobrado por una venta se usa para comprar al momento, pero se retira pasados estos días (por si el dueño anterior recupera la cuenta). 0 = al momento.</p></div>
+              </div>
+            </fieldset>
+            <fieldset class="ajustes-grupo">
+              <legend><svg class="icono"><use href="#i-correo"/></svg>Correos automáticos<span class="pastilla" id="estadoCorreo"></span></legend>
+              <p class="campo-ayuda">Avisan por correo a tus clientes cuando les compran, les entregan, se aprueba su recarga o se paga su retiro, y a ti cuando hay recargas, reclamos o retiros nuevos. Se envían con Brevo (gratis hasta 300 al día). La clave de Brevo NO va aquí: va en Supabase → Vault (ver README).</p>
+              <div class="form-fila tres">
+                <div class="campo"><label for="cfg_correo_remitente">Correo remitente</label><input type="text" id="cfg_correo_remitente" maxlength="120" inputmode="email" placeholder="El que verificaste en Brevo" autocomplete="off"></div>
+                <div class="campo"><label for="cfg_correo_nombre">Nombre remitente</label><input type="text" id="cfg_correo_nombre" maxlength="120" placeholder="Level Up" autocomplete="off"></div>
+                <div class="campo"><label for="cfg_sitio_url">Dirección de la tienda</label><input type="text" id="cfg_sitio_url" maxlength="120" inputmode="url" placeholder="https://estesi-blond.vercel.app" autocomplete="off"></div>
+              </div>
+              <div class="guardar-grupo">
+                <button type="button" class="btn-juego" data-grupo-correo>Guardar correos</button>
+                <button type="button" class="btn-secundario" id="btnCorreoPrueba">Enviarme un correo de prueba</button>
+                <div class="panel-mensaje" id="mensajeCorreo" role="status" aria-live="polite"></div>
+              </div>
             </fieldset>
             <button type="submit" class="btn-juego" id="btnAjustes">Guardar todos los ajustes</button>
             <div class="panel-mensaje" id="mensajeAjustes" role="status" aria-live="polite"></div>
@@ -415,6 +433,8 @@
       let tratoAbierto = null;
       const correos = new Map();
       const yo = () => sesion?.user?.id || null;
+      let config = { horas_entrega: 12, horas_revision: 24, dias_liberacion: 3 };
+      M.config().then((c) => { config = c; });
 
       function icono(id) {
         const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
@@ -529,6 +549,7 @@
         $('textoAdmin').textContent = `Conectado como ${sesion.user.email}`;
         cliente.rpc('mercado_mantenimiento').then(cargarTodo, cargarTodo);
         conectarVivo();
+        cliente.rpc('notificaciones_leer', { p_enlace: 'admin:%' }).then(() => {}, () => {});
       }
 
       // ---------------- Navegación ----------------
@@ -1031,14 +1052,15 @@
           ['Capturas de pago', `${comp.archivos} archivos · ${tamano(Number(comp.bytes))}`],
         ]));
         // En vivo y mantenimiento
-        const tablasVivo = ['mensajes_recarga', 'mensajes_soporte', 'mensajes_venta', 'ordenes_recarga'];
+        const tablasVivo = ['mensajes_recarga', 'mensajes_soporte', 'mensajes_venta', 'ordenes_recarga', 'notificaciones'];
         const faltanVivo = tablasVivo.filter((t) => !e.realtime.includes(t));
         const vivoOk = !faltanVivo.length && !$('enVivo').classList.contains('desconectado');
-        const vivo = tarjetaEstado('Chat en vivo y automático', 'i-chat', vivoOk && e.tratos_vencidos === 0 ? 'ok' : 'aviso');
+        const vivo = tarjetaEstado('Chat en vivo y automático', 'i-chat', vivoOk && e.tratos_vencidos === 0 && e.sin_entregar_vencidos === 0 ? 'ok' : 'aviso');
         vivo.append(ficha([
           ['Tiempo real', faltanVivo.length ? `Faltan tablas: ${faltanVivo.join(', ')} (vuelve a correr el SQL)` : $('enVivo').classList.contains('desconectado') ? 'Tablas listas, pero este panel no está conectado' : 'Conectado'],
           ['Tarea automática (pg_cron)', e.pg_cron ? 'Activa: cierra tratos vencidos cada 10 min' : 'No activa: los tratos se cierran cuando alguien entra a la web'],
           ['Tratos vencidos sin cerrar', String(e.tratos_vencidos)],
+          ['Sin entregar fuera de plazo', String(e.sin_entregar_vencidos)],
         ]));
         if (!e.pg_cron) vivo.append(enlace('Activar pg_cron (Database → Extensions) y volver a correr el SQL', `${PROYECTO}/database/extensions`));
         // Usuarios y pendientes
@@ -1061,15 +1083,43 @@
             ['Saldo recargado (clientes)', usd(d.saldo_recargado)], ['Saldo de ventas (vendedores)', usd(d.saldo_ventas)],
             ['Retenido en tratos abiertos', usd(d.retenido_en_tratos)], ['Retiros por pagar (lunes)', usd(d.retiros_por_pagar)],
             ['Tus comisiones cobradas', usd(d.comisiones_cobradas)], ['Garantías cobradas', usd(d.garantias_cobradas)],
+            ['De ventas aún sin liberar', usd(d.ventas_por_liberar)],
           ]),
         );
+        // Correos automáticos
+        const falta = textoFaltaCorreo(e.correo);
+        const env = e.correo?.ultimas_24h || {};
+        const tCorreo = tarjetaEstado('Correos automáticos', 'i-correo', falta ? 'aviso' : (env.error ? 'aviso' : 'ok'));
+        tCorreo.append(ficha([
+          ['Estado', falta || `Activos · desde ${e.correo?.remitente}`],
+          ['Enviados (24 h)', String(env.enviado || 0)],
+          ['Sin enviar (24 h)', `${(env.sin_config || 0) + (env.error || 0)} (sin configurar: ${env.sin_config || 0}, con error: ${env.error || 0})`],
+          ['Apagados por el cliente (24 h)', String(env.apagado || 0)],
+        ]));
+        if (falta) tCorreo.append(enlace('Configurar en Ajustes → Correos automáticos', '#'));
+        tCorreo.querySelector('a[href="#"]')?.addEventListener('click', (ev) => { ev.preventDefault(); irA('ajustes'); });
+        // Errores de la web
+        const tErrores = tarjetaEstado('Errores en la web', 'i-alerta', e.errores_24h ? 'aviso' : 'ok');
+        tErrores.append(crear('p', 'estado-nota', e.errores_24h
+          ? `${e.errores_24h} error(es) en las últimas 24 h en los navegadores de tus clientes. Si se repite uno, pásaselo a quien mantiene la web.`
+          : 'Ningún error en las últimas 24 h.'));
+        if (e.errores?.length) {
+          const lista = crear('ul', 'errores-lista');
+          for (const er of e.errores.slice(0, 8)) {
+            const li = crear('li');
+            li.append(crear('strong', null, er.mensaje), crear('small', null, `${er.pagina} · ${er.veces} vez/veces · último ${fecha(er.ultimo)}`));
+            li.title = er.detalle || '';
+            lista.append(li);
+          }
+          tErrores.append(lista);
+        }
         // Accesos directos
         const atajos = tarjetaEstado('Supabase', 'i-ajustes');
         const lista = crear('div', 'estado-enlaces');
         lista.append(enlace('Uso y límites del plan', `${PROYECTO}/settings/billing/usage`), enlace('Copias de seguridad', `${PROYECTO}/database/backups/scheduled`),
           enlace('Registros (errores)', `${PROYECTO}/logs/explorer`), enlace('Usuarios (Auth)', `${PROYECTO}/auth/users`), enlace('Archivos (Storage)', `${PROYECTO}/storage/buckets`));
         atajos.append(lista);
-        caja.append(conexion, bd, arch, vivo, usu, dinero, atajos);
+        caja.append(conexion, bd, arch, vivo, usu, dinero, tCorreo, tErrores, atajos);
         pintarOpcionesLimpieza();
       }
 
@@ -1080,6 +1130,8 @@
         ['publicaciones', 'Publicaciones vendidas o rechazadas', 'Borra la publicación y sus fotos (el trato y el dinero quedan).'],
         ['soporte', 'Mensajes de soporte viejos', 'Borra los mensajes del chat en vivo con más antigüedad.'],
         ['huerfanos', 'Archivos sin usar', 'Fotos y capturas que quedaron de subidas fallidas (de más de 1 día, sin importar los días elegidos).'],
+        ['avisos', 'Avisos ya leídos', 'Borra los avisos de la campana que los clientes ya vieron.'],
+        ['errores', 'Errores de la web', 'Borra el registro de errores viejos.'],
       ];
       function pintarOpcionesLimpieza() {
         const caja = $('limpiezaOpciones');
@@ -1089,7 +1141,7 @@
           const c = crear('input');
           c.type = 'checkbox';
           c.value = clave;
-          c.checked = ['chats_tratos', 'capturas_aprobadas', 'recargas_rechazadas', 'huerfanos'].includes(clave);
+          c.checked = ['chats_tratos', 'capturas_aprobadas', 'recargas_rechazadas', 'huerfanos', 'avisos', 'errores'].includes(clave);
           const t = crear('span');
           t.append(crear('strong', null, titulo), crear('small', null, ayuda), crear('em', 'limpieza-conteo'));
           t.lastChild.dataset.clave = clave;
@@ -1208,16 +1260,13 @@
       }
       document.querySelectorAll('#filtroTratos .chip').forEach((b) => b.addEventListener('click', () => cambiarFiltro(b.dataset.filtro)));
 
-      const porConfirmar = (v) => v.estado === 'pendiente_pago' && !!v.pago_informado_en;
       const pastilla = (v) => (v.apelada_en && !['cerrada', 'cancelada'].includes(v.estado)
         ? crear('span', 'pastilla pastilla-apelacion', `Apelación · lo llamó el ${v.apelada_por}`)
-        : crear('span', `pastilla pastilla-${porConfirmar(v) ? 'confirmar' : v.estado}`,
-          porConfirmar(v) ? `Confirmar pago · ${v.metodo_pago} ${v.referencia_pago}` : M.TEXTO_ESTADO_TRATO[v.estado]));
+        : crear('span', `pastilla pastilla-${v.estado}`, M.TEXTO_ESTADO_TRATO[v.estado]));
 
       async function cargarTratos() {
         let consulta = cliente.from('ventas_cuentas').select('*').order('actualizado', { ascending: false }).limit(100);
         if (filtroTratos === 'abiertos') consulta = consulta.in('estado', ['pendiente_pago', 'pagada', 'entregada', 'en_reclamo']);
-        else if (filtroTratos === 'por_confirmar') consulta = consulta.eq('estado', 'pendiente_pago').not('pago_informado_en', 'is', null);
         else consulta = consulta.eq('estado', filtroTratos);
         const { data, error } = await consulta;
         if (error) return aviso('No pudimos cargar los tratos.');
@@ -1226,7 +1275,7 @@
         lista.replaceChildren();
         if (!data.length) return lista.append(vacio('No hay tratos con ese filtro.'));
         for (const v of data) {
-          const fila = crear('button', `trato-fila${porConfirmar(v) || v.estado === 'en_reclamo' || v.apelada_en ? ' trato-fila-toca' : ''}`);
+          const fila = crear('button', `trato-fila${v.estado === 'en_reclamo' || v.apelada_en ? ' trato-fila-toca' : ''}`);
           fila.type = 'button';
           const datos = crear('div', 'trato-fila-datos');
           datos.append(
@@ -1287,8 +1336,12 @@
           ['Vendedor', `${correo(v.vendedor)}${contacto?.whatsapp ? ` · ${contacto.whatsapp}` : ''}`],
           ['Cobrar al comprador', `${usd(v.total_usd)}${v.garantia ? ' (con garantía)' : ''}`],
           ['Para el vendedor', usd(v.precio_usd)],
-          ['Pago', v.metodo_pago === 'Saldo' ? `Con saldo · ${fecha(v.pagada_en)}` : v.pago_informado_en ? `${v.metodo_pago} · ref. ${v.referencia_pago} · ${fecha(v.pago_informado_en)}` : 'Todavía no'],
+          ['Pago', v.metodo_pago === 'Saldo' ? `Con saldo · ${fecha(v.pagada_en)}` : v.pago_informado_en ? `${v.metodo_pago} · ref. ${v.referencia_pago} · ${fecha(v.pago_informado_en)} (sistema anterior)` : 'Sistema anterior, sin pago'],
         ];
+        if (v.estado === 'pagada' && config.horas_entrega > 0 && !v.apelada_en) {
+          const limite = new Date(new Date(v.pagada_en || v.creado).getTime() + config.horas_entrega * 3600_000).toISOString();
+          pares.push(['Plazo de entrega', `${fecha(limite)} · si el vendedor no entrega, se cancela solo y se reembolsa`]);
+        }
         if (v.pagada_en && v.metodo_pago !== 'Saldo') pares.push(['Pago confirmado', fecha(v.pagada_en)]);
         if (v.entregada_en) pares.push(['Datos entregados', fecha(v.entregada_en)]);
         if (v.apelada_en) pares.push(['Apelación', `La pidió el ${v.apelada_por} · ${fecha(v.apelada_en)} · se marca atendida cuando escribas en el chat`]);
@@ -1315,12 +1368,6 @@
           await refrescarTrato();
           chat.traer();
         };
-        if (v.estado === 'pendiente_pago') {
-          boton(caja, `Confirmar pago (${usd(v.total_usd)})`, 'btn-juego', 'i-check', async () => {
-            const r = await dialogo({ titulo: 'Confirmar pago', texto: `¿Verificaste en tu banco o Binance que llegaron ${usd(v.total_usd)}${v.referencia_pago ? ` con la referencia ${v.referencia_pago}` : ''}? El dinero quedará retenido y el vendedor deberá entregar.`, aceptar: 'Sí, llegó el pago' });
-            if (r) await ejecutar('admin_confirmar_pago', { p_venta: v.id }, 'Pago confirmado. El vendedor ya puede entregar.');
-          });
-        }
         const pagadoSaldo = Number(v.pagado_recargado || 0) + Number(v.pagado_disponible || 0);
         const textoReembolso = pagadoSaldo > 0 ? `${usd(pagadoSaldo)} vuelven solos al saldo del comprador.` : `El reembolso de ${usd(v.total_usd)} lo haces tú (trato viejo, pagado por fuera).`;
         if (['pagada', 'entregada', 'en_reclamo'].includes(v.estado)) {
@@ -1396,8 +1443,10 @@
       // ---------------- Ajustes ----------------
       const CLAVES = ['binance_pay_id', 'binance_nombre', 'pm_banco', 'pm_telefono', 'pm_cedula', 'pm_titular', 'tasa_bs',
         'paypal_correo', 'paypal_nombre', 'paypal_recargo', 'recarga_minima', 'instrucciones_pago',
-        'comision_retiro', 'retiro_minimo', 'garantia_usd', 'horas_revision'];
-      const TEXTOS = ['instrucciones_pago', 'binance_pay_id', 'binance_nombre', 'pm_banco', 'pm_telefono', 'pm_cedula', 'pm_titular', 'paypal_correo', 'paypal_nombre'];
+        'comision_retiro', 'retiro_minimo', 'garantia_usd', 'horas_entrega', 'horas_revision', 'dias_liberacion', 'correo_remitente', 'correo_nombre', 'sitio_url'];
+      const TEXTOS = ['instrucciones_pago', 'binance_pay_id', 'binance_nombre', 'pm_banco', 'pm_telefono', 'pm_cedula', 'pm_titular', 'paypal_correo', 'paypal_nombre',
+        'correo_remitente', 'correo_nombre', 'sitio_url'];
+      const CLAVES_CORREO = ['correo_remitente', 'correo_nombre', 'sitio_url'];
       const GRUPOS = {
         binance: ['binance_pay_id', 'binance_nombre'],
         pago_movil: ['pm_banco', 'pm_telefono', 'pm_cedula', 'pm_titular', 'tasa_bs'],
@@ -1421,8 +1470,53 @@
         if (ajustesSucios && !forzar) return;
         for (const { clave, valor } of data || []) if ($(`cfg_${clave}`)) $(`cfg_${clave}`).value = valor;
         ajustesSucios = false;
-        pintarEstados(await M.config());
+        config = await M.config();
+        pintarEstados(config);
+        pintarEstadoCorreo();
       }
+      // Pastilla de "Correos automáticos": activo / falta algo
+      async function pintarEstadoCorreo() {
+        const { data: e } = await cliente.rpc('admin_estado');
+        const el = $('estadoCorreo');
+        if (!e) { el.textContent = ''; return; }
+        const falta = textoFaltaCorreo(e.correo);
+        el.className = `pastilla ${falta ? 'pastilla-recarga-rechazada' : 'pastilla-recarga-aprobada'}`;
+        el.textContent = falta ? 'Sin configurar' : 'Activos';
+        el.title = falta || '';
+      }
+      const textoFaltaCorreo = (c = {}) => (!c.pg_net ? 'Activa la extensión pg_net en Supabase (Database → Extensions).'
+        : !c.vault ? 'Tu proyecto no tiene Vault activo.'
+          : !c.clave ? 'Guarda la clave de Brevo en Vault con el nombre brevo_api_key (ver README).'
+            : !c.remitente ? 'Escribe el correo remitente (el que verificaste en Brevo) y guarda.' : '');
+      document.querySelector('[data-grupo-correo]').addEventListener('click', async (e) => {
+        const b = e.currentTarget;
+        b.disabled = true;
+        try {
+          await guardarClaves(CLAVES_CORREO);
+          ajustesSucios = false;
+          await pintarEstadoCorreo();
+          M.mensaje($('mensajeCorreo'), 'Guardado. Toca "Enviarme un correo de prueba" para comprobarlo.', 'exito');
+        } catch (error) {
+          M.mensaje($('mensajeCorreo'), `No se guardó: ${error.message}`);
+        } finally {
+          b.disabled = false;
+        }
+      });
+      $('btnCorreoPrueba').addEventListener('click', async (e) => {
+        const b = e.currentTarget;
+        b.disabled = true;
+        try {
+          const r = await M.rpc('admin_correo_prueba', {}, 'No se pudo enviar.');
+          const { data: est } = await cliente.rpc('admin_estado');
+          M.mensaje($('mensajeCorreo'), r === 'enviado'
+            ? `Enviado a ${sesion.user.email}. Si no llega en 2 minutos, revisa Spam y el registro de Brevo (Transactional → Logs).`
+            : r === 'sin_config' ? `Todavía falta: ${textoFaltaCorreo(est?.correo || {}) || 'revisa la configuración.'}` : 'Brevo no aceptó el envío. Revisa la clave y que el remitente esté verificado.', r === 'enviado' ? 'exito' : 'aviso');
+        } catch (error) {
+          M.mensaje($('mensajeCorreo'), error.message);
+        } finally {
+          b.disabled = false;
+        }
+      });
       async function guardarClaves(claves) {
         for (const clave of claves) {
           const campo = $(`cfg_${clave}`);

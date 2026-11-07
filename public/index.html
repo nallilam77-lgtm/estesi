@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <script>
     // Modo ligero en todos los celulares y tablets (pantalla táctil), con ahorro de datos o "reducir movimiento": sin desenfoque, animaciones ni transiciones (css/ligero.css)
-    (function () { var n = navigator, c = n.connection || {}; if ((n.deviceMemory && n.deviceMemory <= 2) || (n.hardwareConcurrency && n.hardwareConcurrency <= 4) || c.saveData || /(^|\D)2g/.test(c.effectiveType || '') || (window.matchMedia && (matchMedia('(pointer: coarse)').matches || matchMedia('(prefers-reduced-motion: reduce)').matches))) { document.documentElement.classList.add('ligero'); var l = document.createElement('link'); l.rel = 'stylesheet'; l.href = 'css/ligero.css?v=5'; document.head.appendChild(l); } })();
+    (function () { var n = navigator, c = n.connection || {}; if ((n.deviceMemory && n.deviceMemory <= 2) || (n.hardwareConcurrency && n.hardwareConcurrency <= 4) || c.saveData || /(^|\D)2g/.test(c.effectiveType || '') || (window.matchMedia && (matchMedia('(pointer: coarse)').matches || matchMedia('(prefers-reduced-motion: reduce)').matches))) { document.documentElement.classList.add('ligero'); var l = document.createElement('link'); l.rel = 'stylesheet'; l.href = 'css/ligero.css?v=6'; document.head.appendChild(l); } })();
   </script>
   <meta name="description" content="Compra y vende cuentas de Free Fire con Level Up como intermediario: recarga saldo por Binance, PayPal o Pago Móvil y el dinero queda retenido hasta que la cuenta se entrega.">
   <meta name="theme-color" content="#0b1120">
@@ -15,8 +15,14 @@
   <meta property="og:locale" content="es_VE">
   <meta property="og:title" content="Cuentas de Free Fire · Level Up">
   <meta property="og:description" content="Compra y vende cuentas de Free Fire con intermediario: el dinero queda retenido hasta la entrega.">
+  <meta property="og:url" content="https://estesi-blond.vercel.app/">
+  <meta property="og:image" content="https://estesi-blond.vercel.app/logo.png">
+  <meta property="og:image:alt" content="Logo de Level Up">
+  <meta name="twitter:card" content="summary">
+  <link rel="canonical" href="https://estesi-blond.vercel.app/">
   <link rel="icon" type="image/png" href="logo.png">
   <link rel="apple-touch-icon" href="logo.png">
+  <link rel="manifest" href="manifest.webmanifest">
 
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -25,9 +31,9 @@
   <link rel="stylesheet" href="css/creadores.css">
   <link rel="stylesheet" href="css/billetera.css">
   <link rel="stylesheet" href="css/cuentas.css?v=3">
-  <link rel="stylesheet" href="css/tienda.css?v=10">
+  <link rel="stylesheet" href="css/tienda.css?v=11">
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.js" defer></script>
-  <script src="js/mercado.js?v=7" defer></script>
+  <script src="js/mercado.js?v=8" defer></script>
 </head>
 <body class="tienda">
 
@@ -59,6 +65,10 @@
     <symbol id="i-moneda" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 7v10M9.5 9.5 12 7l2.5 2.5M9.5 14.5 12 17l2.5-2.5"/></symbol>
     <symbol id="i-tarjeta" viewBox="0 0 24 24"><rect x="2" y="5" width="20" height="14" rx="2"/><path d="M2 10h20M6 15h4"/></symbol>
     <symbol id="i-subir" viewBox="0 0 24 24"><path d="M12 16V4M7 9l5-5 5 5"/><path d="M4 16v3a1 1 0 0 0 1 1h14a1 1 0 0 0 1-1v-3"/></symbol>
+    <symbol id="i-campana" viewBox="0 0 24 24"><path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9"/><path d="M10.3 21a1.9 1.9 0 0 0 3.4 0"/></symbol>
+    <symbol id="i-compartir" viewBox="0 0 24 24"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><path d="m8.6 13.5 6.8 4M15.4 6.5l-6.8 4"/></symbol>
+    <symbol id="i-basura" viewBox="0 0 24 24"><path d="M3 6h18M8 6V4h8v2M19 6l-1 14H6L5 6M10 11v6M14 11v6"/></symbol>
+    <symbol id="i-correo" viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="m3 7 9 6 9-6"/></symbol>
   </svg>
 
   <div class="sidebar-overlay" id="menuOverlay" onclick="toggleMenu()"></div>
@@ -95,6 +105,9 @@
       <div class="nav-acciones">
         <a class="nav-enlace nav-enlace-admin oculto" id="enlaceAdmin" href="admin-cuentas.html">Admin</a>
         <button type="button" class="chip-saldo oculto" id="chipSaldo" aria-label="Mi saldo: recargar"><svg class="icono"><use href="#i-billetera"/></svg><span id="chipSaldoTexto">0 USD</span></button>
+        <button type="button" class="btn-campana oculto" id="btnAvisos" aria-label="Avisos" aria-expanded="false" aria-controls="panelAvisos">
+          <svg class="icono"><use href="#i-campana"/></svg><span class="campana-numero oculto" id="numeroAvisos"></span>
+        </button>
         <button type="button" class="btn-nav" data-vista="panel">
           <svg class="icono"><use href="#i-usuario"/></svg><span id="textoBotonPanel">Entrar</span>
           <span class="punto-aviso oculto" id="puntoPanel" aria-label="Tienes tratos pendientes"></span>
@@ -103,6 +116,18 @@
       </div>
     </div>
   </header>
+
+  <section class="panel-avisos oculto" id="panelAvisos" role="dialog" aria-labelledby="tituloAvisos">
+    <div class="avisos-cabecera">
+      <h2 id="tituloAvisos"><svg class="icono"><use href="#i-campana"/></svg>Avisos</h2>
+      <button type="button" class="enlace-texto" id="btnLeerAvisos">Marcar todo como leído</button>
+    </div>
+    <button type="button" class="avisos-permiso oculto" id="btnPermisoAvisos">
+      <svg class="icono"><use href="#i-alerta"/></svg>
+      <span><strong>Activa los avisos del navegador</strong>Te avisamos aunque estés en otra pestaña cuando te compren, te entreguen o te respondan.</span>
+    </button>
+    <div class="avisos-lista" id="listaAvisos"></div>
+  </section>
 
   <main>
     <!-- ================= INICIO (portada + cuentas + información) ================= -->
@@ -172,8 +197,13 @@
               <option value="">Región: todas</option>
               <option>LATAM</option><option>Brasil</option><option>EE. UU.</option><option>Europa</option><option>Asia</option><option>Otra</option>
             </select>
+            <label class="solo-lectores" for="filtroVinculacion">Vinculación</label>
+            <select id="filtroVinculacion">
+              <option value="">Vínculo: todos</option>
+              <option>Facebook</option><option>Google</option><option>VK</option><option>X (Twitter)</option><option>Apple</option><option>Huawei</option><option>Otra</option>
+            </select>
             <label class="solo-lectores" for="filtroPrecio">Precio máximo (USD)</label>
-            <input type="number" id="filtroPrecio" placeholder="Precio máx. (USD)" min="1" max="5000" inputmode="numeric">
+            <input type="number" id="filtroPrecio" placeholder="Máx. USD" min="1" max="5000" inputmode="numeric">
             <label class="solo-lectores" for="filtroOrden">Ordenar</label>
             <select id="filtroOrden">
               <option value="recientes">Más recientes</option>
@@ -234,14 +264,14 @@
             <div>
               <span class="antetitulo">Para vendedores</span>
               <h3>Vende tu cuenta sin miedo a que no te paguen</h3>
-              <p>El comprador paga antes de que entregues nada. Tú solo entregas cuando Level Up confirma que el dinero llegó.</p>
+              <p>El comprador paga con su saldo antes de que entregues nada y Level Up retiene el dinero. Tú solo entregas cuando el trato ya está pagado.</p>
               <div class="hero-botones"><button type="button" class="btn btn-principal" data-vista="vender"><svg class="icono"><use href="#i-mas"/></svg>Publicar mi cuenta</button></div>
             </div>
             <ul class="ventajas-vendedor">
               <li><svg class="icono"><use href="#i-check"/></svg><span><strong>Publicar y vender es gratis.</strong> Recibes el precio completo en tu saldo.</span></li>
               <li><svg class="icono"><use href="#i-check"/></svg><span><strong>Solo <span data-comision>4 %</span> al retirar</strong> tu dinero, nada más.</span></li>
               <li><svg class="icono"><use href="#i-check"/></svg><span><strong>Retiros todos los lunes</strong> por Pago Móvil, Binance o Zinli.</span></li>
-              <li><svg class="icono"><use href="#i-check"/></svg><span><strong>Tu WhatsApp es privado:</strong> solo lo ve Level Up.</span></li>
+              <li><svg class="icono"><use href="#i-check"/></svg><span><strong>Te avisamos por correo</strong> apenas te compren, para que entregues a tiempo.</span></li>
             </ul>
           </div>
         </div>
@@ -260,6 +290,8 @@
             <details><summary>¿Cuánto cuesta vender?<svg class="icono"><use href="#i-mas"/></svg></summary><p>Publicar y vender es gratis y recibes el precio completo en tu saldo. Solo se descuenta un <span data-comision>4 %</span> cuando retiras tu dinero. Los retiros se pagan los lunes.</p></details>
             <details><summary>¿Cómo pago?<svg class="icono"><use href="#i-mas"/></svg></summary><p>Recargas saldo en "Mi saldo" por Binance, PayPal o Pago Móvil (al cambio del día): envías el pago, subes la captura y la referencia, y lo acreditamos apenas lo verificamos. Con ese saldo compras cualquier cuenta al instante.</p></details>
             <details><summary>¿Puedo retirar el saldo que recargué?<svg class="icono"><use href="#i-mas"/></svg></summary><p>El saldo recargado es para comprar cuentas. Lo que se retira es lo que ganas vendiendo (con un <span data-comision>4 %</span> de comisión, los lunes). Si un trato se cancela, lo que pagaste vuelve completo a tu saldo.</p></details>
+            <details><summary>¿Qué pasa si el vendedor no entrega?<svg class="icono"><use href="#i-mas"/></svg></summary><p>El vendedor tiene <span data-entrega>12</span> horas para entregar los datos desde que compras. Si no lo hace, el trato se cancela solo y tu dinero vuelve completo a tu saldo. También puedes tocar "Llamar a Level Up" en el chat del trato en cualquier momento.</p></details>
+            <details><summary>¿Cuándo puedo retirar lo que vendí?<svg class="icono"><use href="#i-mas"/></svg></summary><p>Apenas se cierra el trato, el precio completo entra a tu saldo y puedes usarlo para comprar. Para retirarlo esperas <span data-liberacion>3</span> días: así protegemos al comprador si el dueño anterior intenta recuperar la cuenta. Los retiros se pagan los lunes.</p></details>
             <details><summary>¿Garena puede suspender una cuenta comprada?<svg class="icono"><use href="#i-mas"/></svg></summary><p>Las reglas de Garena no permiten vender cuentas, así que el riesgo existe. Level Up responde por la entrega de la cuenta tal como se publicó, pero no por sanciones que Garena aplique después de cerrado el trato.</p></details>
           </div>
         </div>
@@ -308,6 +340,7 @@
                 </div>
               </div>
               <button type="submit" class="btn-juego espacio-arriba" id="btnAcceso">Entrar</button>
+              <p class="acceso-legal">Al crear tu cuenta aceptas las <a href="reglas-cuentas.html">Reglas del Intermediario</a> y la <a href="privacidad.html">política de privacidad</a>.</p>
             </form>
             <button type="button" class="enlace-texto" id="btnOlvide">¿Olvidaste tu contraseña?</button>
             <div class="panel-mensaje" id="mensajeAcceso" role="status" aria-live="polite"></div>
@@ -329,7 +362,7 @@
           <div class="vender-layout oculto" id="vistaVender">
             <section class="panel-caja" aria-labelledby="tituloVender">
               <h2 id="tituloVender"><svg class="icono"><use href="#i-etiqueta"/></svg>Datos de la cuenta</h2>
-              <p>La revisamos antes de mostrarla. Tu WhatsApp no se publica.</p>
+              <p>La revisamos antes de mostrarla. Te avisamos por correo cuando se publique y cuando alguien la compre.</p>
               <form class="form-publicar" id="formPublicar" novalidate>
                 <div class="campo">
                   <label for="pubTitulo">Título</label>
@@ -359,11 +392,12 @@
                     <input type="number" id="pubPrecio" placeholder="Ej: 25" min="1" max="5000" step="0.01" inputmode="decimal" required>
                   </div>
                   <div class="campo">
-                    <label for="pubWhatsapp">Tu WhatsApp (privado)</label>
+                    <label for="pubWhatsapp">Tu WhatsApp (opcional, privado)</label>
                     <div class="campo-telefono">
                       <span>+58</span>
-                      <input type="tel" id="pubWhatsapp" placeholder="4141234567" inputmode="numeric" maxlength="11" autocomplete="tel-national" required>
+                      <input type="tel" id="pubWhatsapp" placeholder="4141234567" inputmode="numeric" maxlength="11" autocomplete="tel-national" aria-describedby="ayudaWhatsapp">
                     </div>
+                    <p class="campo-ayuda" id="ayudaWhatsapp">Solo lo ve Level Up, por si hay que contactarte rápido.</p>
                   </div>
                 </div>
                 <div class="campo">
@@ -469,6 +503,29 @@
               <div class="mis-cuentas" id="listaMias"></div>
               <div class="panel-mensaje" id="mensajeMias" role="status" aria-live="polite"></div>
             </section>
+
+            <section class="panel-caja" aria-labelledby="tituloMiCuenta">
+              <h2 id="tituloMiCuenta"><svg class="icono"><use href="#i-usuario"/></svg>Tu cuenta</h2>
+              <p>Cómo te avisamos y tus datos.</p>
+              <div class="cuenta-opciones">
+                <label class="opcion-interruptor">
+                  <span class="opcion-texto"><svg class="icono"><use href="#i-correo"/></svg><span><strong>Avisos por correo</strong>Ventas, entregas, recargas, retiros y respuestas de Level Up.</span></span>
+                  <input type="checkbox" class="interruptor" id="prefCorreos" checked>
+                </label>
+                <div class="opcion-interruptor">
+                  <span class="opcion-texto"><svg class="icono"><use href="#i-campana"/></svg><span><strong>Avisos del navegador</strong><span id="textoPermiso">Te avisamos aunque estés en otra pestaña.</span></span></span>
+                  <button type="button" class="btn-secundario" id="btnPermisoPanel">Activar</button>
+                </div>
+              </div>
+              <div class="zona-peligro">
+                <div>
+                  <strong>Borrar mi cuenta</strong>
+                  <p>Se borran tu perfil, tus publicaciones y tus datos. Los tratos ya hechos se conservan sin tus datos personales. <a href="privacidad.html">Privacidad</a></p>
+                </div>
+                <button type="button" class="btn-secundario btn-peligro" id="btnBorrarCuenta"><svg class="icono"><use href="#i-basura"/></svg>Borrar mi cuenta</button>
+              </div>
+              <div class="panel-mensaje" id="mensajeMiCuenta" role="status" aria-live="polite"></div>
+            </section>
           </div>
 
           <!-- MI SALDO -->
@@ -481,7 +538,7 @@
               <strong class="saldo-numero" id="saldoTotal">—</strong>
               <div class="saldo-partes">
                 <div><span>Recargado</span><b id="saldoRecargado">—</b><small>para comprar cuentas</small></div>
-                <div><span>De ventas</span><b id="saldoVentas">—</b><small>se puede retirar</small></div>
+                <div><span>De ventas</span><b id="saldoVentas">—</b><small id="saldoVentasNota">se puede retirar</small></div>
               </div>
               <div class="saldo-botones">
                 <button type="button" class="btn btn-principal" id="btnAbrirRecargar"><svg class="icono"><use href="#i-mas"/></svg>Recargar</button>
@@ -577,7 +634,10 @@
             <li><svg class="icono"><use href="#i-video"/></svg><span><strong>Graba la pantalla sin cortes</strong> desde que uses los datos: sin video no hay reclamo.</span></li>
             <li><svg class="icono"><use href="#i-reloj"/></svg><span>Tienes <span data-horas>24</span> horas para revisar y finalizar. <a href="reglas-cuentas.html" target="_blank" rel="noopener">Ver reglas</a></span></li>
           </ul>
-          <a class="enlace-reglas centrado" id="detallePreguntar" target="_blank" rel="noopener noreferrer">¿Dudas? Pregúntanos por WhatsApp</a>
+          <div class="detalle-enlaces">
+            <button type="button" class="btn-secundario" id="detalleCompartir"><svg class="icono"><use href="#i-compartir"/></svg>Compartir cuenta</button>
+            <a class="enlace-reglas" id="detallePreguntar" target="_blank" rel="noopener noreferrer">¿Dudas? Pregúntanos por WhatsApp</a>
+          </div>
         </div>
       </div>
     </div>
@@ -750,6 +810,7 @@
           <ul>
             <li><button type="button" data-ir="como-funciona">Cómo funciona</button></li>
             <li><a href="reglas-cuentas.html">Reglas del Intermediario</a></li>
+            <li><a href="privacidad.html">Privacidad</a></li>
             <li><a href="https://wa.me/584228887089" target="_blank" rel="noopener noreferrer">Soporte por WhatsApp</a></li>
           </ul>
         </div>
@@ -819,7 +880,7 @@
       const MAX_FOTOS = 6;
       const COLUMNAS = 'id,vendedor,titulo,nivel,region,vinculacion,precio_usd,destacados,descripcion,fotos,estado,creado';
 
-      let config = { comision_retiro: 4, retiro_minimo: 5, garantia_usd: 1, horas_pago: 2, horas_revision: 24, tasa_bs: 0, instrucciones_pago: '' };
+      let config = { comision_retiro: 4, retiro_minimo: 5, garantia_usd: 1, horas_revision: 24, horas_entrega: 12, dias_liberacion: 3, tasa_bs: 0, instrucciones_pago: '' };
       let sesion = null;
       let vista = 'buscar';
       let pagina = 0;
@@ -829,6 +890,7 @@
       let compraPendiente = null;   // { cuenta, garantia } si tocó "Comprar" sin sesión
       let saldoDisponible = 0;      // ganado vendiendo (se retira)
       let saldoRecargado = 0;       // recargado (solo para comprar)
+      let saldoRetirable = 0;       // lo de ventas que ya se liberó (dias_liberacion)
       const saldoTotal = () => redondear(saldoDisponible + saldoRecargado);
       const yo = () => sesion?.user?.id || null;
       const redondear = (n) => Math.round(n * 100) / 100;
@@ -850,6 +912,8 @@
         config = c;
         document.querySelectorAll('[data-comision]').forEach((el) => { el.textContent = `${config.comision_retiro} %`; });
         document.querySelectorAll('[data-horas]').forEach((el) => { el.textContent = String(config.horas_revision); });
+        document.querySelectorAll('[data-entrega]').forEach((el) => { el.textContent = String(config.horas_entrega); });
+        document.querySelectorAll('[data-liberacion]').forEach((el) => { el.textContent = String(config.dias_liberacion); });
         $('statHoras').textContent = `${config.horas_revision} h`;
         $('textoGarantia').textContent = String(config.garantia_usd);
         $('recMonto').min = String(config.recarga_minima || 1);
@@ -945,6 +1009,7 @@
         // Solo letras, números y espacios: el texto va dentro de un filtro de PostgREST
         const texto = $('filtroTexto').value.normalize('NFC').replace(/[^\p{L}\p{N} ]/gu, ' ').trim().replace(/\s+/g, ' ');
         const region = $('filtroRegion').value;
+        const vinculacion = $('filtroVinculacion').value;
         const precioMax = Number($('filtroPrecio').value);
         const orden = $('filtroOrden').value;
 
@@ -952,6 +1017,7 @@
         if (filtroVendedor) consulta = consulta.eq('vendedor', filtroVendedor.id);
         if (texto) consulta = consulta.or(`titulo.ilike.*${texto}*,destacados.ilike.*${texto}*`);
         if (region) consulta = consulta.eq('region', region);
+        if (vinculacion) consulta = consulta.eq('vinculacion', vinculacion);
         if (precioMax > 0) consulta = consulta.lte('precio_usd', precioMax);
         if (orden === 'barato') consulta = consulta.order('precio_usd', { ascending: true });
         else if (orden === 'caro') consulta = consulta.order('precio_usd', { ascending: false });
@@ -970,11 +1036,11 @@
         if (turno !== busquedaActual) return;
         for (const cuenta of data) $('gridCuentas').append(tarjeta(cuenta));
         const mostradas = $('gridCuentas').children.length;
-        const hayFiltros = texto || region || precioMax || filtroVendedor;
+        const hayFiltros = texto || region || vinculacion || precioMax || filtroVendedor;
         $('conteoCuentas').textContent = count ? `${count} cuenta${count === 1 ? '' : 's'}${hayFiltros ? ' con esos filtros' : count === 1 ? ' disponible' : ' disponibles'}` : '';
         if (!mostradas) {
           $('estadoLista').replaceChildren(hayFiltros
-            ? estadoVacio('No hay cuentas con esos filtros', 'Prueba con otra búsqueda, otra región o un precio más alto.', false)
+            ? estadoVacio('No hay cuentas con esos filtros', 'Prueba con otra búsqueda, otra región, otra vinculación o un precio más alto.', false)
             : estadoVacio('Todavía no hay cuentas publicadas', 'Sé el primero en vender: publicar es gratis y cobras sin riesgo.', true));
         }
         $('btnVerMas').classList.toggle('oculto', mostradas >= (count || 0));
@@ -1062,6 +1128,7 @@
         if (document.querySelectorAll('.ventana:not(.oculto)').length === 0) document.body.classList.remove('no-scroll');
         if (id === 'ventanaTrato') { chat.cerrar(); tratoAbierto = null; if (vista === 'panel' && sesion) cargarTratos(); }
         if (id === 'ventanaRecarga') { chatRecarga.cerrar(); recargaAbierta = null; if (sesion) { cargarRecargas(); cargarSaldo(); } }
+        if (id === 'ventanaDetalle' && /^#cuenta-\d+$/.test(location.hash)) { try { history.replaceState(null, '', location.pathname); } catch (e) { /* sin historial */ } }
         ultimoFoco?.focus?.();
       }
       document.querySelectorAll('.ventana').forEach((v) => {
@@ -1071,7 +1138,8 @@
       document.addEventListener('keydown', (e) => {
         if (e.key !== 'Escape') return;
         const abierta = [...document.querySelectorAll('.ventana:not(.oculto)')].pop();
-        if (abierta) cerrarVentana(abierta.id);
+        if (avisosAbierto()) cerrarAvisos();
+        else if (abierta) cerrarVentana(abierta.id);
         else if (soporteAbierto) cerrarSoporte();
       });
 
@@ -1125,6 +1193,30 @@
         $('detallePreguntar').href = `https://wa.me/${M.WHATSAPP}?text=${encodeURIComponent(texto)}`;
         actualizarPrecioDetalle();
         abrirVentana('ventanaDetalle');
+        // Enlace directo a esta cuenta (para compartirla en WhatsApp o Instagram)
+        if (vista === 'buscar') { try { history.replaceState(null, '', `#cuenta-${cuenta.id}`); } catch (e) { /* sin historial */ } }
+      }
+      const enlaceCuenta = (id) => `${location.origin}${location.pathname}#cuenta-${id}`;
+      $('detalleCompartir').addEventListener('click', async (e) => {
+        if (!cuentaAbierta) return;
+        const url = enlaceCuenta(cuentaAbierta.id);
+        const texto = `${cuentaAbierta.titulo} · ${usd(cuentaAbierta.precio_usd)} en Level Up (compra protegida)`;
+        if (navigator.share && matchMedia('(pointer: coarse)').matches) {
+          try { await navigator.share({ title: codigoCuenta(cuentaAbierta.id), text: texto, url }); return; } catch (error) { if (error.name === 'AbortError') return; }
+        }
+        const ok = await M.copiar(url, e.currentTarget);
+        M.notificar(ok ? 'Enlace de la cuenta copiado. Pégalo en WhatsApp, Instagram o donde quieras.' : 'No se pudo copiar el enlace.', ok ? 'exito' : 'error');
+      });
+      // Abre una cuenta por su número (enlace #cuenta-N)
+      async function abrirCuentaPorId(id) {
+        const { data } = await cliente.from('cuentas_venta').select(COLUMNAS).eq('id', id).maybeSingle();
+        if (!data || (data.estado !== 'publicada' && data.vendedor !== yo())) {
+          M.notificar(`La cuenta ${codigoCuenta(id)} ya no está a la venta. Mira las demás.`, 'aviso', { titulo: 'Cuenta no disponible' });
+          $('cuentas').scrollIntoView({ block: 'start' });
+          return;
+        }
+        await cargarReputacion([data.vendedor]);
+        abrirDetalle(data);
       }
       const totalCompra = (cuenta, garantia) => redondear(Number(cuenta.precio_usd) + (garantia ? config.garantia_usd : 0));
       async function cargarOpiniones(vendedor) {
@@ -1332,7 +1424,7 @@
         if (datos.titulo.length < 8) return M.mensaje(aviso, 'El título debe tener al menos 8 letras.');
         if (!Number.isInteger(datos.nivel) || datos.nivel < 1 || datos.nivel > 100) return M.mensaje(aviso, 'El nivel debe estar entre 1 y 100.');
         if (!(datos.precio_usd >= 1 && datos.precio_usd <= 5000)) return M.mensaje(aviso, 'El precio debe estar entre 1 y 5.000 USD.');
-        if (!/^(412|414|416|422|424|426)\d{7}$/.test(telefono)) return M.mensaje(aviso, 'Escribe tu WhatsApp venezolano sin el 0. Ej: 4141234567.');
+        if (telefono && !/^(412|414|416|422|424|426)\d{7}$/.test(telefono)) return M.mensaje(aviso, 'Escribe tu WhatsApp venezolano sin el 0 (ej: 4141234567) o déjalo vacío.');
         if (!fotosElegidas.length) return M.mensaje(aviso, 'Agrega al menos una foto de la cuenta.');
         if (!$('pubAcepto').checked) return M.mensaje(aviso, 'Para publicar debes aceptar las Reglas del Intermediario.');
         if (!miPerfil) {
@@ -1357,10 +1449,13 @@
           boton.textContent = 'Publicando…';
           const { data, error } = await cliente.from('cuentas_venta').insert({ ...datos, fotos: subidas }).select('id').single();
           if (error) throw error;
-          const { error: errorContacto } = await cliente.from('cuentas_contacto').insert({ cuenta: data.id, whatsapp: `+58${telefono}` });
-          if (errorContacto) {
-            await cliente.from('cuentas_venta').delete().eq('id', data.id);
-            throw errorContacto;
+          // El WhatsApp es opcional: si no se guarda, la publicación sigue igual (solo se avisa)
+          if (telefono) {
+            const { error: errorContacto } = await cliente.from('cuentas_contacto').insert({ cuenta: data.id, whatsapp: `+58${telefono}` });
+            if (errorContacto) {
+              console.error('contacto', errorContacto);
+              M.notificar('Tu cuenta se publicó, pero no pudimos guardar tu WhatsApp. No pasa nada: te avisamos por correo.', 'aviso');
+            }
           }
           fotosElegidas.forEach((f) => URL.revokeObjectURL(f.vista));
           fotosElegidas = [];
@@ -1409,8 +1504,7 @@
       // ¿Le toca actuar a este usuario?
       function teToca(v) {
         const rol = v.comprador === yo() ? 'comprador' : 'vendedor';
-        return (rol === 'comprador' && v.estado === 'pendiente_pago' && !v.pago_informado_en)
-          || (rol === 'vendedor' && v.estado === 'pagada')
+        return (rol === 'vendedor' && v.estado === 'pagada')
           || (rol === 'comprador' && v.estado === 'entregada');
       }
 
@@ -1446,10 +1540,11 @@
       async function cargarSaldo() {
         if (!sesion) return;
         const antes = saldoTotal();
-        const [saldo, movimientos, retiros] = await Promise.all([
+        const [saldo, movimientos, retiros, libre] = await Promise.all([
           cliente.from('saldos_vendedor').select('disponible,recargado,ventas').eq('vendedor', yo()).maybeSingle(),
           cliente.from('movimientos_vendedor').select('tipo,monto,saldo_despues,detalle,creado').order('id', { ascending: false }).limit(20),
           cliente.from('retiros').select('id,monto_usd,neto_usd,metodo,estado,referencia,motivo,creado').order('id', { ascending: false }).limit(10),
+          cliente.rpc('mi_saldo'),
         ]);
         if (saldo.error) return;
         saldoDisponible = Number(saldo.data?.disponible || 0);
@@ -1467,9 +1562,16 @@
           for (const el of [$('saldoTotal'), $('chipSaldo')]) { el.classList.remove('saldo-sube'); void el.offsetWidth; el.classList.add('saldo-sube'); }
         }
         $('saldoTotal').dataset.listo = '1';
-        $('textoReputacion').textContent = saldoDisponible > 0
-          ? `Tienes ${usd(saldoDisponible)} de ventas para retirar. Los retiros se pagan los lunes. El saldo recargado es solo para comprar.`
-          : 'Aquí se suma el precio de cada cuenta que vendas. Los retiros se pagan los lunes. El saldo recargado es solo para comprar.';
+        // Lo de ventas recientes se usa para comprar, pero se retira pasados `dias_liberacion` días
+        const porLiberar = Number(libre.data?.por_liberar || 0);
+        saldoRetirable = libre.error ? saldoDisponible : Number(libre.data?.retirable || 0);
+        const cuando = libre.data?.proxima_liberacion ? new Date(libre.data.proxima_liberacion).toLocaleDateString('es-VE', { weekday: 'long', day: 'numeric', month: 'long' }) : '';
+        $('saldoVentasNota').textContent = porLiberar > 0 ? `${usd(saldoRetirable)} para retirar ya` : 'se puede retirar';
+        $('textoReputacion').textContent = saldoDisponible <= 0
+          ? 'Aquí se suma el precio de cada cuenta que vendas. Los retiros se pagan los lunes. El saldo recargado es solo para comprar.'
+          : porLiberar > 0
+            ? `Puedes retirar ${usd(saldoRetirable)} ahora. ${usd(porLiberar)} de ventas recientes se liberan ${cuando ? `desde el ${cuando}` : 'en unos días'} (ya puedes usarlos para comprar). Los retiros se pagan los lunes.`
+            : `Tienes ${usd(saldoDisponible)} de ventas para retirar. Los retiros se pagan los lunes. El saldo recargado es solo para comprar.`;
         actualizarNeto();
         actualizarPrecioDetalle();
         pintarTabla($('tablaMovimientos'), movimientos.data || [], 'Todavía no hay movimientos.', (m) => [
@@ -1497,7 +1599,11 @@
         const monto = redondear(Number($('retMonto').value));
         const datos = $('retDatos').value.trim();
         if (!(monto >= config.retiro_minimo)) return M.mensaje(aviso, `El retiro mínimo es ${usd(config.retiro_minimo)}.`);
-        if (monto > saldoDisponible) return M.mensaje(aviso, `Puedes retirar hasta ${usd(saldoDisponible)} (lo ganado en ventas).`);
+        if (monto > saldoRetirable) {
+          return M.mensaje(aviso, saldoRetirable < saldoDisponible
+            ? `Ahora puedes retirar hasta ${usd(saldoRetirable)}. Lo de ventas recientes se libera a los ${config.dias_liberacion} días.`
+            : `Puedes retirar hasta ${usd(saldoRetirable)} (lo ganado en ventas).`);
+        }
         if (datos.length < 5) return M.mensaje(aviso, 'Escribe tus datos de cobro (banco, teléfono y cédula, o tu correo de Binance).');
         if (!await M.confirmar({ titulo: `Retirar ${usd(monto)}`, texto: `Recibirás ${usd(redondear(monto * (100 - config.comision_retiro) / 100))} por ${$('retMetodo').value} el lunes (se descuenta el ${config.comision_retiro} %).`, aceptar: 'Pedir retiro' })) return;
         const boton = $('btnRetiro');
@@ -1942,6 +2048,7 @@
       });
       async function abrirRecarga(id) {
         recargaAbierta = id;
+        leerAvisos(`recarga-${id}`);
         $('recargaDatos').replaceChildren();
         $('recargaCaptura').removeAttribute('src');
         abrirVentana('ventanaRecarga');
@@ -2012,7 +2119,7 @@
         $('btnSoporte').classList.add('activo');
         document.body.classList.add('soporte-abierto');
         pintarSoporte();
-        if (sesion) { marcarVisto(); setTimeout(() => $('soporteTexto').focus({ preventScroll: true }), 80); }
+        if (sesion) { marcarVisto(); leerAvisos('soporte'); setTimeout(() => $('soporteTexto').focus({ preventScroll: true }), 80); }
       }
       function cerrarSoporte() {
         soporteAbierto = false;
@@ -2047,12 +2154,181 @@
           M.enVivo('mis-tratos', ['mensajes_venta'], (m) => {
             if (!m || m.autor === uid || tratoAbierto === m.venta) return;
             cargarTratos();
-            const quien = m.rol === 'sistema' ? 'Level Up' : (M.TEXTO_ROL[m.rol] || 'Alguien');
-            M.notificar(`${quien}: ${m.texto.slice(0, 140)}`, m.rol === 'sistema' ? 'info' : 'info', { titulo: `Trato ${codigoTrato(m.venta)}`, alTocar: () => { mostrarVista('panel'); abrirTrato(m.venta); } });
+            if (m.rol === 'sistema') return;   // los cambios de estado llegan como aviso de la campana
+            const quien = M.TEXTO_ROL[m.rol] || 'Alguien';
+            M.notificar(`${quien}: ${m.texto.slice(0, 140)}`, 'info', { titulo: `Trato ${codigoTrato(m.venta)}`, alTocar: () => { mostrarVista('panel'); abrirTrato(m.venta); } });
           }),
+          M.enVivo('mis-avisos', ['notificaciones'], (n) => avisoNuevo(n), { filtro: `usuario=eq.${uid}` }),
         ];
+        cargarAvisos();
+        cargarPreferencias();
         cortarVigilancia = () => cortes.forEach((c) => c());
       }
+
+      // ---------------- Avisos (campana, navegador) ----------------
+      let avisos = [];
+      const ICONO_AVISO = { venta: 'i-dinero', cobro: 'i-dinero', entrega: 'i-check', calificar: 'i-estrella', cancelado: 'i-alerta', reclamo: 'i-alerta',
+        apelacion: 'i-alerta', mensaje: 'i-chat', soporte: 'i-chat', chat: 'i-chat', recarga: 'i-billetera', retiro: 'i-billetera', ajuste: 'i-billetera', moderacion: 'i-etiqueta' };
+      // Estos ya muestran su propio aviso flotante (chats y recargas en vivo): la campana solo los cuenta
+      const SIN_FLOTANTE = ['mensaje', 'soporte', 'recarga', 'chat'];
+      const puedeNotificar = () => 'Notification' in window && window.isSecureContext;
+      function haceCuanto(iso) {
+        const min = Math.round((Date.now() - new Date(iso).getTime()) / 60000);
+        if (min < 1) return 'ahora';
+        if (min < 60) return `hace ${min} min`;
+        if (min < 1440) return `hace ${Math.round(min / 60)} h`;
+        return fecha(iso);
+      }
+      function irAAviso(n) {
+        cerrarAvisos();
+        const e = n.enlace || '';
+        let m;
+        if (e.startsWith('admin:')) { location.href = 'admin-cuentas.html'; return; }
+        if ((m = /^trato-(\d+)$/.exec(e))) { mostrarVista('panel'); abrirTrato(Number(m[1])); return; }
+        if ((m = /^recarga-(\d+)$/.exec(e))) { mostrarVista('saldo'); abrirRecarga(Number(m[1])); return; }
+        if ((m = /^cuenta-(\d+)$/.exec(e))) { if (vista !== 'buscar') mostrarVista('buscar'); abrirCuentaPorId(Number(m[1])); return; }
+        if (e === 'soporte') { abrirSoporte(); return; }
+        if (['saldo', 'panel', 'vender'].includes(e)) mostrarVista(e);
+      }
+      function pintarAvisos() {
+        const sinLeer = avisos.filter((n) => !n.leida).length;
+        $('numeroAvisos').textContent = sinLeer > 9 ? '9+' : String(sinLeer);
+        $('numeroAvisos').classList.toggle('oculto', !sinLeer);
+        $('btnAvisos').setAttribute('aria-label', sinLeer ? `Avisos: ${sinLeer} sin leer` : 'Avisos');
+        $('btnLeerAvisos').classList.toggle('oculto', !sinLeer);
+        $('btnPermisoAvisos').classList.toggle('oculto', !puedeNotificar() || Notification.permission !== 'default');
+        const lista = $('listaAvisos');
+        lista.replaceChildren();
+        if (!avisos.length) {
+          lista.append(crear('p', 'avisos-vacio', 'Aquí te avisamos cuando te compren, te entreguen una cuenta, se apruebe tu recarga o te respondamos.'));
+          return;
+        }
+        for (const n of avisos) {
+          const b = crear('button', `aviso-item${n.leida ? '' : ' sin-leer'}`);
+          b.type = 'button';
+          const ic = crear('span', 'icono-caja');
+          ic.append(icono(ICONO_AVISO[n.tipo] || 'i-campana'));
+          const t = crear('span', 'aviso-item-texto');
+          t.append(crear('strong', null, n.titulo), crear('span', null, n.texto), crear('small', null, haceCuanto(n.creado)));
+          b.append(ic, t);
+          b.addEventListener('click', () => { leerAvisos(n.enlace); irAAviso(n); });
+          lista.append(b);
+        }
+      }
+      async function cargarAvisos() {
+        if (!sesion) return;
+        const { data, error } = await cliente.from('notificaciones').select('id,tipo,titulo,texto,enlace,leida,creado').order('id', { ascending: false }).limit(30);
+        if (error) return;
+        avisos = data;
+        $('btnAvisos').classList.remove('oculto');
+        pintarAvisos();
+      }
+      function avisoNuevo(n) {
+        if (!n?.id || avisos.some((a) => a.id === n.id)) return;
+        avisos = [n, ...avisos].slice(0, 30);
+        pintarAvisos();
+        const b = $('btnAvisos');
+        b.classList.remove('llamando'); void b.offsetWidth; b.classList.add('llamando');
+        if (/^trato-/.test(n.enlace)) cargarTratos();
+        if (['cobro', 'retiro', 'ajuste', 'cancelado'].includes(n.tipo)) cargarSaldo();
+        // Pestaña en segundo plano: notificación del sistema (si dio permiso). Si no, aviso flotante.
+        if (document.hidden && puedeNotificar() && Notification.permission === 'granted') {
+          try {
+            const nota = new Notification(n.titulo, { body: n.texto, icon: 'logo.png', tag: `levelup-${n.id}` });
+            nota.onclick = () => { window.focus(); leerAvisos(n.enlace); irAAviso(n); nota.close(); };
+          } catch (e) { /* algunos móviles solo permiten avisos desde la app instalada */ }
+        } else if (!SIN_FLOTANTE.includes(n.tipo)) {
+          const tipo = ['cancelado', 'reclamo', 'apelacion'].includes(n.tipo) ? 'aviso' : 'exito';
+          M.notificar(n.texto, tipo, { titulo: n.titulo, duracion: 9000, alTocar: () => { leerAvisos(n.enlace); irAAviso(n); } });
+        }
+      }
+      // Marca como leídos los avisos de un enlace (o todos con null)
+      function leerAvisos(enlace) {
+        if (!sesion) return;
+        const hay = avisos.some((n) => !n.leida && (enlace == null || n.enlace === enlace));
+        if (!hay) return;
+        avisos = avisos.map((n) => (enlace == null || n.enlace === enlace ? { ...n, leida: true } : n));
+        pintarAvisos();
+        cliente.rpc('notificaciones_leer', { p_enlace: enlace }).then(() => {}, () => {});
+      }
+      function abrirAvisos() {
+        $('panelAvisos').classList.remove('oculto');
+        $('btnAvisos').setAttribute('aria-expanded', 'true');
+        pintarAvisos();
+      }
+      function cerrarAvisos() {
+        $('panelAvisos').classList.add('oculto');
+        $('btnAvisos').setAttribute('aria-expanded', 'false');
+      }
+      const avisosAbierto = () => !$('panelAvisos').classList.contains('oculto');
+      $('btnAvisos').addEventListener('click', (e) => { e.stopPropagation(); if (avisosAbierto()) cerrarAvisos(); else abrirAvisos(); });
+      document.addEventListener('click', (e) => { if (avisosAbierto() && !$('panelAvisos').contains(e.target)) cerrarAvisos(); });
+      $('btnLeerAvisos').addEventListener('click', () => leerAvisos(null));
+      async function pedirPermiso() {
+        if (!puedeNotificar()) return M.notificar('Tu navegador no permite avisos. En iPhone, agrega Level Up a la pantalla de inicio y ábrelo desde ahí.', 'aviso');
+        const r = await Notification.requestPermission();
+        M.notificar(r === 'granted' ? 'Listo: te avisaremos aunque estés en otra pestaña.' : 'No diste permiso. Puedes activarlo después en el candado de la barra de direcciones.', r === 'granted' ? 'exito' : 'aviso');
+        pintarAvisos();
+        pintarPermiso();
+      }
+      $('btnPermisoAvisos').addEventListener('click', pedirPermiso);
+      $('btnPermisoPanel').addEventListener('click', pedirPermiso);
+
+      // ---------------- Tu cuenta (preferencias y borrar) ----------------
+      function pintarPermiso() {
+        const b = $('btnPermisoPanel');
+        if (!puedeNotificar()) { $('textoPermiso').textContent = 'Este navegador no los permite (en iPhone: agrega la tienda a tu pantalla de inicio).'; b.classList.add('oculto'); return; }
+        const p = Notification.permission;
+        $('textoPermiso').textContent = p === 'granted' ? 'Activados en este dispositivo.' : p === 'denied' ? 'Bloqueados: actívalos en el candado de la barra de direcciones.' : 'Te avisamos aunque estés en otra pestaña.';
+        b.classList.toggle('oculto', p !== 'default');
+      }
+      async function cargarPreferencias() {
+        pintarPermiso();
+        if (!sesion) return;
+        const { data } = await cliente.from('preferencias').select('correos').eq('usuario', yo()).maybeSingle();
+        $('prefCorreos').checked = data ? data.correos : true;
+      }
+      $('prefCorreos').addEventListener('change', async (e) => {
+        const si = e.target.checked;
+        try {
+          await M.rpc('preferencias_guardar', { p_correos: si }, 'No pudimos guardar tu preferencia.');
+          M.notificar(si ? 'Te avisaremos por correo de lo importante.' : 'Listo: ya no te enviaremos correos (seguirás viendo los avisos aquí).', 'exito');
+        } catch (error) {
+          e.target.checked = !si;
+          M.notificar(error.message, 'error');
+        }
+      });
+      $('btnBorrarCuenta').addEventListener('click', async () => {
+        const aviso = $('mensajeMiCuenta');
+        const b = $('btnBorrarCuenta');
+        b.disabled = true;
+        try {
+          const rev = await M.rpc('cuenta_eliminar_revisar', {}, 'No pudimos revisar tu cuenta.');
+          if (!rev.puede) { M.mensaje(aviso, rev.motivo, 'aviso'); return; }
+          const r = await M.confirmar({
+            titulo: 'Borrar mi cuenta para siempre',
+            texto: rev.historial
+              ? 'Se borran tu perfil, tus publicaciones, tus avisos y tu acceso. Los tratos que ya hiciste se conservan sin tus datos personales, porque la otra parte los necesita. No se puede deshacer.'
+              : 'Se borran tu perfil, tus publicaciones, tus recargas y tu acceso. No se puede deshacer.',
+            campo: { etiqueta: 'Escribe ELIMINAR para confirmar', placeholder: 'ELIMINAR', obligatorio: true, minimo: 8, max: 20 },
+            aceptar: 'Borrar mi cuenta', peligro: true,
+          });
+          if (!r) return;
+          if (r.texto.trim().toUpperCase() !== 'ELIMINAR') { M.mensaje(aviso, 'Escribe ELIMINAR (en mayúsculas o minúsculas) para confirmar.'); return; }
+          const res = await M.rpc('cuenta_eliminar', { p_confirmacion: r.texto }, 'No pudimos borrar tu cuenta. Escríbenos al chat de soporte.');
+          // Fotos y capturas: se borran del Storage (si alguna queda, la limpieza del admin la quita)
+          for (const [bucket, rutas] of Object.entries(res.archivos || {})) {
+            for (let i = 0; i < rutas.length; i += 100) await cliente.storage.from(bucket).remove(rutas.slice(i, i + 100)).catch(() => {});
+          }
+          await cliente.auth.signOut({ scope: 'local' }).catch(() => {});
+          mostrarVista('buscar');
+          M.notificar('Tu cuenta fue borrada. Gracias por haber usado Level Up.', 'exito', { titulo: 'Cuenta borrada', duracion: 10000 });
+        } catch (error) {
+          M.mensaje(aviso, error.message);
+        } finally {
+          b.disabled = false;
+        }
+      });
 
       // ---------------- Trato ----------------
       let tratoAbierto = null;
@@ -2066,6 +2342,7 @@
 
       async function abrirTrato(id) {
         tratoAbierto = id;
+        leerAvisos(`trato-${id}`);
         delete nombresTrato.comprador;
         delete nombresTrato.vendedor;
         $('mensajeTrato').textContent = '';
@@ -2139,48 +2416,19 @@
           $('avisoApelacion').textContent = `Level Up fue llamado ${v.apelada_por === rol ? 'por ti' : `por el ${v.apelada_por}`} (${fecha(v.apelada_en)}). Un administrador entrará a este chat; mientras tanto no entreguen ni cambien nada.`;
         }
 
-        if (v.estado === 'pendiente_pago' && rol === 'comprador') {
-          if (v.pago_informado_en) {
-            parrafo(`Informaste tu pago por ${v.metodo_pago} (referencia ${v.referencia_pago}). Level Up lo está verificando: te avisamos en el chat.`, 'trato-texto destacado');
-          } else {
-            parrafo(`Paga ${usd(v.total_usd)}${config.tasa_bs > 0 ? ` (≈ ${M.bs(v.total_usd * config.tasa_bs)} a la tasa de hoy)` : ''} antes del ${limite(v.creado, config.horas_pago)} o el trato se cancela solo.`, 'trato-texto destacado');
-            if (config.instrucciones_pago) parrafo(config.instrucciones_pago, 'trato-texto instrucciones-pago');
-            const form = crear('form', 'form-publicar');
-            form.noValidate = true;
-            form.innerHTML = `
-              <div class="form-fila">
-                <div class="campo"><label for="pagoMetodo">Pagaste por</label><select id="pagoMetodo"></select></div>
-                <div class="campo"><label for="pagoReferencia">Referencia</label><input type="text" id="pagoReferencia" placeholder="Número de referencia" maxlength="40" autocomplete="off"></div>
-              </div>
-              <button type="submit" class="btn-juego">Ya pagué</button>`;
-            M.METODOS.forEach((m) => form.querySelector('#pagoMetodo').add(new Option(m)));
-            form.addEventListener('submit', async (e) => {
-              e.preventDefault();
-              const referencia = form.querySelector('#pagoReferencia').value.trim().replace(/\s+/g, '');
-              if (!/^[A-Za-z0-9-]{4,40}$/.test(referencia)) return M.mensaje($('mensajeTrato'), 'Escribe la referencia de tu pago (solo letras y números).');
-              const enviar = form.querySelector('button');
-              enviar.disabled = true;
-              try {
-                await hecho('venta_informar_pago', { p_venta: v.id, p_metodo: form.querySelector('#pagoMetodo').value, p_referencia: referencia }, 'Pago informado. Te avisamos en el chat cuando lo confirmemos.');
-              } catch (error) { M.mensaje($('mensajeTrato'), error.message); } finally { enviar.disabled = false; }
-            });
-            caja.append(form);
-          }
-          boton('Cancelar compra', 'btn-secundario btn-peligro', async () => {
-            if (!await M.confirmar({ titulo: 'Cancelar esta compra', texto: 'La cuenta vuelve al mercado.', aceptar: 'Sí, cancelar', cancelar: 'Volver', peligro: true })) return;
-            await hecho('venta_cancelar', { p_venta: v.id }, 'Compra cancelada.');
-          });
-        } else if (v.estado === 'pendiente_pago') {
-          parrafo('Alguien está comprando tu cuenta. Está reservada mientras paga; cuando Level Up confirme el pago, te avisamos aquí para que entregues los datos.');
+        // Con apelación no corre el plazo automático: decide Level Up
+        const plazoEntrega = config.horas_entrega > 0 && v.pagada_en && !v.apelada_en ? limite(v.pagada_en, config.horas_entrega) : '';
+        if (v.estado === 'pendiente_pago') {
+          parrafo('Trato del sistema anterior (pago por fuera). Llama a Level Up desde el chat para cerrarlo.', 'trato-texto');
         } else if (v.estado === 'pagada' && rol === 'vendedor') {
-          parrafo('¡El comprador ya pagó! El dinero está retenido por Level Up.', 'trato-texto destacado');
+          parrafo(`¡El comprador ya pagó! El dinero está retenido por Level Up.${plazoEntrega ? ` Entrega antes del ${plazoEntrega} o el trato se cancela solo y el dinero vuelve al comprador.` : ''}`, 'trato-texto destacado');
           parrafo('1) Escribe en el chat el correo/usuario y la contraseña de la cuenta y quita las vinculaciones que el comprador tenga que cambiar. 2) Cuando termines, toca el botón. No entregues nada fuera de este chat.');
           boton('Ya entregué los datos', 'btn-juego', async () => {
             if (!await M.confirmar({ titulo: '¿Ya entregaste los datos?', texto: 'Confirma que escribiste en el chat el correo/usuario y la contraseña de la cuenta. Desde ahora el comprador tiene tiempo para revisarla.', aceptar: 'Sí, ya los entregué', cancelar: 'Todavía no' })) return;
             await hecho('venta_entregar', { p_venta: v.id }, 'Listo. El comprador ya puede revisar la cuenta.');
           });
         } else if (v.estado === 'pagada') {
-          parrafo('Pagaste con tu saldo y Level Up lo retiene. Espera a que el vendedor escriba los datos en este chat.', 'trato-texto destacado');
+          parrafo(`Pagaste con tu saldo y Level Up lo retiene. Espera a que el vendedor escriba los datos en este chat.${plazoEntrega ? ` Si no entrega antes del ${plazoEntrega}, el trato se cancela solo y te devolvemos todo.` : ''}`, 'trato-texto destacado');
           parrafo('Prepara la grabación de pantalla: desde que uses los datos tienes que grabar sin cortes. Sin video no hay reclamo.');
         } else if (v.estado === 'entregada' && rol === 'comprador') {
           parrafo('GRABA LA PANTALLA SIN CORTES desde que uses los datos (máximo 5 minutos después de la entrega).', 'trato-texto alerta');
@@ -2219,7 +2467,7 @@
         } else if (v.estado === 'cerrada') {
           parrafo(rol === 'comprador'
             ? 'Trato cerrado. La cuenta es tuya: no compartas tus datos con nadie.'
-            : `Trato cerrado. ${usd(v.precio_usd)} ya están en tu saldo de ventas.`, 'trato-texto destacado');
+            : `Trato cerrado. ${usd(v.precio_usd)} ya están en tu saldo de ventas.${config.dias_liberacion > 0 ? ` Puedes usarlos para comprar ya; para retirarlos espera ${config.dias_liberacion} días desde el cierre.` : ''}`, 'trato-texto destacado');
           pintarCalificacion(v, rol, caja);
         } else if (v.estado === 'cancelada') {
           parrafo(`Trato cancelado. ${v.resolucion || ''}`, 'trato-texto');
@@ -2316,7 +2564,10 @@
           setTimeout(() => {
             mostrarVista(vista);
             if (evento === 'SIGNED_IN') { cargarSaldo(); vigilar(); pintarSoporte(); cargarMiPerfil(); }
-            if (evento === 'SIGNED_OUT') { saldoDisponible = 0; saldoRecargado = 0; cortarVigilancia(); chatSoporte.cerrar(); pintarSoporte(); }
+            if (evento === 'SIGNED_OUT') {
+              saldoDisponible = 0; saldoRecargado = 0; saldoRetirable = 0; cortarVigilancia(); chatSoporte.cerrar(); pintarSoporte();
+              avisos = []; cerrarAvisos(); $('btnAvisos').classList.add('oculto');
+            }
             if (evento === 'SIGNED_IN' && compraPendiente) {
               const pedido = compraPendiente;
               compraPendiente = null;
@@ -2341,6 +2592,8 @@
         if (perfil) abrirPerfil(perfil[1]);   // punto de aviso en "Mi panel", saldo en la barra y avisos en vivo
         if (inicial === 'soporte') abrirSoporte();
         if (inicial === 'recargar' && sesion) { mostrarVista('saldo'); abrirRecargar(); }
+        const cuenta = /^cuenta-(\d+)$/.exec(inicial);
+        if (cuenta) abrirCuentaPorId(Number(cuenta[1]));
       });
       buscar(true);
       cargarVendedores();

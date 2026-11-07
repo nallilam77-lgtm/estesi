@@ -1,0 +1,12 @@
+{
+  "name": "levelup-pruebas",
+  "private": true,
+  "type": "module",
+  "description": "Prueba el flujo completo de supabase/cuentas.sql en un Postgres en memoria (PGlite).",
+  "scripts": {
+    "test": "node flujo.mjs"
+  },
+  "devDependencies": {
+    "@electric-sql/pglite": "0.2.17"
+  }
+}
