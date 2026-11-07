@@ -1,0 +1,103 @@
+/* =====================================================================
+   Pie de página legal compartido (index, juegos y páginas legales)
+   y botón fijo de soporte por WhatsApp en las páginas de juego.
+   ===================================================================== */
+
+.pie-legal {
+  /* En las páginas de juego el body es flex en fila: el pie ocupa una línea completa */
+  flex: 0 0 100%;
+  width: 100%;
+  box-sizing: border-box;
+  margin-top: auto;
+  /* Abajo deja sitio al botón flotante de WhatsApp (index y páginas legales) */
+  padding: 22px 16px calc(88px + env(safe-area-inset-bottom));
+  text-align: center;
+  background: rgba(15, 23, 42, 0.9);
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
+  font-family: 'Poppins', sans-serif;
+  color: #94a3b8;
+}
+
+.pie-legal-enlaces {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 6px 18px;
+  margin-bottom: 12px;
+}
+
+.pie-legal-enlaces a {
+  color: #e2e8f0;
+  font-size: 13px;
+  font-weight: 600;
+  text-decoration: none;
+  padding: 6px 2px; /* área de toque cómoda en móvil */
+  border-bottom: 1px solid transparent;
+  transition: color 0.2s, border-color 0.2s;
+}
+.pie-legal-enlaces a:hover,
+.pie-legal-enlaces a:focus-visible { color: #fff; border-bottom-color: currentColor; outline: none; }
+.pie-legal-enlaces a[aria-current="page"] { color: #fff; border-bottom-color: currentColor; }
+
+.pie-legal-aviso {
+  max-width: 560px;
+  margin: 0 auto 10px;
+  font-size: 11px;
+  line-height: 1.55;
+  color: #94a3b8;
+}
+
+.pie-legal-copy {
+  margin: 0;
+  font-size: 12px;
+  color: #94a3b8;
+}
+.pie-legal-copy strong { color: #e2e8f0; }
+
+/* --- Páginas de juego: el pie va debajo de la tarjeta, no a su lado --- */
+body.pagina-juego {
+  flex-wrap: wrap;
+  align-content: flex-start;
+  /* Espacio para la barra de compra fija y los botones flotantes (WhatsApp y chat),
+     así no tapan las últimas líneas del pie al llegar al final */
+  padding-bottom: calc(156px + env(safe-area-inset-bottom));
+}
+/* En los juegos el espacio para los botones flotantes ya lo da el padding del body */
+body.pagina-juego .pie-legal { margin: 28px -8px 0; padding-bottom: 24px; } /* margen negativo: compensa el padding lateral del body */
+
+/* Aviso de aceptación bajo el botón de compra */
+.aviso-aceptacion {
+  margin: 10px 4px 0;
+  font-size: 11px;
+  line-height: 1.5;
+  color: #94a3b8;
+  text-align: center;
+}
+.aviso-aceptacion a { color: #e2e8f0; font-weight: 600; text-decoration: underline; text-underline-offset: 2px; }
+
+/* --- Botón fijo de soporte por WhatsApp en las páginas de juego ---
+   Abajo a la izquierda (el chat IA está a la derecha), por encima de la barra de compra. */
+.whatsapp-soporte {
+  position: fixed;
+  left: 16px;
+  bottom: calc(84px + env(safe-area-inset-bottom));
+  width: 54px;
+  height: 54px;
+  border-radius: 50%;
+  background: #25d366;
+  color: #fff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 6px 20px rgba(37, 211, 102, 0.45);
+  z-index: 9999;
+  text-decoration: none;
+  transition: transform 0.2s ease;
+}
+.whatsapp-soporte:hover { transform: scale(1.08); }
+.whatsapp-soporte:focus-visible { outline: 3px solid #fff; outline-offset: 3px; }
+.whatsapp-soporte svg { width: 30px; height: 30px; fill: currentColor; }
+
+/* Con un modal abierto (body.modal-abierto) el botón se oculta como el resto de elementos fijos;
+   los modales de error y "en proceso" ya incluyen su propio acceso a WhatsApp. */
+body.modal-abierto .whatsapp-soporte { visibility: hidden; pointer-events: none; }

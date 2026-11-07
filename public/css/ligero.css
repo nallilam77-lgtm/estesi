@@ -1,0 +1,44 @@
+/* Modo ligero: se carga en todos los celulares y tablets (pantalla táctil), con ahorro de datos,
+   2G o "reducir movimiento" (lo decide el script del <head> de cada página, que pone la clase
+   "ligero" en <html>). Desenfoque, animaciones, transiciones, filtros y sombras grandes son lo que
+   traba un teléfono al bajar o al tocar; colores, bordes y distribución no cambian.
+   Si cambias este archivo, sube el ?v= de "css/ligero.css" en el script del <head> de las páginas. */
+
+.ligero *, .ligero *::before, .ligero *::after {
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+  /* Todo cambia al instante: las animaciones de entrada terminan en 0,01 ms y las de adorno no se repiten */
+  animation-duration: 0.01ms !important;
+  animation-delay: 0s !important;
+  animation-iteration-count: 1 !important;
+  transition: none !important;
+  scroll-behavior: auto !important;
+  /* drop-shadow, brillos y desenfoques de imágenes */
+  filter: none !important;
+  text-shadow: none !important;
+}
+
+/* Sin "levantar" tarjetas ni botones al tocarlos (cada movimiento repinta la sombra) */
+.ligero .product-card, .ligero .product-card:hover, .ligero .product-card:active, .ligero .product-card.selected,
+.ligero .card, .ligero .card:hover, .ligero .card img, .ligero .card:hover img { transform: none !important; }
+
+/* Sombras grandes solo donde marcan algo: la tarjeta elegida conserva un borde de color */
+.ligero .product-card, .ligero .grupo-paquetes, .ligero .main-card, .ligero .card, .ligero .trust-card { box-shadow: none !important; }
+.ligero .product-card.selected { box-shadow: 0 0 0 1px var(--game-accent) !important; }
+
+/* Barras fijas: fondo sólido para que no se mezclen con lo que pasa por detrás */
+.ligero nav, .ligero .sidebar, .ligero .sticky-cta, .ligero .toast-bubble { background-color: var(--bg-base) !important; }
+
+/* Lo que arranca oculto y aparece con su animación */
+.ligero .anim-slide-up, .ligero .delay-1, .ligero .delay-2, .ligero .delay-3 { opacity: 1 !important; }
+
+/* Lo que indica "cargando" sí se sigue moviendo */
+.ligero .loader-spinner { animation: spin 1s linear infinite !important; }
+.ligero .ia-loading::before { animation: spin 0.8s linear infinite !important; }
+.ligero .typing-dot { animation: typingBounce 1.4s infinite ease-in-out both !important; }
+.ligero .typing-dot:nth-child(2) { animation-delay: -0.16s !important; }
+.ligero .typing-dot:nth-child(1) { animation-delay: -0.32s !important; }
+
+/* La ruleta SÍ gira: su vuelta es una transición de 4 s y sin ella saltaba al instante al resultado
+   (1440° = 4 vueltas exactas: parecía que no se movía). Es una sola rotación, no traba el teléfono. */
+.ligero #ruletaGiraAuto { transition: transform 4s cubic-bezier(0.15, 0.95, 0.15, 1) !important; }

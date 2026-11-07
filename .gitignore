@@ -1,0 +1,13 @@
+# Dependencias
+node_modules/
+
+# Secretos: nunca subir (usar .env.example como plantilla)
+.env
+.env.*
+!.env.example
+
+# Vercel
+.vercel/
+
+# Configuración local de Claude Code
+.claude/settings.local.json

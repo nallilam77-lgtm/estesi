@@ -1,0 +1,185 @@
+/* =====================================================================
+   Diseño compartido de las páginas legales:
+   terminos.html, privacidad.html y reembolsos.html
+   ===================================================================== */
+:root {
+  /* Paleta Level Up: ver .claude/UI_RULES.md */
+  --bg-base: #0f172a;
+  --bg-deep: #0b1120;
+  --surface: rgba(15, 23, 42, 0.6);
+  --border-glass: rgba(148, 163, 184, 0.15);
+  --accent-cyan: #22d3ee;
+  --accent-cyan-strong: #06b6d4;
+  --accent-neon: #39ff14;
+  --cta-gradient: linear-gradient(135deg, var(--accent-cyan), var(--accent-neon));
+  --on-cta: #0f172a;   /* texto sobre cian/neón: el blanco no contrasta */
+  --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.4), 0 4px 6px -4px rgba(0, 0, 0, 0.4);
+  --shadow-glow: 0 10px 25px -5px rgba(6, 182, 212, 0.2);
+  --shadow-glow-hover: 0 12px 30px -5px rgba(6, 182, 212, 0.35);
+  --glass-blur: 12px;
+  --radius-card: 16px;
+  --text-main: #f1f5f9;
+  --text-muted: #94a3b8;
+  --primary: var(--accent-cyan);
+  --primary-glow: rgba(34, 211, 238, 0.4);
+}
+
+* { margin: 0; padding: 0; box-sizing: border-box; }
+
+html { background: #0b1120; }
+body {
+  font-family: 'Poppins', sans-serif;
+  background: radial-gradient(circle at top left, #083344, #0b1120 60%, #000000 100%);
+  color: var(--text-main);
+  min-height: 100vh;
+  overflow-x: hidden;
+  display: flex;
+  flex-direction: column;
+}
+
+body.no-scroll { overflow: hidden; }
+main { flex: 1; padding-bottom: 50px; }
+
+::-webkit-scrollbar { width: 8px; }
+::-webkit-scrollbar-track { background: var(--bg-deep); }
+::-webkit-scrollbar-thumb { background: var(--accent-cyan); border-radius: 4px; }
+
+@keyframes fadeUp {
+  from { opacity: 0; transform: translateY(20px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+.animate-up { animation: fadeUp 0.6s cubic-bezier(0.2, 0.8, 0.2, 1) forwards; }
+
+/* --- Menú lateral --- */
+.menu-toggle {
+  font-size: 28px; cursor: pointer; color: var(--primary);
+  background: none; border: none; line-height: 1;
+  transition: transform 0.3s ease;
+}
+.menu-toggle:hover { transform: scale(1.1); }
+
+.sidebar {
+  position: fixed; top: 0; left: -300px; width: 280px; height: 100vh;
+  background: rgba(15, 23, 42, 0.85); backdrop-filter: blur(var(--glass-blur)); -webkit-backdrop-filter: blur(var(--glass-blur));
+  border-right: 1px solid var(--border-glass); z-index: 1001;
+  transition: left 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+  padding-top: 80px; display: flex; flex-direction: column;
+  box-shadow: var(--shadow-lg);
+}
+.sidebar.open { left: 0; }
+
+.close-btn {
+  position: absolute; top: 20px; right: 20px; font-size: 28px;
+  cursor: pointer; color: #ff3333; transition: transform 0.3s;
+  width: 40px; height: 40px; display: flex; align-items: center; justify-content: center;
+  background: none; border: none;
+}
+.close-btn:hover { transform: rotate(90deg) scale(1.1); }
+
+.sidebar-logo {
+  text-align: center; font-size: 22px; font-family: 'Montserrat', sans-serif; font-weight: 900;
+  letter-spacing: 1px; color: #fff; margin-bottom: 30px;
+  display: flex; align-items: center; justify-content: center; gap: 10px;
+}
+.sidebar-logo img { width: 36px; height: 36px; object-fit: contain; border-radius: 50%; }
+.sidebar-logo span { color: var(--primary); }
+
+.sidebar a {
+  color: #cbd5e1; padding: 16px 25px; text-decoration: none;
+  font-size: 15px; font-weight: 600; border-bottom: 1px solid rgba(255,255,255,0.03);
+  transition: all 0.3s ease; display: flex; align-items: center; gap: 12px;
+}
+.sidebar a:hover { color: var(--primary); padding-left: 32px; border-left: 4px solid var(--primary); background: rgba(34, 211, 238,0.1); }
+
+.sidebar-overlay {
+  display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.8);
+  z-index: 1000; backdrop-filter: blur(4px);
+}
+
+/* --- Barra superior --- */
+.barra-superior {
+  display: flex; justify-content: space-between; align-items: center;
+  padding: 16px 24px; background: var(--surface);
+  backdrop-filter: blur(var(--glass-blur)); -webkit-backdrop-filter: blur(var(--glass-blur));
+  border-bottom: 1px solid var(--border-glass); box-shadow: var(--shadow-lg);
+  position: sticky; top: 0; z-index: 100;
+}
+.nav-logo {
+  font-family: 'Montserrat', sans-serif; font-size: 20px; font-weight: 900;
+  letter-spacing: 1px; color: #fff; text-decoration: none;
+  display: flex; align-items: center; gap: 10px;
+}
+.nav-logo img { width: 34px; height: 34px; object-fit: contain; border-radius: 50%; }
+.nav-logo span { color: var(--primary); }
+
+/* --- Encabezado --- */
+header { text-align: center; padding: 48px 16px 40px; position: relative; }
+.titulo-principal {
+  font-family: 'Montserrat', sans-serif; font-size: clamp(26px, 5vw, 40px);
+  letter-spacing: 2px; text-transform: uppercase; font-weight: 900;
+  color: var(--primary);
+}
+.subtitulo { color: var(--text-muted); font-size: 13px; font-weight: 400; margin-top: 5px; }
+.fecha-actualizacion { color: #94a3b8; font-size: 12px; margin-top: 8px; }
+
+/* --- Contenido --- */
+.terminos-container { max-width: 680px; margin: 0 auto 48px; padding: 0 16px; }
+.terminos-box {
+  background: var(--surface); backdrop-filter: blur(var(--glass-blur)); -webkit-backdrop-filter: blur(var(--glass-blur));
+  border: 1px solid var(--border-glass); border-radius: var(--radius-card);
+  padding: 32px 24px; box-shadow: var(--shadow-lg), var(--shadow-glow);
+}
+@media (min-width: 650px) {
+  .terminos-container { margin-bottom: 64px; }
+  .terminos-box { padding: 40px 32px; }
+}
+.terminos-box h2 {
+  font-family: 'Montserrat', sans-serif; color: var(--primary); font-size: 16px;
+  margin: 24px 0 8px; text-transform: uppercase; font-weight: 900;
+}
+.terminos-box h2:first-of-type { margin-top: 0; }
+.terminos-box p, .terminos-box li {
+  color: var(--text-muted); font-size: 13px; line-height: 1.65; margin-bottom: 10px;
+}
+.terminos-box ul, .terminos-box ol { padding-left: 20px; margin-bottom: 10px; }
+.terminos-box strong { color: #fff; }
+.terminos-box a { color: var(--primary); }
+.sin-corte { white-space: nowrap; }
+
+/* Resumen destacado al inicio de cada política */
+.resumen-legal {
+  background: rgba(34, 211, 238, 0.08); border-left: 4px solid var(--primary);
+  border-radius: 8px; padding: 12px 14px; margin-bottom: 20px;
+}
+.resumen-legal p { margin: 0; color: #e2e8f0; }
+
+/* Navegación entre las tres políticas */
+.otras-politicas {
+  display: flex; flex-wrap: wrap; gap: 12px; margin-top: 32px;
+}
+.otras-politicas a {
+  flex: 1 1 180px; text-align: center; text-decoration: none; min-height: 44px;
+  padding: 12px 16px; border-radius: 10px; font-size: 12px; font-weight: 700;
+  color: #e2e8f0; border: 1px solid rgba(34, 211, 238, 0.35); background: rgba(0,0,0,0.25);
+  transition: background 0.2s, color 0.2s;
+}
+.otras-politicas a:hover { background: rgba(34, 211, 238, 0.12); color: #fff; }
+
+.btn-volver {
+  display: inline-block; text-align: center; width: 100%; margin-top: 16px;
+  background: var(--primary); color: var(--on-cta); text-decoration: none; padding: 14px;
+  border-radius: 10px; font-weight: 800; font-family: 'Montserrat', sans-serif;
+  font-size: 13px; text-transform: uppercase; transition: transform 0.2s, box-shadow 0.2s;
+}
+.btn-volver:hover { transform: scale(1.02); box-shadow: 0 4px 12px var(--primary-glow); }
+
+/* --- Botón flotante de WhatsApp --- */
+.whatsapp-float {
+  position: fixed; bottom: calc(20px + env(safe-area-inset-bottom)); right: 20px; width: 55px; height: 55px;
+  background: #25d366; color: #FFF; border-radius: 50px;
+  display: flex; align-items: center; justify-content: center;
+  box-shadow: 0 4px 15px rgba(37,211,102,0.4); z-index: 100;
+  text-decoration: none; transition: transform 0.2s ease;
+}
+.whatsapp-float:hover { transform: scale(1.1); }
+.whatsapp-float svg { width: 30px; height: 30px; fill: currentColor; }
