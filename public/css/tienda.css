@@ -691,3 +691,107 @@ body.soporte-abierto .chat-flotante { display: none; }
 .estado-metodo { margin-left: 4px; font-size: 10px; }
 .guardar-grupo { display: grid; gap: 8px; padding-top: 4px; }
 .guardar-grupo .panel-mensaje:empty { display: none; }
+
+/* =====================================================================
+   Avisos y confirmaciones propios de la página (sin alert/confirm del navegador)
+   ===================================================================== */
+@keyframes aviso-entra { from { opacity: 0; transform: translateY(-10px) scale(0.98); } to { opacity: 1; transform: none; } }
+.avisos-mercado { position: fixed; top: 76px; right: 16px; left: 16px; z-index: 1400; display: grid; gap: 10px; justify-items: end; pointer-events: none; }
+.aviso-mercado {
+  pointer-events: auto; display: flex; align-items: flex-start; gap: 12px; width: 100%; max-width: 400px; padding: 14px 12px 14px 14px; border-radius: 16px;
+  background: var(--bg-base); border: 1px solid var(--linea); border-left: 4px solid var(--primary); box-shadow: var(--shadow-lg);
+  animation: aviso-entra 0.28s cubic-bezier(0.2, 0.7, 0.2, 1) both; transition: opacity 0.2s ease, transform 0.2s ease;
+}
+.aviso-mercado.saliendo { opacity: 0; transform: translateY(-6px); }
+.aviso-tocable { cursor: pointer; }
+.aviso-marca { flex: 0 0 auto; display: grid; place-items: center; width: 28px; height: 28px; border-radius: 50%; font-weight: 900; font-size: 14px; background: var(--cyan-soft); color: var(--primary); }
+.aviso-cuerpo { flex: 1 1 auto; min-width: 0; display: grid; gap: 2px; }
+.aviso-cuerpo strong { font-size: 14px; color: var(--text-main); }
+.aviso-cuerpo p { font-size: 13px; line-height: 1.5; color: var(--text-muted); overflow-wrap: anywhere; }
+.aviso-cerrar { flex: 0 0 auto; width: 32px; height: 32px; border-radius: 50%; border: none; cursor: pointer; background: transparent; color: var(--text-muted); font-size: 12px; }
+.aviso-cerrar:hover { background: var(--fondo-hundido); color: var(--text-main); }
+.aviso-exito { border-left-color: var(--accent-neon); }
+.aviso-exito .aviso-marca { background: var(--ok-soft); color: var(--accent-neon); }
+.aviso-error { border-left-color: var(--danger); }
+.aviso-error .aviso-marca { background: rgba(239, 68, 68, 0.12); color: var(--danger); }
+.aviso-aviso { border-left-color: var(--game-text); }
+.aviso-aviso .aviso-marca { background: var(--game-soft); color: var(--game-text); }
+
+.dialogo-mercado { z-index: 1300; }
+.dialogo-mercado .dialogo-caja { max-width: 460px; display: grid; gap: 14px; padding: 28px 24px 24px; }
+.dialogo-mercado h2 { font-family: 'Montserrat', sans-serif; font-weight: 900; font-size: 19px; color: var(--text-main); }
+.dialogo-texto { font-size: 14px; line-height: 1.6; color: var(--text-muted); white-space: pre-line; }
+.dialogo-mercado textarea, .dialogo-mercado input { width: 100%; min-height: 48px; padding: 12px; border-radius: 12px; font: inherit; font-size: 16px; background: var(--fondo-hundido); border: 1px solid var(--linea); color: var(--text-main); outline: none; }
+.dialogo-mercado textarea { min-height: 96px; resize: vertical; }
+.dialogo-mercado textarea:focus, .dialogo-mercado input:focus { border-color: var(--primary); }
+.dialogo-mercado .campo-error { border-color: var(--danger); }
+.dialogo-mercado .campo label { display: block; margin-bottom: 6px; font-size: 13px; font-weight: 600; color: var(--text-main); }
+.dialogo-botones { display: flex; gap: 8px; margin-top: 4px; }
+.dialogo-botones > * { flex: 1 1 0; min-height: 48px; }
+.btn-peligro-fuerte { background: var(--danger); color: #fff; box-shadow: none; }
+
+/* =====================================================================
+   Chat (tratos, recargas y soporte): burbujas, días, apelación
+   ===================================================================== */
+.chat-lista { display: flex; flex-direction: column; gap: 6px; }
+.chat-dia { align-self: center; margin: 10px 0 4px; padding: 4px 12px; border-radius: 999px; font-size: 11px; font-weight: 600; text-transform: capitalize; color: var(--text-muted); background: var(--fondo-hundido); border: 1px solid var(--linea); }
+.msg { position: relative; max-width: 82%; padding: 9px 13px 8px; border-radius: 16px 16px 16px 6px; background: var(--fondo-tarjeta); border: 1px solid var(--linea); align-self: flex-start; }
+.msg-mio { align-self: flex-end; border-radius: 16px 16px 6px 16px; background: linear-gradient(135deg, rgba(255, 153, 0, 0.18), rgba(255, 204, 0, 0.1)); border-color: var(--game-line); }
+.msg-admin { background: var(--cyan-soft); border-color: var(--cyan-line); }
+.msg-autor { display: flex; align-items: baseline; gap: 8px; margin-bottom: 3px; font-size: 11px; color: var(--text-muted); }
+.msg-autor b { font-weight: 800; color: var(--text-main); }
+.msg-autor time { font-size: 10px; }
+.msg-mio .msg-autor b { color: var(--game-text); }
+.msg-admin .msg-autor b { color: var(--primary); }
+.msg-admin .msg-autor b::after { content: ' · Level Up'; font-weight: 600; color: var(--text-muted); }
+.msg-texto { font-size: 14px; line-height: 1.5; color: var(--text-main); white-space: pre-wrap; overflow-wrap: anywhere; }
+.msg-sistema { align-self: stretch; max-width: 100%; padding: 10px 14px; border-radius: 12px; background: var(--fondo-hundido); border: 1px dashed var(--linea); }
+.msg-sistema .msg-autor b { color: var(--primary); }
+.msg-sistema .msg-texto { font-size: 12.5px; color: var(--text-muted); }
+.msg-apelacion { border: 1px solid var(--game-text); border-style: solid; background: var(--game-soft); }
+.msg-apelacion .msg-autor b, .msg-apelacion .msg-texto { color: var(--game-text); }
+.msg-copiar { margin-top: 6px; padding: 3px 10px; border-radius: 999px; cursor: pointer; font: inherit; font-size: 11px; font-weight: 600; background: transparent; color: var(--text-muted); border: 1px solid var(--linea); opacity: 0.8; }
+.msg-copiar:hover, .msg-copiar.copiado { color: var(--accent-neon); border-color: var(--accent-neon); opacity: 1; }
+.chat-cabecera { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 10px; }
+.chat-cabecera h3 { display: flex; align-items: center; gap: 8px; font-size: 15px; }
+.participantes { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 6px; }
+.participantes span { padding: 3px 9px; border-radius: 999px; font-size: 11px; font-weight: 600; color: var(--text-muted); background: var(--fondo-hundido); border: 1px solid var(--linea); }
+.participantes .yo { color: var(--game-text); border-color: var(--game-line); }
+.participantes .testigo { color: var(--primary); border-color: var(--cyan-line); }
+.btn-apelar {
+  display: inline-flex; align-items: center; gap: 8px; min-height: 40px; padding: 0 14px; border-radius: 999px; cursor: pointer;
+  font: inherit; font-size: 12px; font-weight: 700; color: var(--game-text); background: var(--game-soft); border: 1px solid var(--game-line); transition: border-color 0.2s ease, transform 0.2s ease;
+}
+.btn-apelar:hover, .btn-apelar:focus-visible { border-color: var(--game-text); transform: translateY(-1px); outline: none; }
+.btn-apelar .icono { width: 16px; height: 16px; }
+.apelacion-aviso { display: flex; gap: 10px; align-items: flex-start; padding: 12px 14px; border-radius: 12px; font-size: 13px; line-height: 1.5; color: var(--game-text); background: var(--game-soft); border: 1px solid var(--game-line); }
+
+/* Calificación con estrellas */
+.calificar { display: grid; gap: 12px; padding: 16px; border-radius: 14px; background: var(--fondo-hundido); border: 1px solid var(--game-line); }
+.calificar h4 { font-size: 14px; color: var(--text-main); }
+.estrellas-elegir { display: flex; gap: 4px; }
+.estrellas-elegir button { width: 44px; height: 44px; border: none; background: transparent; cursor: pointer; font-size: 30px; line-height: 1; color: var(--linea); color: rgba(148, 163, 184, 0.35); transition: transform 0.15s ease, color 0.15s ease; }
+.estrellas-elegir button.activa { color: #ffcc00; }
+.estrellas-elegir button:hover { transform: scale(1.12); }
+.calificar textarea { min-height: 64px; padding: 10px 12px; border-radius: 12px; font: inherit; font-size: 16px; background: var(--fondo-tarjeta); border: 1px solid var(--linea); color: var(--text-main); resize: vertical; }
+.estrellas-texto { color: #ffcc00; letter-spacing: 1px; }
+.vendedor-rep .estrellas-texto { margin-right: 2px; }
+.opiniones { display: grid; gap: 8px; }
+.opinion { padding: 10px 12px; border-radius: 12px; background: var(--fondo-hundido); border: 1px solid var(--linea); font-size: 13px; }
+.opinion p { margin-top: 2px; color: var(--text-muted); }
+
+/* Admin: cuentas registradas */
+.buscar-usuarios { display: flex; gap: 8px; margin-bottom: 16px; }
+.buscar-usuarios input { flex: 1 1 auto; min-width: 0; min-height: 48px; padding: 0 14px; border-radius: 12px; font: inherit; font-size: 16px; background: var(--fondo-hundido); border: 1px solid var(--linea); color: var(--text-main); outline: none; }
+.buscar-usuarios input:focus { border-color: var(--primary); }
+.buscar-usuarios .btn-juego { width: auto; padding: 0 20px; }
+.usuario-saldos { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
+.usuario-saldos div { padding: 10px 12px; border-radius: 12px; background: var(--fondo-hundido); border: 1px solid var(--linea); }
+.usuario-saldos span { display: block; font-size: 11px; color: var(--text-muted); }
+.usuario-saldos strong { font-family: 'Montserrat', sans-serif; font-weight: 900; font-size: 16px; }
+.usuario-saldos .total strong { color: var(--game-text); }
+.movimientos-usuario summary { cursor: pointer; font-size: 13px; font-weight: 600; color: var(--primary); }
+.movimientos-usuario .tabla-scroll { margin-top: 10px; }
+.pastilla-apelacion { color: var(--game-text); border-color: var(--game-text); background: var(--game-soft); }
+@media (max-width: 599px) { .usuario-saldos { grid-template-columns: 1fr 1fr; } .usuario-saldos .total { grid-column: 1 / -1; } }
+@media (prefers-reduced-motion: reduce) { .aviso-mercado { animation: none; } }

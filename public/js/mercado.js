@@ -37,6 +37,8 @@
     DEMASIADAS_RECARGAS: 'Ya tienes 3 recargas esperando revisión. Espera a que las aprobemos.',
     REFERENCIA_USADA: 'Esa referencia ya se usó en otra recarga.',
     SALDO_GASTADO: 'El usuario ya gastó parte de ese saldo: no se puede descontar completo.',
+    APELACION_ACTIVA: 'Ya llamaste a Level Up en este trato: un administrador entrará al chat en breve.',
+    YA_CALIFICADO: 'Ya calificaste este trato.',
   };
 
   const TEXTO_ESTADO_CUENTA = {
@@ -185,6 +187,110 @@
       return () => { try { c.removeChannel(canal); } catch (e) { /* ya cerrado */ } };
     },
 
+    // ---------- Avisos de la página (en lugar de alert/confirm/prompt del navegador) ----------
+    // notificar('Texto', 'exito' | 'error' | 'aviso' | 'info', { titulo, alTocar, duracion })
+    notificar(texto, tipo = 'exito', { titulo, alTocar, duracion = 6000 } = {}) {
+      let pila = document.getElementById('avisosMercado');
+      if (!pila) {
+        pila = Mercado.crear('div', 'avisos-mercado');
+        pila.id = 'avisosMercado';
+        pila.setAttribute('role', 'status');
+        pila.setAttribute('aria-live', 'polite');
+        document.body.append(pila);
+      }
+      const TITULOS = { exito: 'Listo', error: 'No se pudo completar', aviso: 'Atención', info: 'Aviso' };
+      const caja = Mercado.crear('div', `aviso-mercado aviso-${tipo}${alTocar ? ' aviso-tocable' : ''}`);
+      const marca = Mercado.crear('span', 'aviso-marca', { exito: '✓', error: '!', aviso: '!', info: 'i' }[tipo] || 'i');
+      marca.setAttribute('aria-hidden', 'true');
+      const cuerpo = Mercado.crear('div', 'aviso-cuerpo');
+      cuerpo.append(Mercado.crear('strong', null, titulo || TITULOS[tipo] || 'Aviso'), Mercado.crear('p', null, texto));
+      const cerrar = Mercado.crear('button', 'aviso-cerrar', '✖');
+      cerrar.type = 'button';
+      cerrar.setAttribute('aria-label', 'Cerrar aviso');
+      const quitar = () => { caja.classList.add('saliendo'); setTimeout(() => caja.remove(), 220); };
+      cerrar.addEventListener('click', (e) => { e.stopPropagation(); quitar(); });
+      if (alTocar) caja.addEventListener('click', () => { quitar(); alTocar(); });
+      caja.append(marca, cuerpo, cerrar);
+      pila.append(caja);
+      while (pila.children.length > 4) pila.firstChild.remove();
+      if (duracion) setTimeout(quitar, duracion);
+      return quitar;
+    },
+
+    // confirmar({ titulo, texto, aceptar, cancelar, peligro, campo: { etiqueta, valor, placeholder, multilinea, obligatorio, max } })
+    // → Promise: null si cancela; { texto } si acepta
+    confirmar({ titulo, texto = '', aceptar = 'Aceptar', cancelar = 'Cancelar', peligro = false, campo = null }) {
+      let ventana = document.getElementById('dialogoMercado');
+      if (!ventana) {
+        ventana = Mercado.crear('div', 'ventana oculto dialogo-mercado');
+        ventana.id = 'dialogoMercado';
+        ventana.setAttribute('role', 'alertdialog');
+        ventana.setAttribute('aria-modal', 'true');
+        ventana.setAttribute('aria-labelledby', 'dlgTitulo');
+        const form = Mercado.crear('form', 'ventana-caja dialogo-caja');
+        form.noValidate = true;
+        const h = Mercado.crear('h2'); h.id = 'dlgTitulo';
+        const pTexto = Mercado.crear('p', 'dialogo-texto'); pTexto.id = 'dlgTexto';
+        const zona = Mercado.crear('div', 'campo oculto'); zona.id = 'dlgCampo';
+        const botones = Mercado.crear('div', 'dialogo-botones');
+        const no = Mercado.crear('button', 'btn-secundario'); no.type = 'button'; no.id = 'dlgNo';
+        const si = Mercado.crear('button', 'btn-juego'); si.type = 'submit'; si.id = 'dlgSi';
+        botones.append(no, si);
+        form.append(h, pTexto, zona, botones);
+        ventana.append(form);
+        document.body.append(ventana);
+      }
+      const $d = (id) => document.getElementById(id);
+      $d('dlgTitulo').textContent = titulo;
+      $d('dlgTexto').textContent = texto;
+      $d('dlgTexto').classList.toggle('oculto', !texto);
+      $d('dlgNo').textContent = cancelar;
+      $d('dlgSi').textContent = aceptar;
+      $d('dlgSi').className = peligro ? 'btn-juego btn-peligro-fuerte' : 'btn-juego';
+      const zona = $d('dlgCampo');
+      zona.replaceChildren();
+      zona.classList.toggle('oculto', !campo);
+      let entrada = null;
+      if (campo) {
+        const etiqueta = Mercado.crear('label', null, campo.etiqueta || '');
+        etiqueta.htmlFor = 'dlgEntrada';
+        entrada = Mercado.crear(campo.multilinea ? 'textarea' : 'input');
+        entrada.id = 'dlgEntrada';
+        entrada.maxLength = campo.max || 300;
+        entrada.placeholder = campo.placeholder || '';
+        entrada.value = campo.valor || '';
+        if (!campo.multilinea) entrada.type = 'text';
+        zona.append(etiqueta, entrada);
+      }
+      const anterior = document.activeElement;
+      ventana.classList.remove('oculto');
+      document.body.classList.add('no-scroll');
+      setTimeout(() => (entrada || $d('dlgSi')).focus(), 30);
+      return new Promise((resolver) => {
+        const form = ventana.querySelector('form');
+        const terminar = (valor) => {
+          ventana.classList.add('oculto');
+          if (!document.querySelector('.ventana:not(.oculto)')) document.body.classList.remove('no-scroll');
+          form.onsubmit = null; $d('dlgNo').onclick = null; ventana.onclick = null; document.removeEventListener('keydown', tecla, true);
+          anterior?.focus?.();
+          resolver(valor);
+        };
+        const tecla = (e) => { if (e.key === 'Escape') { e.stopPropagation(); e.preventDefault(); terminar(null); } };
+        document.addEventListener('keydown', tecla, true);
+        form.onsubmit = (e) => {
+          e.preventDefault();
+          const valor = entrada ? entrada.value.trim() : '';
+          if (campo?.obligatorio && valor.length < (campo.minimo || 1)) { entrada.focus(); entrada.classList.add('campo-error'); return; }
+          terminar({ texto: valor });
+        };
+        $d('dlgNo').onclick = () => terminar(null);
+        ventana.onclick = (e) => { if (e.target === ventana) terminar(null); };
+      });
+    },
+
+    // Estrellas de texto (★★★★☆) para mostrar una calificación
+    estrellas: (n) => '★★★★★'.slice(0, Math.round(n)) + '☆☆☆☆☆'.slice(0, 5 - Math.round(n)),
+
     mensaje(el, texto, tipo = 'error') {
       el.className = `panel-mensaje ${tipo}`;
       el.textContent = texto;
@@ -202,12 +308,39 @@
       let otraVez = false;
       let cortarVivo = () => {};
 
+      let ultimoDia = '';
+      const hora = (iso) => new Date(iso).toLocaleTimeString('es-VE', { hour: 'numeric', minute: '2-digit' });
+      function textoDia(fecha) {
+        const hoy = new Date(); const ayer = new Date(Date.now() - 864e5);
+        if (fecha.toDateString() === hoy.toDateString()) return 'Hoy';
+        if (fecha.toDateString() === ayer.toDateString()) return 'Ayer';
+        return fecha.toLocaleDateString('es-VE', { weekday: 'long', day: 'numeric', month: 'long' });
+      }
       function burbuja(m) {
+        const nodos = [];
+        const fecha = new Date(m.creado);
+        if (fecha.toDateString() !== ultimoDia) {
+          ultimoDia = fecha.toDateString();
+          nodos.push(Mercado.crear('div', 'chat-dia', textoDia(fecha)));
+        }
         const propio = m.autor && m.autor === yo();
-        const div = Mercado.crear('div', `msg msg-${m.rol}${propio ? ' msg-mio' : ''}${ultimo ? ' msg-nuevo' : ''}`);
-        const cabecera = Mercado.crear('span', 'msg-autor', `${propio ? 'Tú' : TEXTO_ROL[m.rol] || m.rol} · ${Mercado.fecha(m.creado)}`);
+        const apelacion = m.rol === 'sistema' && m.texto.startsWith('APELACIÓN');
+        const div = Mercado.crear('div', `msg msg-${m.rol}${propio ? ' msg-mio' : ''}${apelacion ? ' msg-apelacion' : ''}${ultimo ? ' msg-nuevo' : ''}`);
+        const cabecera = Mercado.crear('span', 'msg-autor');
+        cabecera.append(Mercado.crear('b', null, propio ? 'Tú' : TEXTO_ROL[m.rol] || m.rol), Mercado.crear('time', null, hora(m.creado)));
+        cabecera.lastChild.dateTime = m.creado;
         div.append(cabecera, Mercado.crear('p', 'msg-texto', m.texto));
-        return div;
+        // Los datos de acceso que entrega el vendedor se copian con un toque
+        if (!propio && m.rol !== 'sistema') {
+          const copiar = Mercado.crear('button', 'msg-copiar', 'Copiar');
+          copiar.type = 'button';
+          copiar.addEventListener('click', async () => {
+            if (await Mercado.copiar(m.texto, copiar)) { copiar.textContent = 'Copiado'; setTimeout(() => { copiar.textContent = 'Copiar'; }, 1400); }
+          });
+          div.append(copiar);
+        }
+        nodos.push(div);
+        return nodos;
       }
 
       async function traer() {
@@ -223,7 +356,7 @@
         const alFinal = lista.scrollHeight - lista.scrollTop - lista.clientHeight < 80 || ultimo === 0;
         const nuevos = data.filter((m) => m.id > ultimo);
         if (!nuevos.length) return;
-        for (const m of nuevos) lista.append(burbuja(m));
+        for (const m of nuevos) lista.append(...burbuja(m));
         ultimo = nuevos[nuevos.length - 1].id;
         if (alFinal) lista.scrollTop = lista.scrollHeight;
         alNuevo?.(nuevos);
@@ -261,6 +394,7 @@
           cortarVivo();
           venta = id;
           ultimo = 0;
+          ultimoDia = '';
           lista.replaceChildren();
           aviso.textContent = '';
           traer();

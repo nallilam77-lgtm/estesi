@@ -204,6 +204,20 @@ create index if not exists ventas_abiertas on public.ventas_cuentas (estado) whe
 -- Cuánto se cobró de cada parte del saldo del comprador (para devolverlo igual si se cancela)
 alter table public.ventas_cuentas add column if not exists pagado_recargado numeric(12, 2) not null default 0;
 alter table public.ventas_cuentas add column if not exists pagado_disponible numeric(12, 2) not null default 0;
+-- Apelación: el comprador o el vendedor llama a Level Up al chat. Se limpia cuando un admin escribe en el trato.
+alter table public.ventas_cuentas add column if not exists apelada_en timestamptz;
+alter table public.ventas_cuentas add column if not exists apelada_por text;
+
+-- Calificación del comprador al vendedor (1 a 5 estrellas), una por trato cerrado
+create table if not exists public.calificaciones (
+  venta       bigint primary key references public.ventas_cuentas (id) on delete cascade,
+  vendedor    uuid not null references auth.users (id) on delete cascade,
+  comprador   uuid not null references auth.users (id) on delete cascade,
+  estrellas   smallint not null check (estrellas between 1 and 5),
+  comentario  text not null default '' check (char_length(comentario) <= 300),
+  creado      timestamptz not null default now()
+);
+create index if not exists calificaciones_por_vendedor on public.calificaciones (vendedor, creado desc);
 
 create table if not exists public.mensajes_venta (
   id      bigint generated always as identity primary key,
@@ -618,6 +632,9 @@ begin
   select count(*) into recientes from mensajes_venta where autor = auth.uid() and creado > now() - interval '1 minute';
   if recientes >= 20 then raise exception 'DEMASIADOS_MENSAJES'; end if;
   insert into mensajes_venta (venta, autor, rol, texto) values (p_venta, auth.uid(), rol, texto) returning id into m_id;
+  if rol = 'admin' and v.apelada_en is not null then
+    update ventas_cuentas set apelada_en = null, apelada_por = null where id = p_venta;
+  end if;
   return m_id;
 end $$;
 
@@ -686,18 +703,60 @@ begin
       join lateral (select x.texto, x.rol, x.creado from mensajes_recarga x where x.orden = o.id and x.rol <> 'sistema' order by x.id desc limit 1) m on true
     union all
     select 'trato', v.id, v.comprador, format('Trato T-%s · %s', v.id, v.titulo), m.texto, m.rol, m.creado,
-           v.estado = 'en_reclamo' and m.rol <> 'admin'
+           (v.apelada_en is not null or v.estado = 'en_reclamo') and m.rol <> 'admin'
       from ventas_cuentas v
-      join lateral (select x.texto, x.rol, x.creado from mensajes_venta x where x.venta = v.id and x.rol <> 'sistema' order by x.id desc limit 1) m on true
+      join lateral (select x.texto, x.rol, x.creado from mensajes_venta x where x.venta = v.id and (x.rol <> 'sistema' or x.texto like 'APELACIÓN:%') order by x.id desc limit 1) m on true
   ) b
   order by 7 desc
   limit least(greatest(coalesce(p_limite, 80), 1), 200);
 end $$;
 
--- Reputación pública: ventas cerradas de cada vendedor (sin datos personales)
+-- APELACIÓN: el comprador o el vendedor pide que Level Up entre al chat del trato (uno a la vez)
+create or replace function public.venta_apelar(p_venta bigint, p_motivo text)
+returns void language plpgsql security definer set search_path = public as $$
+declare v ventas_cuentas; rol text; motivo text := left(trim(coalesce(p_motivo, '')), 300);
+begin
+  select * into v from ventas_cuentas where id = p_venta for update;
+  if not found then raise exception 'NO_PERMITIDO'; end if;
+  rol := case when v.comprador = auth.uid() then 'comprador' when v.vendedor = auth.uid() then 'vendedor' end;
+  if rol is null then raise exception 'NO_PERMITIDO'; end if;
+  if v.estado in ('cerrada', 'cancelada') then raise exception 'CHAT_CERRADO'; end if;
+  if v.apelada_en is not null then raise exception 'APELACION_ACTIVA'; end if;
+  if char_length(motivo) < 5 then raise exception 'DATO_INVALIDO'; end if;
+  update ventas_cuentas set apelada_en = now(), apelada_por = rol, actualizado = now() where id = p_venta;
+  perform _mensaje_sistema(p_venta, format('APELACIÓN: el %s llamó a Level Up. Motivo: %s. Un administrador entrará a este chat; mientras tanto no entreguen ni cambien nada.', rol, motivo));
+end $$;
+
+-- El comprador califica al vendedor cuando el trato se cerró (una sola vez)
+create or replace function public.venta_calificar(p_venta bigint, p_estrellas int, p_comentario text)
+returns void language plpgsql security definer set search_path = public as $$
+declare v ventas_cuentas;
+begin
+  select * into v from ventas_cuentas where id = p_venta;
+  if not found or v.comprador is distinct from auth.uid() then raise exception 'NO_PERMITIDO'; end if;
+  if v.estado <> 'cerrada' then raise exception 'ESTADO_INVALIDO'; end if;
+  if p_estrellas is null or p_estrellas not between 1 and 5 then raise exception 'DATO_INVALIDO'; end if;
+  insert into calificaciones (venta, vendedor, comprador, estrellas, comentario)
+  values (p_venta, v.vendedor, v.comprador, p_estrellas, left(trim(coalesce(p_comentario, '')), 300));
+exception when unique_violation then
+  raise exception 'YA_CALIFICADO';
+end $$;
+
+-- Reputación pública: ventas cerradas y estrellas de cada vendedor (sin datos personales)
+drop function if exists public.mercado_reputacion(uuid[]);
 create or replace function public.mercado_reputacion(p_vendedores uuid[])
-returns table (vendedor uuid, ventas int) language sql stable security definer set search_path = public as $$
-  select s.vendedor, s.ventas from saldos_vendedor s where s.vendedor = any (p_vendedores[1:100]);
+returns table (vendedor uuid, ventas int, estrellas numeric, opiniones int) language sql stable security definer set search_path = public as $$
+  select u.v, coalesce(s.ventas, 0), round(avg(c.estrellas), 1), count(c.venta)::int
+    from unnest(p_vendedores[1:100]) as u(v)
+    left join saldos_vendedor s on s.vendedor = u.v
+    left join calificaciones c on c.vendedor = u.v
+   group by u.v, s.ventas;
+$$;
+
+-- Últimas opiniones de un vendedor (públicas, sin datos del comprador)
+create or replace function public.mercado_opiniones(p_vendedor uuid)
+returns table (estrellas smallint, comentario text, creado timestamptz) language sql stable security definer set search_path = public as $$
+  select c.estrellas, c.comentario, c.creado from calificaciones c where c.vendedor = p_vendedor order by c.creado desc limit 5;
 $$;
 
 -- ---------------------------------------------------------------------
@@ -846,6 +905,39 @@ begin
   on conflict (clave) do update set valor = excluded.valor;
 end $$;
 
+-- Buscar cuentas registradas por correo (vacío = las más nuevas) con su saldo y actividad
+create or replace function public.admin_buscar_usuarios(p_texto text)
+returns table (id uuid, email text, creado timestamptz, ultimo_acceso timestamptz, disponible numeric, recargado numeric,
+               ventas int, estrellas numeric, recargas int, tratos int, publicaciones int)
+language plpgsql stable security definer set search_path = public as $$
+declare t text := lower(trim(coalesce(p_texto, '')));
+begin
+  perform _exigir_admin();
+  return query
+  select u.id, u.email::text, u.created_at, u.last_sign_in_at,
+         coalesce(s.disponible, 0), coalesce(s.recargado, 0), coalesce(s.ventas, 0),
+         (select round(avg(c.estrellas), 1) from calificaciones c where c.vendedor = u.id),
+         (select count(*)::int from ordenes_recarga o where o.usuario = u.id),
+         (select count(*)::int from ventas_cuentas v where v.comprador = u.id or v.vendedor = u.id),
+         (select count(*)::int from cuentas_venta cv where cv.vendedor = u.id)
+    from auth.users u
+    left join saldos_vendedor s on s.vendedor = u.id
+   where t = '' or lower(u.email) like '%' || replace(replace(t, '%', ''), '_', '\_') || '%'
+   order by u.created_at desc
+   limit 30;
+end $$;
+
+-- Ajustar la parte RECARGADA del saldo (la de ventas se ajusta con admin_ajustar_saldo)
+create or replace function public.admin_ajustar_recargado(p_usuario uuid, p_monto numeric, p_detalle text)
+returns numeric language plpgsql security definer set search_path = public as $$
+begin
+  perform _exigir_admin();
+  if p_monto is null or p_monto = 0 or abs(p_monto) > 5000 then raise exception 'DATO_INVALIDO'; end if;
+  return _mover_recargado(p_usuario, round(p_monto, 2), 'ajuste', null, null, left(coalesce(nullif(trim(p_detalle), ''), 'Ajuste de Level Up'), 200));
+exception when check_violation then
+  raise exception 'SALDO_GASTADO';
+end $$;
+
 -- Correos de comprador/vendedor para el panel (auth.users no es accesible desde la API)
 create or replace function public.admin_correos(p_ids uuid[])
 returns table (id uuid, email text) language plpgsql stable security definer set search_path = public as $$
@@ -869,6 +961,7 @@ alter table public.movimientos_vendedor enable row level security;
 alter table public.ordenes_recarga enable row level security;
 alter table public.mensajes_recarga enable row level security;
 alter table public.soporte_chats enable row level security;
+alter table public.calificaciones enable row level security;
 alter table public.mensajes_soporte enable row level security;
 
 drop policy if exists "soy admin" on public.mercado_admins;
@@ -916,6 +1009,8 @@ create policy "recargas propias" on public.ordenes_recarga for select to authent
 drop policy if exists "mensajes de mis recargas" on public.mensajes_recarga;
 create policy "mensajes de mis recargas" on public.mensajes_recarga for select to authenticated
   using (public.es_admin() or exists (select 1 from ordenes_recarga o where o.id = orden and o.usuario = auth.uid()));
+drop policy if exists "calificaciones propias" on public.calificaciones;
+create policy "calificaciones propias" on public.calificaciones for select to authenticated using (comprador = auth.uid() or vendedor = auth.uid() or public.es_admin());
 drop policy if exists "soporte propio" on public.soporte_chats;
 create policy "soporte propio" on public.soporte_chats for select to authenticated using (usuario = auth.uid() or public.es_admin());
 drop policy if exists "mensajes de soporte propios" on public.mensajes_soporte;
@@ -936,6 +1031,14 @@ revoke insert, update, delete on public.soporte_chats, public.mensajes_soporte f
 revoke select on public.soporte_chats, public.mensajes_soporte from anon;
 revoke execute on function public.soporte_mensaje(uuid, text), public.admin_bandeja(int) from public, anon;
 grant execute on function public.soporte_mensaje(uuid, text), public.admin_bandeja(int) to authenticated;
+grant select on public.calificaciones to authenticated;
+revoke insert, update, delete on public.calificaciones from anon, authenticated;
+revoke select on public.calificaciones from anon;
+revoke execute on function public.venta_apelar(bigint, text), public.venta_calificar(bigint, int, text),
+  public.admin_buscar_usuarios(text), public.admin_ajustar_recargado(uuid, numeric, text) from public, anon;
+grant execute on function public.venta_apelar(bigint, text), public.venta_calificar(bigint, int, text),
+  public.admin_buscar_usuarios(text), public.admin_ajustar_recargado(uuid, numeric, text) to authenticated;
+grant execute on function public.mercado_opiniones(uuid) to anon, authenticated;
 
 -- Funciones internas: nadie las llama desde la API
 revoke execute on function public._mensaje_sistema(bigint, text) from public, anon, authenticated;

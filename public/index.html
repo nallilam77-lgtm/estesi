@@ -25,9 +25,9 @@
   <link rel="stylesheet" href="css/creadores.css">
   <link rel="stylesheet" href="css/billetera.css">
   <link rel="stylesheet" href="css/cuentas.css?v=3">
-  <link rel="stylesheet" href="css/tienda.css?v=5">
+  <link rel="stylesheet" href="css/tienda.css?v=6">
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.js" defer></script>
-  <script src="js/mercado.js?v=4" defer></script>
+  <script src="js/mercado.js?v=5" defer></script>
 </head>
 <body class="tienda">
 
@@ -52,6 +52,8 @@
     <symbol id="i-dinero" viewBox="0 0 24 24"><rect x="2" y="6" width="20" height="12" rx="2"/><circle cx="12" cy="12" r="3"/><path d="M6 12h.01M18 12h.01"/></symbol>
     <symbol id="i-globo" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3c3 3.5 3 14.5 0 18M12 3c-3 3.5-3 14.5 0 18"/></symbol>
     <symbol id="i-imagen" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="16" rx="2"/><circle cx="9" cy="10" r="2"/><path d="m21 16-5-5-9 9"/></symbol>
+    <symbol id="i-estrella" viewBox="0 0 24 24"><path d="m12 3 2.8 5.7 6.2.9-4.5 4.4 1 6.2L12 17.3 6.5 20.2l1-6.2L3 9.6l6.2-.9L12 3z"/></symbol>
+    <symbol id="i-alerta" viewBox="0 0 24 24"><path d="M12 3 2 20h20L12 3z"/><path d="M12 10v4M12 17h.01"/></symbol>
     <symbol id="i-copiar" viewBox="0 0 24 24"><rect x="9" y="9" width="12" height="12" rx="2"/><path d="M5 15V5a2 2 0 0 1 2-2h10"/></symbol>
     <symbol id="i-movil" viewBox="0 0 24 24"><rect x="6" y="2" width="12" height="20" rx="2"/><path d="M11 18h2"/></symbol>
     <symbol id="i-moneda" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 7v10M9.5 9.5 12 7l2.5 2.5M9.5 14.5 12 17l2.5-2.5"/></symbol>
@@ -510,6 +512,7 @@
 
           <div class="detalle-bloque" id="bloqueDestacados"><h3>Lo más valioso</h3><p id="detalleDestacados"></p></div>
           <div class="detalle-bloque" id="bloqueDescripcion"><h3>Descripción</h3><p id="detalleDescripcion"></p></div>
+          <div class="detalle-bloque oculto" id="bloqueOpiniones"><h3>Opiniones del vendedor</h3><div class="opiniones" id="detalleOpiniones"></div></div>
 
           <ul class="garantias">
             <li><svg class="icono"><use href="#i-chat"/></svg><span>Recibes los datos en el chat del trato, con Level Up como testigo.</span></li>
@@ -537,12 +540,19 @@
         <div class="panel-mensaje" id="mensajeTrato" role="status" aria-live="polite"></div>
 
         <div class="chat">
-          <h3>Chat del trato</h3>
-          <p class="chat-nota">Level Up ve este chat. Nunca acuerdes pagos ni entregues datos fuera de aquí.</p>
+          <div class="chat-cabecera">
+            <div>
+              <h3><svg class="icono"><use href="#i-chat"/></svg>Chat del trato</h3>
+              <div class="participantes" id="tratoParticipantes"></div>
+            </div>
+            <button type="button" class="btn-apelar oculto" id="btnApelar"><svg class="icono"><use href="#i-alerta"/></svg>Llamar a Level Up</button>
+          </div>
+          <div class="apelacion-aviso oculto" id="avisoApelacion" role="status"></div>
+          <p class="chat-nota">Level Up es testigo de este chat. Nunca acuerdes pagos ni entregues datos fuera de aquí.</p>
           <div class="chat-lista" id="chatLista" aria-live="polite"></div>
           <form class="chat-form" id="chatForm">
             <label for="chatTexto" class="solo-lectores">Mensaje</label>
-            <textarea id="chatTexto" rows="2" maxlength="1000" placeholder="Escribe un mensaje…"></textarea>
+            <textarea id="chatTexto" rows="2" maxlength="1000" placeholder="Escribe un mensaje… (Enter envía)"></textarea>
             <button type="submit" class="btn-juego" id="chatEnviar">Enviar</button>
           </form>
           <div class="panel-mensaje" id="chatAviso" role="status" aria-live="polite"></div>
@@ -890,13 +900,19 @@
         const faltan = [...new Set(vendedores)].filter((v) => !reputacion.has(v));
         if (!faltan.length) return;
         const { data } = await cliente.rpc('mercado_reputacion', { p_vendedores: faltan });
-        for (const v of faltan) reputacion.set(v, 0);
-        for (const fila of data || []) reputacion.set(fila.vendedor, fila.ventas);
+        for (const v of faltan) reputacion.set(v, { ventas: 0, estrellas: null, opiniones: 0 });
+        for (const fila of data || []) reputacion.set(fila.vendedor, { ventas: fila.ventas || 0, estrellas: fila.estrellas == null ? null : Number(fila.estrellas), opiniones: fila.opiniones || 0 });
       }
       function lineaReputacion(vendedor, etiqueta = 'span') {
-        const n = reputacion.get(vendedor) || 0;
+        const r = reputacion.get(vendedor) || { ventas: 0, estrellas: null, opiniones: 0 };
+        const n = r.ventas;
         const el = crear(etiqueta, `vendedor-rep${n ? '' : ' vendedor-nuevo'}`);
-        el.append(icono(n ? 'i-escudo' : 'i-usuario'), document.createTextNode(n ? `Vendedor con ${n} venta${n === 1 ? '' : 's'}` : 'Vendedor nuevo'));
+        el.append(icono(n ? 'i-escudo' : 'i-usuario'));
+        if (r.estrellas) {
+          el.append(crear('span', 'estrellas-texto', `★ ${r.estrellas.toLocaleString('es-VE')}`), document.createTextNode(` (${r.opiniones}) · `));
+        }
+        el.append(document.createTextNode(n ? `${n} venta${n === 1 ? '' : 's'}` : 'Vendedor nuevo'));
+        el.setAttribute('aria-label', `${r.estrellas ? `${r.estrellas} de 5 estrellas, ` : ''}${n ? `${n} ventas` : 'vendedor nuevo'}`);
         return el;
       }
 
@@ -986,6 +1002,7 @@
         $('detalleDescripcion').textContent = cuenta.descripcion;
         $('bloqueDescripcion').classList.toggle('oculto', !cuenta.descripcion);
         $('mensajeComprar').textContent = '';
+        cargarOpiniones(cuenta.vendedor);
 
         const miniaturas = $('detalleMiniaturas');
         miniaturas.replaceChildren();
@@ -1017,6 +1034,20 @@
         abrirVentana('ventanaDetalle');
       }
       const totalCompra = (cuenta, garantia) => redondear(Number(cuenta.precio_usd) + (garantia ? config.garantia_usd : 0));
+      async function cargarOpiniones(vendedor) {
+        $('bloqueOpiniones').classList.add('oculto');
+        const { data } = await cliente.rpc('mercado_opiniones', { p_vendedor: vendedor });
+        if (!data?.length || cuentaAbierta?.vendedor !== vendedor) return;
+        const caja = $('detalleOpiniones');
+        caja.replaceChildren();
+        for (const o of data.slice(0, 3)) {
+          const d = crear('div', 'opinion');
+          d.append(crear('span', 'estrellas-texto', M.estrellas(o.estrellas)), document.createTextNode(` · ${fecha(o.creado)}`));
+          if (o.comentario) d.append(crear('p', null, `“${o.comentario}”`));
+          caja.append(d);
+        }
+        $('bloqueOpiniones').classList.remove('oculto');
+      }
       function actualizarPrecioDetalle() {
         if (!cuentaAbierta) return;
         const garantia = $('detalleGarantia').checked;
@@ -1065,7 +1096,7 @@
           await cargarSaldo();
           const total = redondear(Number(precio) + (garantia ? config.garantia_usd : 0));
           if (saldoTotal() < total) return irARecargar(redondear(total - saldoTotal()), cuenta);
-          if (!confirm(`¿Comprar ${codigoCuenta(cuenta)} por ${usd(total)}?\n\nSe descuenta de tu saldo y Level Up lo retiene hasta que recibas la cuenta y finalices.`)) return;
+          if (!await M.confirmar({ titulo: `Comprar ${codigoCuenta(cuenta)} por ${usd(total)}`, texto: `Se descuenta de tu saldo y Level Up lo retiene hasta que recibas la cuenta y finalices.\nTe quedarán ${usd(redondear(saldoTotal() - total))}.`, aceptar: 'Comprar ahora' })) return;
           boton.textContent = 'Comprando…';
           const idTrato = await M.rpc('venta_crear', { p_cuenta: cuenta, p_garantia: garantia }, 'No pudimos completar la compra. Intenta de nuevo.');
           if (!$('ventanaDetalle').classList.contains('oculto')) cerrarVentana('ventanaDetalle');
@@ -1073,6 +1104,7 @@
           cargarSaldo();
           mostrarVista('panel');
           abrirTrato(idTrato);
+          M.notificar(`Compraste ${codigoCuenta(cuenta)}. El vendedor ya fue avisado para entregarte los datos en el chat.`, 'exito', { titulo: 'Compra realizada' });
         } catch (error) {
           if (String(error.message).startsWith('No tienes saldo')) {
             await cargarSaldo();
@@ -1238,6 +1270,7 @@
           $('formPublicar').reset();
           actualizarCalculadora();
           M.mensaje(aviso, `¡Listo! Tu cuenta ${codigoCuenta(data.id)} quedó en revisión. Cuando la aprobemos aparecerá en el mercado.`, 'exito');
+          M.notificar(`Tu cuenta ${codigoCuenta(data.id)} quedó en revisión. Te avisamos cuando se publique.`, 'exito', { titulo: 'Publicación enviada' });
         } catch (error) {
           console.error('publicar', error);
           if (subidas.length) cliente.storage.from(M.BUCKET).remove(subidas);
@@ -1368,12 +1401,13 @@
         if (!(monto >= config.retiro_minimo)) return M.mensaje(aviso, `El retiro mínimo es ${usd(config.retiro_minimo)}.`);
         if (monto > saldoDisponible) return M.mensaje(aviso, `Puedes retirar hasta ${usd(saldoDisponible)} (lo ganado en ventas).`);
         if (datos.length < 5) return M.mensaje(aviso, 'Escribe tus datos de cobro (banco, teléfono y cédula, o tu correo de Binance).');
-        if (!confirm(`¿Retirar ${usd(monto)}? Recibirás ${usd(redondear(monto * (100 - config.comision_retiro) / 100))} por ${$('retMetodo').value} el lunes.`)) return;
+        if (!await M.confirmar({ titulo: `Retirar ${usd(monto)}`, texto: `Recibirás ${usd(redondear(monto * (100 - config.comision_retiro) / 100))} por ${$('retMetodo').value} el lunes (se descuenta el ${config.comision_retiro} %).`, aceptar: 'Pedir retiro' })) return;
         const boton = $('btnRetiro');
         boton.disabled = true;
         try {
           const id = await M.rpc('retiro_solicitar', { p_monto: monto, p_metodo: $('retMetodo').value, p_datos: datos }, 'No pudimos pedir el retiro.');
           M.mensaje(aviso, `Retiro ${codigoRetiro(id)} pedido. Te lo pagamos el lunes.`, 'exito');
+          M.notificar(`Retiro ${codigoRetiro(id)} pedido. Te lo pagamos el lunes.`, 'exito', { titulo: 'Retiro solicitado' });
           $('formRetiro').reset();
           cargarSaldo();
         } catch (error) {
@@ -1424,7 +1458,7 @@
         if (cuenta.estado === 'pausada') accion('Reanudar', '', cambiarEstado('publicada'));
         if (!['vendida', 'reservada'].includes(cuenta.estado)) {
           accion('Eliminar', 'btn-peligro', async () => {
-            if (!confirm(`¿Eliminar ${codigoCuenta(cuenta.id)}? No se puede deshacer.`)) return;
+            if (!await M.confirmar({ titulo: `Eliminar ${codigoCuenta(cuenta.id)}`, texto: 'La publicación y sus fotos se borran. No se puede deshacer.', aceptar: 'Eliminar', peligro: true })) return;
             const { error } = await cliente.from('cuentas_venta').delete().eq('id', cuenta.id);
             if (error) return M.mensaje($('mensajeMias'), 'No pudimos eliminarla.');
             await cliente.storage.from(M.BUCKET).remove(cuenta.fotos);
@@ -1594,6 +1628,7 @@
           $('avisoFalta').textContent = '';
           actualizarPagar();
           M.mensaje(aviso, `¡Orden ${codigoRecarga(id)} enviada! Te avisamos en su chat cuando la aprobemos.`, 'exito');
+          M.notificar(`Orden ${codigoRecarga(id)} enviada. Te avisamos apenas la aprobemos.`, 'exito', { titulo: 'Recarga enviada' });
           cargarRecargas();
           cerrarVentana('ventanaRecargar');
           if (vista !== 'saldo') mostrarVista('saldo');
@@ -1745,7 +1780,18 @@
         if (data?.msg_admin && new Date(data.msg_admin) > new Date(visto || 0)) avisarSoporte();
         const cortes = [
           M.enVivo('aviso-soporte', ['mensajes_soporte'], (m) => { if (m.rol === 'admin') { if (soporteAbierto) marcarVisto(); else avisarSoporte(); } }, { filtro: `usuario=eq.${uid}` }),
-          M.enVivo('mis-recargas', ['ordenes_recarga'], () => { cargarRecargas(); cargarSaldo(); }, { filtro: `usuario=eq.${uid}`, eventos: 'UPDATE' }),
+          M.enVivo('mis-recargas', ['ordenes_recarga'], (o) => {
+            cargarRecargas(); cargarSaldo();
+            if (o?.estado === 'aprobada') M.notificar(`Tu recarga ${codigoRecarga(o.id)} fue aprobada: ${usd(o.acreditado_usd)} ya están en tu saldo.`, 'exito', { titulo: 'Saldo acreditado', alTocar: () => abrirRecarga(o.id) });
+            if (o?.estado === 'rechazada') M.notificar(`Tu recarga ${codigoRecarga(o.id)} fue rechazada: ${o.nota || 'revisa el chat'}.`, 'error', { titulo: 'Recarga rechazada', alTocar: () => abrirRecarga(o.id) });
+          }, { filtro: `usuario=eq.${uid}`, eventos: 'UPDATE' }),
+          // Mensajes de mis tratos (el RLS solo deja pasar los míos)
+          M.enVivo('mis-tratos', ['mensajes_venta'], (m) => {
+            if (!m || m.autor === uid || tratoAbierto === m.venta) return;
+            cargarTratos();
+            const quien = m.rol === 'sistema' ? 'Level Up' : (M.TEXTO_ROL[m.rol] || 'Alguien');
+            M.notificar(`${quien}: ${m.texto.slice(0, 140)}`, m.rol === 'sistema' ? 'info' : 'info', { titulo: `Trato ${codigoTrato(m.venta)}`, alTocar: () => { mostrarVista('panel'); abrirTrato(m.venta); } });
+          }),
         ];
         cortarVigilancia = () => cortes.forEach((c) => c());
       }
@@ -1797,7 +1843,7 @@
           b.type = 'button';
           b.addEventListener('click', async () => {
             b.disabled = true;
-            try { await fn(); } catch (error) { M.mensaje($('mensajeTrato'), error.message); if (error.estadoCambiado) refrescarTrato(); } finally { b.disabled = false; }
+            try { await fn(); } catch (error) { M.mensaje($('mensajeTrato'), error.message); M.notificar(error.message, 'error'); if (error.estadoCambiado) refrescarTrato(); } finally { b.disabled = false; }
           });
           caja.append(b);
           return b;
@@ -1805,12 +1851,26 @@
         const hecho = async (nombre, parametros, textoExito) => {
           await M.rpc(nombre, parametros);
           M.mensaje($('mensajeTrato'), textoExito, 'exito');
+          M.notificar(textoExito, 'exito');
           await refrescarTrato();
           chat.traer();
         };
         const limite = (desde, horas) => fecha(new Date(new Date(desde).getTime() + horas * 3600_000).toISOString());
 
         chat.habilitar(!['cerrada', 'cancelada'].includes(v.estado));
+        // Participantes y apelación
+        const part = $('tratoParticipantes');
+        part.replaceChildren(
+          crear('span', rol === 'comprador' ? 'yo' : '', rol === 'comprador' ? 'Tú · comprador' : 'Comprador'),
+          crear('span', rol === 'vendedor' ? 'yo' : '', rol === 'vendedor' ? 'Tú · vendedor' : 'Vendedor'),
+          crear('span', 'testigo', 'Level Up · testigo'),
+        );
+        const abierto = !['cerrada', 'cancelada'].includes(v.estado);
+        $('btnApelar').classList.toggle('oculto', !abierto || !!v.apelada_en);
+        $('avisoApelacion').classList.toggle('oculto', !v.apelada_en);
+        if (v.apelada_en) {
+          $('avisoApelacion').textContent = `Level Up fue llamado ${v.apelada_por === rol ? 'por ti' : `por el ${v.apelada_por}`} (${fecha(v.apelada_en)}). Un administrador entrará a este chat; mientras tanto no entreguen ni cambien nada.`;
+        }
 
         if (v.estado === 'pendiente_pago' && rol === 'comprador') {
           if (v.pago_informado_en) {
@@ -1840,7 +1900,7 @@
             caja.append(form);
           }
           boton('Cancelar compra', 'btn-secundario btn-peligro', async () => {
-            if (!confirm('¿Cancelar esta compra? La cuenta vuelve al mercado.')) return;
+            if (!await M.confirmar({ titulo: 'Cancelar esta compra', texto: 'La cuenta vuelve al mercado.', aceptar: 'Sí, cancelar', cancelar: 'Volver', peligro: true })) return;
             await hecho('venta_cancelar', { p_venta: v.id }, 'Compra cancelada.');
           });
         } else if (v.estado === 'pendiente_pago') {
@@ -1849,7 +1909,7 @@
           parrafo('¡El comprador ya pagó! El dinero está retenido por Level Up.', 'trato-texto destacado');
           parrafo('1) Escribe en el chat el correo/usuario y la contraseña de la cuenta y quita las vinculaciones que el comprador tenga que cambiar. 2) Cuando termines, toca el botón. No entregues nada fuera de este chat.');
           boton('Ya entregué los datos', 'btn-juego', async () => {
-            if (!confirm('¿Ya escribiste en el chat todos los datos de acceso?')) return;
+            if (!await M.confirmar({ titulo: '¿Ya entregaste los datos?', texto: 'Confirma que escribiste en el chat el correo/usuario y la contraseña de la cuenta. Desde ahora el comprador tiene tiempo para revisarla.', aceptar: 'Sí, ya los entregué', cancelar: 'Todavía no' })) return;
             await hecho('venta_entregar', { p_venta: v.id }, 'Listo. El comprador ya puede revisar la cuenta.');
           });
         } else if (v.estado === 'pagada') {
@@ -1859,7 +1919,7 @@
           parrafo('GRABA LA PANTALLA SIN CORTES desde que uses los datos (máximo 5 minutos después de la entrega).', 'trato-texto alerta');
           parrafo(`Revisa nivel, inventario y región, y cambia el correo, la contraseña y las vinculaciones a tu nombre. Si no haces nada, el trato se cierra solo (${limite(v.entregada_en, config.horas_revision)}).`);
           boton('Todo bien, finalizar', 'btn-juego', async () => {
-            if (!confirm('¿Ya cambiaste los datos y la cuenta está como se publicó? Al finalizar, el vendedor recibe el dinero y no se puede reclamar.')) return;
+            if (!await M.confirmar({ titulo: 'Finalizar el trato', texto: '¿Ya cambiaste los datos y la cuenta está como se publicó?\nAl finalizar, el vendedor recibe el dinero y ya no se puede reclamar.', aceptar: 'Todo bien, finalizar', cancelar: 'Revisar más' })) return;
             await hecho('venta_finalizar', { p_venta: v.id }, '¡Trato cerrado! La cuenta es tuya.');
           });
           const reclamo = crear('details', 'reclamo');
@@ -1893,11 +1953,80 @@
           parrafo(rol === 'comprador'
             ? 'Trato cerrado. La cuenta es tuya: no compartas tus datos con nadie.'
             : `Trato cerrado. ${usd(v.precio_usd)} ya están en tu saldo de ventas.`, 'trato-texto destacado');
+          pintarCalificacion(v, rol, caja);
         } else if (v.estado === 'cancelada') {
           parrafo(`Trato cancelado. ${v.resolucion || ''}`, 'trato-texto');
           const devuelto = redondear(Number(v.pagado_recargado || 0) + Number(v.pagado_disponible || 0));
           if (rol === 'comprador' && devuelto > 0) parrafo(`Te devolvimos ${usd(devuelto)} a tu saldo.`, 'trato-texto destacado');
         }
+      }
+
+      // ---------------- Apelación y calificación ----------------
+      $('btnApelar').addEventListener('click', async () => {
+        if (!tratoAbierto) return;
+        const r = await M.confirmar({
+          titulo: 'Llamar a Level Up',
+          texto: 'Un administrador entrará a este chat para ayudar a resolver. Úsalo si la otra parte no responde, si algo no coincide o si hay un problema.',
+          campo: { etiqueta: '¿Qué está pasando?', placeholder: 'Ej: el vendedor no responde desde hace 2 horas', multilinea: true, obligatorio: true, minimo: 5, max: 300 },
+          aceptar: 'Llamar a Level Up',
+        });
+        if (!r) return;
+        try {
+          await M.rpc('venta_apelar', { p_venta: tratoAbierto, p_motivo: r.texto });
+          M.notificar('Level Up fue avisado y entrará al chat del trato en breve.', 'exito', { titulo: 'Apelación enviada' });
+          await refrescarTrato();
+          chat.traer();
+        } catch (error) {
+          M.notificar(error.message, 'error');
+        }
+      });
+
+      async function pintarCalificacion(v, rol, caja) {
+        if (rol !== 'comprador') {
+          const { data } = await cliente.from('calificaciones').select('estrellas,comentario').eq('venta', v.id).maybeSingle();
+          if (data && tratoAbierto === v.id) caja.append(crear('p', 'trato-texto', `El comprador te calificó: ${M.estrellas(data.estrellas)}${data.comentario ? ` · “${data.comentario}”` : ''}`));
+          return;
+        }
+        const { data } = await cliente.from('calificaciones').select('estrellas,comentario').eq('venta', v.id).maybeSingle();
+        if (tratoAbierto !== v.id) return;
+        if (data) { caja.append(crear('p', 'trato-texto', `Calificaste al vendedor: ${M.estrellas(data.estrellas)}`)); return; }
+        const zona = crear('div', 'calificar aparecer');
+        zona.append(crear('h4', null, '¿Cómo te fue con el vendedor?'));
+        const fila = crear('div', 'estrellas-elegir');
+        fila.setAttribute('role', 'radiogroup');
+        fila.setAttribute('aria-label', 'Estrellas');
+        let elegidas = 0;
+        const pintar = (n) => [...fila.children].forEach((b, i) => b.classList.toggle('activa', i < n));
+        for (let i = 1; i <= 5; i += 1) {
+          const b = crear('button', null, '★');
+          b.type = 'button';
+          b.setAttribute('aria-label', `${i} estrella${i === 1 ? '' : 's'}`);
+          b.addEventListener('click', () => { elegidas = i; pintar(i); });
+          b.addEventListener('mouseenter', () => pintar(i));
+          b.addEventListener('mouseleave', () => pintar(elegidas));
+          fila.append(b);
+        }
+        const comentario = crear('textarea');
+        comentario.maxLength = 300;
+        comentario.placeholder = 'Cuenta en pocas palabras cómo fue (opcional)';
+        comentario.setAttribute('aria-label', 'Comentario');
+        const enviar = crear('button', 'btn-juego', 'Enviar calificación');
+        enviar.type = 'button';
+        enviar.addEventListener('click', async () => {
+          if (!elegidas) return M.notificar('Toca las estrellas para calificar.', 'aviso');
+          enviar.disabled = true;
+          try {
+            await M.rpc('venta_calificar', { p_venta: v.id, p_estrellas: elegidas, p_comentario: comentario.value.trim() });
+            M.notificar('¡Gracias! Tu calificación ayuda a otros compradores.', 'exito', { titulo: 'Calificación enviada' });
+            reputacion.delete(v.vendedor);
+            zona.replaceWith(crear('p', 'trato-texto', `Calificaste al vendedor: ${M.estrellas(elegidas)}`));
+          } catch (error) {
+            M.notificar(error.message, 'error');
+            enviar.disabled = false;
+          }
+        });
+        zona.append(fila, comentario, enviar);
+        caja.append(zona);
       }
 
       // ---------------- Arranque ----------------

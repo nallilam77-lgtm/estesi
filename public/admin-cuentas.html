@@ -18,9 +18,9 @@
   <link rel="stylesheet" href="css/creadores.css">
   <link rel="stylesheet" href="css/billetera.css">
   <link rel="stylesheet" href="css/cuentas.css?v=3">
-  <link rel="stylesheet" href="css/tienda.css?v=6">
+  <link rel="stylesheet" href="css/tienda.css?v=7">
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.js" defer></script>
-  <script src="js/mercado.js?v=4" defer></script>
+  <script src="js/mercado.js?v=5" defer></script>
 </head>
 <body class="tienda">
 
@@ -42,6 +42,7 @@
     <symbol id="i-basura" viewBox="0 0 24 24"><path d="M4 7h16M10 11v6M14 11v6"/><path d="M6 7l1 13h10l1-13M9 7V4h6v3"/></symbol>
     <symbol id="i-recarga" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 8v8M8 12h8"/></symbol>
     <symbol id="i-soporte" viewBox="0 0 24 24"><path d="M4 13v-1a8 8 0 0 1 16 0v1"/><rect x="3" y="13" width="4" height="6" rx="1.5"/><rect x="17" y="13" width="4" height="6" rx="1.5"/><path d="M19 19a3 3 0 0 1-3 3h-3"/></symbol>
+    <symbol id="i-buscar" viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="m20 20-4-4"/></symbol>
     <symbol id="i-whatsapp" viewBox="0 0 24 24"><path d="M3 21l1.6-4.8A8.5 8.5 0 1 1 8 19.6L3 21z"/><path d="M9 9.5c.5 2 2.5 4 4.5 4.5l1-1.2 2 1-.5 1.7c-3.5.3-7.3-3.5-7-7l1.7-.5 1 2L9 9.5z"/></symbol>
   </svg>
 
@@ -111,6 +112,7 @@
           <button type="button" role="tab" aria-selected="false" data-vista="revision"><svg class="icono"><use href="#i-revision"/></svg>Revisión<span class="contador" data-cuenta="revision"></span></button>
           <button type="button" role="tab" aria-selected="false" data-vista="tratos"><svg class="icono"><use href="#i-chat"/></svg>Tratos<span class="contador" data-cuenta="abiertos"></span></button>
           <button type="button" role="tab" aria-selected="false" data-vista="retiros"><svg class="icono"><use href="#i-billetera"/></svg>Retiros<span class="contador" data-cuenta="retiros"></span></button>
+          <button type="button" role="tab" aria-selected="false" data-vista="usuarios"><svg class="icono"><use href="#i-usuario"/></svg>Cuentas</button>
           <button type="button" role="tab" aria-selected="false" data-vista="ajustes"><svg class="icono"><use href="#i-ajustes"/></svg>Ajustes</button>
         </div>
         <div class="panel-mensaje" id="mensajeAdmin" role="status" aria-live="polite"></div>
@@ -182,6 +184,20 @@
           </div>
           <div class="admin-total oculto" id="totalRetiros"></div>
           <div class="admin-lista" id="listaRetiros"></div>
+        </section>
+
+        <!-- Cuentas registradas -->
+        <section class="admin-seccion oculto" id="vistaUsuarios" aria-labelledby="tituloUsuarios">
+          <div class="admin-seccion-cabecera">
+            <h2 id="tituloUsuarios">Cuentas registradas</h2>
+            <p>Busca por correo (o parte de él) para ver el saldo, la actividad y escribirle. Vacío = las 30 más nuevas.</p>
+          </div>
+          <form class="buscar-usuarios" id="formUsuarios" role="search">
+            <label for="buscarUsuario" class="solo-lectores">Correo</label>
+            <input type="search" id="buscarUsuario" placeholder="Ej: juanperez@gmail.com o juanperez" maxlength="120" autocomplete="off" spellcheck="false">
+            <button type="submit" class="btn-juego"><svg class="icono"><use href="#i-buscar"/></svg>Buscar</button>
+          </form>
+          <div class="admin-lista" id="listaUsuarios"></div>
         </section>
 
         <!-- Ajustes -->
@@ -442,6 +458,7 @@
         try {
           await M.rpc(nombre, parametros);
           aviso(exito, 'exito');
+          M.notificar(exito, 'exito');
           return true;
         } catch (error) {
           aviso(error.message);
@@ -485,7 +502,7 @@
       }
 
       // ---------------- Navegación ----------------
-      const VISTAS = { recargas: 'vistaRecargas', chats: 'vistaChats', revision: 'vistaRevision', tratos: 'vistaTratos', retiros: 'vistaRetiros', ajustes: 'vistaAjustes' };
+      const VISTAS = { recargas: 'vistaRecargas', chats: 'vistaChats', usuarios: 'vistaUsuarios', revision: 'vistaRevision', tratos: 'vistaTratos', retiros: 'vistaRetiros', ajustes: 'vistaAjustes' };
       function irA(nueva, filtro, filtroRec) {
         vista = nueva;
         if (filtro) cambiarFiltro(filtro, false);
@@ -511,6 +528,7 @@
         revisarMetodos();
         if (vista === 'recargas') cargarRecargas();
         if (vista === 'chats') cargarChats();
+        if (vista === 'usuarios' && !$('listaUsuarios').children.length) buscarUsuarios();
         if (vista === 'revision') cargarRevision();
         if (vista === 'tratos') cargarTratos();
         if (vista === 'retiros') cargarRetiros();
@@ -816,13 +834,99 @@
           refrescarPronto();
           if (m.rol === 'cliente' && recargaAbierta !== m.orden) avisoVivo(`Mensaje en ${codigoRecarga(m.orden)}`, m.texto, () => abrirRecarga(m.orden));
         });
-        al('mensajes_venta', 'INSERT', (m) => { if (m.rol !== 'admin') refrescarPronto(); });
+        al('mensajes_venta', 'INSERT', (m) => {
+          if (m.rol !== 'admin') refrescarPronto();
+          if (m.rol === 'sistema' && m.texto.startsWith('APELACIÓN') && tratoAbierto !== m.venta) {
+            avisoVivo(`Apelación en ${codigoTrato(m.venta)}`, m.texto.replace('APELACIÓN: ', ''), () => abrirTrato(m.venta));
+          }
+        });
         al('ordenes_recarga', '*', (o, tipo) => {
           refrescarPronto();
           if (tipo === 'INSERT') avisoVivo(`Nueva recarga ${codigoRecarga(o.id)}`, `${usd(o.monto_usd)} por ${M.METODOS_RECARGA[o.metodo]?.nombre || o.metodo} · ref. ${o.referencia}`, () => abrirRecarga(o.id));
         });
         canal.subscribe((s) => estado(s === 'SUBSCRIBED'));
         cortarVivo = () => { try { c.removeChannel(canal); } catch (e) { /* ya cerrado */ } };
+      }
+
+      // ---------------- Cuentas registradas ----------------
+      const TEXTO_MOV = { venta: 'Venta', retiro: 'Retiro', retiro_devuelto: 'Retiro devuelto', ajuste: 'Ajuste', recarga: 'Recarga', recarga_revertida: 'Recarga anulada', compra: 'Compra', reembolso: 'Reembolso' };
+      async function buscarUsuarios() {
+        const lista = $('listaUsuarios');
+        const texto = $('buscarUsuario').value.trim();
+        lista.replaceChildren(crear('p', 'estado-lista', 'Buscando…'));
+        const { data, error } = await cliente.rpc('admin_buscar_usuarios', { p_texto: texto });
+        lista.replaceChildren();
+        if (error) return aviso('No pudimos buscar. ¿Corriste el SQL nuevo?');
+        if (!data.length) return lista.append(vacio(`No hay cuentas con "${texto}".`));
+        for (const u of data) {
+          correos.set(u.id, u.email);
+          lista.append(tarjetaUsuario(u));
+        }
+      }
+      $('formUsuarios').addEventListener('submit', (e) => { e.preventDefault(); buscarUsuarios(); });
+
+      function tarjetaUsuario(u) {
+        const tarjeta = crear('article', 'admin-tarjeta aparecer');
+        const cuerpo = crear('div', 'admin-tarjeta-cuerpo');
+        const cabecera = crear('div', 'admin-tarjeta-cabecera');
+        const titulo = crear('div');
+        titulo.append(crear('span', 'tarjeta-codigo', `Registrada el ${fecha(u.creado)}${u.ultimo_acceso ? ` · último acceso ${fecha(u.ultimo_acceso)}` : ''}`), crear('h3', null, u.email));
+        cabecera.append(titulo);
+        if (u.estrellas) cabecera.append(crear('span', 'pastilla', `★ ${Number(u.estrellas).toLocaleString('es-VE')}`));
+        const saldos = crear('div', 'usuario-saldos');
+        const total = Number(u.disponible) + Number(u.recargado);
+        for (const [k, v, clase] of [['Saldo total', usd(total), 'total'], ['Recargado', usd(u.recargado), ''], ['De ventas', usd(u.disponible), '']]) {
+          const d = crear('div', clase);
+          d.append(crear('span', null, k), crear('strong', null, v));
+          saldos.append(d);
+        }
+        const actividad = ficha([
+          ['Recargas', String(u.recargas)], ['Tratos', String(u.tratos)], ['Ventas cerradas', String(u.ventas)], ['Publicaciones', String(u.publicaciones)],
+        ]);
+        const acciones = crear('div', 'admin-acciones');
+        boton(acciones, 'Escribirle (soporte)', 'btn-secundario', 'i-chat', () => abrirSoporte(u.id));
+        boton(acciones, 'Ajustar saldo', 'btn-secundario', 'i-billetera', async () => {
+          const r = await dialogo({
+            titulo: `Ajustar saldo de ${u.email}`,
+            texto: 'Escribe el monto en USD: positivo suma, negativo resta (ej: -5). Queda en su historial de movimientos.',
+            etiqueta: 'Monto (USD)', valor: '', aceptar: 'Aplicar ajuste', obligatorio: true,
+            casilla: { texto: 'Ajustar el saldo DE VENTAS (retirable). Sin marcar se ajusta el recargado (solo para comprar).', marcado: false },
+          });
+          if (!r) return;
+          const monto = Number(r.texto.replace(',', '.'));
+          if (!monto) return aviso('Escribe un monto distinto de cero.');
+          const detalle = await dialogo({ titulo: 'Motivo del ajuste', texto: 'El cliente lo verá en sus movimientos.', etiqueta: 'Motivo', valor: monto > 0 ? 'Bono de Level Up' : 'Corrección de Level Up', aceptar: 'Guardar', obligatorio: true });
+          if (!detalle) return;
+          const ok = await accion(r.marcado ? 'admin_ajustar_saldo' : 'admin_ajustar_recargado', { [r.marcado ? 'p_vendedor' : 'p_usuario']: u.id, p_monto: monto, p_detalle: detalle.texto }, `Saldo de ${u.email} ajustado en ${usd(monto)}.`);
+          if (ok) buscarUsuarios();
+        });
+        const movs = crear('details', 'movimientos-usuario');
+        movs.append(crear('summary', null, 'Ver movimientos de saldo'));
+        movs.addEventListener('toggle', async () => {
+          if (!movs.open || movs.dataset.cargado) return;
+          movs.dataset.cargado = '1';
+          const { data } = await cliente.from('movimientos_vendedor').select('tipo,monto,saldo_despues,detalle,creado').eq('vendedor', u.id).order('id', { ascending: false }).limit(30);
+          const envoltura = crear('div', 'tabla-scroll');
+          const tabla = crear('table');
+          const cab = tabla.createTHead().insertRow();
+          for (const t of ['Fecha', 'Detalle', 'Monto', 'Saldo']) cab.append(crear('th', null, t));
+          const cuerpoTabla = tabla.createTBody();
+          if (!data?.length) { const c = cuerpoTabla.insertRow().insertCell(); c.colSpan = 4; c.textContent = 'Sin movimientos.'; }
+          for (const m of data || []) {
+            const tr = cuerpoTabla.insertRow();
+            tr.insertCell().textContent = fecha(m.creado);
+            tr.insertCell().textContent = m.detalle || TEXTO_MOV[m.tipo] || m.tipo;
+            const celda = tr.insertCell();
+            celda.textContent = `${m.monto > 0 ? '+' : ''}${usd(m.monto)}`;
+            celda.className = m.monto > 0 ? 'monto-mas' : 'monto-menos';
+            tr.insertCell().textContent = usd(m.saldo_despues);
+          }
+          envoltura.append(tabla);
+          movs.append(envoltura);
+        });
+        cuerpo.append(cabecera, saldos, actividad, acciones, movs);
+        tarjeta.append(cuerpo);
+        return tarjeta;
       }
 
       // ---------------- Revisión ----------------
@@ -891,8 +995,10 @@
       document.querySelectorAll('#filtroTratos .chip').forEach((b) => b.addEventListener('click', () => cambiarFiltro(b.dataset.filtro)));
 
       const porConfirmar = (v) => v.estado === 'pendiente_pago' && !!v.pago_informado_en;
-      const pastilla = (v) => crear('span', `pastilla pastilla-${porConfirmar(v) ? 'confirmar' : v.estado}`,
-        porConfirmar(v) ? `Confirmar pago · ${v.metodo_pago} ${v.referencia_pago}` : M.TEXTO_ESTADO_TRATO[v.estado]);
+      const pastilla = (v) => (v.apelada_en && !['cerrada', 'cancelada'].includes(v.estado)
+        ? crear('span', 'pastilla pastilla-apelacion', `Apelación · lo llamó el ${v.apelada_por}`)
+        : crear('span', `pastilla pastilla-${porConfirmar(v) ? 'confirmar' : v.estado}`,
+          porConfirmar(v) ? `Confirmar pago · ${v.metodo_pago} ${v.referencia_pago}` : M.TEXTO_ESTADO_TRATO[v.estado]));
 
       async function cargarTratos() {
         let consulta = cliente.from('ventas_cuentas').select('*').order('actualizado', { ascending: false }).limit(100);
@@ -906,7 +1012,7 @@
         lista.replaceChildren();
         if (!data.length) return lista.append(vacio('No hay tratos con ese filtro.'));
         for (const v of data) {
-          const fila = crear('button', `trato-fila${porConfirmar(v) || v.estado === 'en_reclamo' ? ' trato-fila-toca' : ''}`);
+          const fila = crear('button', `trato-fila${porConfirmar(v) || v.estado === 'en_reclamo' || v.apelada_en ? ' trato-fila-toca' : ''}`);
           fila.type = 'button';
           const datos = crear('div', 'trato-fila-datos');
           datos.append(
@@ -971,6 +1077,7 @@
         ];
         if (v.pagada_en && v.metodo_pago !== 'Saldo') pares.push(['Pago confirmado', fecha(v.pagada_en)]);
         if (v.entregada_en) pares.push(['Datos entregados', fecha(v.entregada_en)]);
+        if (v.apelada_en) pares.push(['Apelación', `La pidió el ${v.apelada_por} · ${fecha(v.apelada_en)} · se marca atendida cuando escribas en el chat`]);
         if (v.reclamo_motivo) pares.push(['Reclamo', v.reclamo_motivo]);
         if (v.resolucion) pares.push(['Resolución', v.resolucion]);
         $('tratoDatos').replaceWith(Object.assign(ficha(pares), { id: 'tratoDatos' }));
