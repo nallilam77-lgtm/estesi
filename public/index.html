@@ -25,7 +25,7 @@
   <link rel="stylesheet" href="css/creadores.css">
   <link rel="stylesheet" href="css/billetera.css">
   <link rel="stylesheet" href="css/cuentas.css?v=3">
-  <link rel="stylesheet" href="css/tienda.css?v=4">
+  <link rel="stylesheet" href="css/tienda.css?v=5">
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.js" defer></script>
   <script src="js/mercado.js?v=4" defer></script>
 </head>
@@ -90,7 +90,7 @@
       </nav>
       <div class="nav-acciones">
         <a class="nav-enlace nav-enlace-admin oculto" id="enlaceAdmin" href="admin-cuentas.html">Admin</a>
-        <button type="button" class="chip-saldo oculto" id="chipSaldo" data-vista="saldo" aria-label="Mi saldo"><svg class="icono"><use href="#i-billetera"/></svg><span id="chipSaldoTexto">0 USD</span></button>
+        <button type="button" class="chip-saldo oculto" id="chipSaldo" aria-label="Mi saldo: recargar"><svg class="icono"><use href="#i-billetera"/></svg><span id="chipSaldoTexto">0 USD</span></button>
         <button type="button" class="btn-nav" data-vista="panel">
           <svg class="icono"><use href="#i-usuario"/></svg><span id="textoBotonPanel">Entrar</span>
           <span class="punto-aviso oculto" id="puntoPanel" aria-label="Tienes tratos pendientes"></span>
@@ -424,60 +424,11 @@
                 <div><span>De ventas</span><b id="saldoVentas">—</b><small>se puede retirar</small></div>
               </div>
               <div class="saldo-botones">
-                <button type="button" class="btn btn-principal" data-saltar="cajaRecargar"><svg class="icono"><use href="#i-mas"/></svg>Recargar</button>
+                <button type="button" class="btn btn-principal" id="btnAbrirRecargar"><svg class="icono"><use href="#i-mas"/></svg>Recargar</button>
                 <button type="button" class="btn btn-borde" data-ir="cuentas"><svg class="icono"><use href="#i-buscar"/></svg>Ver cuentas</button>
               </div>
             </section>
 
-            <section class="panel-caja aparecer" id="cajaRecargar" aria-labelledby="tituloRecargar">
-              <h2 id="tituloRecargar"><svg class="icono"><use href="#i-mas"/></svg>Recargar saldo</h2>
-              <p>Elige cómo vas a pagar. Lo acreditamos apenas verifiquemos tu pago.</p>
-              <div class="panel-mensaje" id="avisoFalta" role="status" aria-live="polite"></div>
-              <div class="metodos" id="metodosRecarga" role="group" aria-label="Método de pago"></div>
-
-              <form class="recarga-form oculto" id="formRecarga" novalidate>
-                <div class="recarga-paso">
-                  <span class="paso-num" aria-hidden="true">1</span>
-                  <div class="recarga-paso-cuerpo">
-                    <label class="recarga-titulo" for="recMonto">¿Cuánto quieres recargar?</label>
-                    <div class="montos-rapidos" id="montosRapidos">
-                      <button type="button" data-monto="5">5 USD</button><button type="button" data-monto="10">10 USD</button><button type="button" data-monto="20">20 USD</button><button type="button" data-monto="50">50 USD</button>
-                    </div>
-                    <div class="campo-monto"><input type="number" id="recMonto" min="1" max="2000" step="0.01" inputmode="decimal" placeholder="Otro monto"><span>USD</span></div>
-                  </div>
-                </div>
-                <div class="recarga-paso">
-                  <span class="paso-num" aria-hidden="true">2</span>
-                  <div class="recarga-paso-cuerpo">
-                    <span class="recarga-titulo">Envía el pago a estos datos</span>
-                    <div class="datos-metodo" id="datosMetodo"></div>
-                    <p class="campo-ayuda" id="notaRecarga"></p>
-                  </div>
-                </div>
-                <div class="recarga-paso">
-                  <span class="paso-num" aria-hidden="true">3</span>
-                  <div class="recarga-paso-cuerpo">
-                    <span class="recarga-titulo">Sube el comprobante</span>
-                    <label class="captura-elegir" id="capturaElegir">
-                      <svg class="icono"><use href="#i-subir"/></svg>
-                      <span><strong id="capturaTexto">Subir captura del pago</strong><small>Que se vean el monto, la fecha y la referencia</small></span>
-                      <input type="file" id="recCaptura" accept="image/*">
-                    </label>
-                    <div class="captura-vista oculto" id="capturaVista">
-                      <img id="capturaImg" alt="Captura elegida">
-                      <button type="button" id="capturaQuitar" aria-label="Quitar captura">✖</button>
-                    </div>
-                    <div class="campo">
-                      <label for="recReferencia" id="etiquetaReferencia">Referencia</label>
-                      <input type="text" id="recReferencia" maxlength="40" autocomplete="off" spellcheck="false" aria-describedby="ayudaReferencia">
-                      <p class="campo-ayuda" id="ayudaReferencia"></p>
-                    </div>
-                  </div>
-                </div>
-                <button type="submit" class="btn-juego" id="btnRecarga">Enviar orden de recarga</button>
-              </form>
-              <div class="panel-mensaje" id="mensajeRecarga" role="status" aria-live="polite"></div>
-            </section>
 
             <section class="panel-caja aparecer" aria-labelledby="tituloOrdenes">
               <h2 id="tituloOrdenes"><svg class="icono"><use href="#i-reloj"/></svg>Mis recargas</h2>
@@ -596,6 +547,63 @@
           </form>
           <div class="panel-mensaje" id="chatAviso" role="status" aria-live="polite"></div>
         </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Recargar saldo: método → datos para pagar → comprobante -->
+  <div class="ventana oculto" id="ventanaRecargar" role="dialog" aria-modal="true" aria-labelledby="tituloRecargar">
+    <div class="ventana-caja ventana-recargar">
+      <button type="button" class="ventana-cerrar" data-cerrar aria-label="Cerrar">✖</button>
+      <div class="detalle-cuerpo" id="cajaRecargar">
+              <h2 id="tituloRecargar"><svg class="icono"><use href="#i-mas"/></svg>Recargar saldo</h2>
+              <p class="recargar-saldo">Tu saldo: <strong id="recargarSaldo">—</strong></p>
+              <p class="recargar-paso1">1. Elige cómo vas a pagar:</p>
+              <div class="panel-mensaje" id="avisoFalta" role="status" aria-live="polite"></div>
+              <div class="metodos" id="metodosRecarga" role="group" aria-label="Método de pago"></div>
+
+              <form class="recarga-form oculto" id="formRecarga" novalidate>
+                <div class="recarga-paso">
+                  <span class="paso-num" aria-hidden="true">2</span>
+                  <div class="recarga-paso-cuerpo">
+                    <label class="recarga-titulo" for="recMonto">¿Cuánto quieres recargar?</label>
+                    <div class="montos-rapidos" id="montosRapidos">
+                      <button type="button" data-monto="5">5 USD</button><button type="button" data-monto="10">10 USD</button><button type="button" data-monto="20">20 USD</button><button type="button" data-monto="50">50 USD</button>
+                    </div>
+                    <div class="campo-monto"><input type="number" id="recMonto" min="1" max="2000" step="0.01" inputmode="decimal" placeholder="Otro monto"><span>USD</span></div>
+                  </div>
+                </div>
+                <div class="recarga-paso">
+                  <span class="paso-num" aria-hidden="true">3</span>
+                  <div class="recarga-paso-cuerpo">
+                    <span class="recarga-titulo">Envía el pago a estos datos</span>
+                    <div class="datos-metodo" id="datosMetodo"></div>
+                    <p class="campo-ayuda" id="notaRecarga"></p>
+                  </div>
+                </div>
+                <div class="recarga-paso">
+                  <span class="paso-num" aria-hidden="true">4</span>
+                  <div class="recarga-paso-cuerpo">
+                    <span class="recarga-titulo">Sube el comprobante</span>
+                    <label class="captura-elegir" id="capturaElegir">
+                      <svg class="icono"><use href="#i-subir"/></svg>
+                      <span><strong id="capturaTexto">Subir captura del pago</strong><small>Que se vean el monto, la fecha y la referencia</small></span>
+                      <input type="file" id="recCaptura" accept="image/*">
+                    </label>
+                    <div class="captura-vista oculto" id="capturaVista">
+                      <img id="capturaImg" alt="Captura elegida">
+                      <button type="button" id="capturaQuitar" aria-label="Quitar captura">✖</button>
+                    </div>
+                    <div class="campo">
+                      <label for="recReferencia" id="etiquetaReferencia">Referencia</label>
+                      <input type="text" id="recReferencia" maxlength="40" autocomplete="off" spellcheck="false" aria-describedby="ayudaReferencia">
+                      <p class="campo-ayuda" id="ayudaReferencia"></p>
+                    </div>
+                  </div>
+                </div>
+                <button type="submit" class="btn-juego" id="btnRecarga">Enviar orden de recarga</button>
+              </form>
+              <div class="panel-mensaje" id="mensajeRecarga" role="status" aria-live="polite"></div>
       </div>
     </div>
   </div>
@@ -785,6 +793,7 @@
         toggleMenu(false);
         if (nueva === 'panel' && sesion) cargarPanel();
         if (nueva === 'saldo' && sesion) { cargarSaldo(); cargarRecargas(); }
+        if (!$('ventanaRecargar').classList.contains('oculto') && nueva !== 'saldo') cerrarVentana('ventanaRecargar');
         try { history.replaceState(null, '', app ? `#${nueva}` : location.pathname); } catch (e) { /* sin historial */ }
         window.scrollTo({ top: 0 });
       }
@@ -1042,9 +1051,9 @@
         if (!$('ventanaDetalle').classList.contains('oculto')) cerrarVentana('ventanaDetalle');
         mostrarVista('saldo');
         $('recMonto').value = String(Math.max(config.recarga_minima || 1, Math.ceil(falta * 100) / 100));
+        abrirRecargar();
         M.mensaje($('avisoFalta'), `Te faltan ${usd(falta)} para comprar ${codigoCuenta(idCuenta)}. Recarga y vuelve a la cuenta cuando se acredite.`, 'aviso');
         actualizarPagar();
-        setTimeout(() => $('cajaRecargar').scrollIntoView({ behavior: 'smooth', block: 'start' }), 60);
       }
 
       async function comprar({ cuenta, garantia, precio, titulo }) {
@@ -1428,6 +1437,17 @@
       }
 
       // ---------------- Recargas de saldo ----------------
+      // Tocar el saldo (barra, "Recargar") abre la ventana de recarga directamente
+      function abrirRecargar() {
+        if (!sesion) { mostrarVista('saldo'); return; }
+        $('recargarSaldo').textContent = usd(saldoTotal());
+        $('mensajeRecarga').textContent = '';
+        pintarMetodos();
+        abrirVentana('ventanaRecargar');
+      }
+      $('chipSaldo').addEventListener('click', () => { if (vista !== 'saldo') mostrarVista('saldo'); abrirRecargar(); });
+      $('btnAbrirRecargar').addEventListener('click', abrirRecargar);
+
       const ICONO_METODO = { binance: 'i-moneda', pago_movil: 'i-movil', paypal: 'i-tarjeta' };
       let metodoElegido = null;
       let captura = null;   // { blob, vista }
@@ -1437,7 +1457,7 @@
         const activos = M.metodosActivos(config);
         caja.replaceChildren();
         if (!activos.length) {
-          caja.append(crear('p', 'estado-lista', 'Las recargas estarán disponibles muy pronto. Escríbenos por WhatsApp si quieres recargar ya.'));
+          caja.append(crear('p', 'estado-lista', 'Las recargas estarán disponibles muy pronto. Escríbenos por el chat en vivo si quieres recargar ya.'));
           $('formRecarga').classList.add('oculto');
           return;
         }
@@ -1461,6 +1481,7 @@
           b.addEventListener('click', () => elegirMetodo(m));
           caja.append(b);
         }
+        if (!metodoElegido && activos.length === 1) metodoElegido = activos[0];
         if (metodoElegido) elegirMetodo(metodoElegido, false);
       }
 
@@ -1574,6 +1595,8 @@
           actualizarPagar();
           M.mensaje(aviso, `¡Orden ${codigoRecarga(id)} enviada! Te avisamos en su chat cuando la aprobemos.`, 'exito');
           cargarRecargas();
+          cerrarVentana('ventanaRecargar');
+          if (vista !== 'saldo') mostrarVista('saldo');
           abrirRecarga(id);
         } catch (error) {
           console.error('recarga', error);
@@ -1914,6 +1937,7 @@
         if (['cuentas', 'como-funciona'].includes(inicial)) setTimeout(() => $(inicial).scrollIntoView({ block: 'start' }), 50);
         if (sesion) { cargarTratos(); cargarSaldo(); vigilar(); }   // punto de aviso en "Mi panel", saldo en la barra y avisos en vivo
         if (inicial === 'soporte') abrirSoporte();
+        if (inicial === 'recargar' && sesion) { mostrarVista('saldo'); abrirRecargar(); }
       });
       buscar(true);
     });

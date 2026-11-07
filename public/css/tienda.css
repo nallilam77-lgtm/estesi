@@ -670,3 +670,19 @@ body.soporte-abierto .chat-flotante { display: none; }
 .aviso-vivo span { display: grid; gap: 2px; min-width: 0; font-size: 13px; }
 .aviso-vivo small { color: var(--text-muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 @media (prefers-reduced-motion: reduce) { .soporte, .chat-flotante.llamando, .aviso-vivo { animation: none; } }
+
+/* Ventana "Recargar saldo" y aviso del admin sin métodos */
+.ventana-recargar { max-width: 600px; }
+.ventana-recargar .detalle-cuerpo { padding-top: 56px; }
+.ventana-recargar h2 { display: flex; align-items: center; gap: 8px; font-family: 'Montserrat', sans-serif; font-weight: 900; font-size: 20px; }
+.ventana-recargar h2 .icono { color: var(--game-text); }
+.recargar-saldo { margin: 4px 0 12px; font-size: 13px; color: var(--text-muted); }
+.recargar-saldo strong { color: var(--game-text); font-family: 'Montserrat', sans-serif; font-weight: 900; }
+.recargar-paso1 { margin-bottom: 10px; font-weight: 600; font-size: 14px; color: var(--text-main); }
+.ventana-recargar .metodos { grid-template-columns: 1fr; }
+.alerta-metodos {
+  display: flex; align-items: flex-start; gap: 12px; width: 100%; margin-bottom: 16px; padding: 16px; border-radius: 16px; cursor: pointer; text-align: left;
+  font: inherit; font-size: 13px; line-height: 1.5; color: var(--text-main); background: rgba(239, 68, 68, 0.1); border: 1px solid var(--danger);
+}
+.alerta-metodos .icono { flex: 0 0 auto; color: var(--danger); margin-top: 2px; }
+.alerta-metodos strong { color: var(--danger); }

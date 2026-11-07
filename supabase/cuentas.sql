@@ -841,8 +841,9 @@ begin
   if p_clave = any (numericas) and nullif(trim(p_valor), '') is not null and trim(p_valor) !~ '^[0-9]+(\.[0-9]+)?$' then
     raise exception 'DATO_INVALIDO';
   end if;
-  update mercado_config set valor = left(trim(coalesce(p_valor, '')), case when p_clave = 'instrucciones_pago' then 600 else 120 end)
-   where clave = p_clave;
+  insert into mercado_config (clave, valor)
+  values (p_clave, left(trim(coalesce(p_valor, '')), case when p_clave = 'instrucciones_pago' then 600 else 120 end))
+  on conflict (clave) do update set valor = excluded.valor;
 end $$;
 
 -- Correos de comprador/vendedor para el panel (auth.users no es accesible desde la API)

@@ -18,7 +18,7 @@
   <link rel="stylesheet" href="css/creadores.css">
   <link rel="stylesheet" href="css/billetera.css">
   <link rel="stylesheet" href="css/cuentas.css?v=3">
-  <link rel="stylesheet" href="css/tienda.css?v=4">
+  <link rel="stylesheet" href="css/tienda.css?v=5">
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.js" defer></script>
   <script src="js/mercado.js?v=4" defer></script>
 </head>
@@ -94,6 +94,10 @@
       </div>
 
       <div class="contenedor app-cuerpo">
+        <button type="button" class="alerta-metodos oculto" id="alertaMetodos" data-ir="ajustes">
+          <svg class="icono"><use href="#i-alerta"/></svg>
+          <span><strong>Tus clientes todavía no pueden recargar.</strong> No hay ningún método de pago con datos. Toca aquí, llena Binance, Pago Móvil o PayPal y presiona "Guardar ajustes".</span>
+        </button>
         <div class="admin-resumen" id="resumenAdmin">
           <button type="button" class="admin-dato" data-ir="revision"><span class="icono-caja"><svg class="icono"><use href="#i-revision"/></svg></span><span><strong data-cuenta="revision">—</strong>Publicaciones por revisar</span></button>
           <button type="button" class="admin-dato" data-ir="recargas" data-filtro-recargas="pendiente"><span class="icono-caja"><svg class="icono"><use href="#i-recarga"/></svg></span><span><strong data-cuenta="recargas">—</strong><em id="textoRecargasResumen">Recargas por aprobar</em></span></button>
@@ -490,10 +494,18 @@
       }
       document.querySelectorAll('#pestanasAdmin [data-vista]').forEach((b) => b.addEventListener('click', () => irA(b.dataset.vista)));
       document.querySelectorAll('.admin-dato').forEach((b) => b.addEventListener('click', () => irA(b.dataset.ir, b.dataset.filtro, b.dataset.filtroRecargas)));
+      $('alertaMetodos').addEventListener('click', () => irA('ajustes'));
+      // Aviso si ningún método de recarga tiene datos (los clientes no verían cómo pagar)
+      async function revisarMetodos() {
+        const config = await M.config();
+        $('alertaMetodos').classList.toggle('oculto', M.metodosActivos(config).length > 0);
+        return config;
+      }
       $('btnRefrescar').addEventListener('click', () => cliente.rpc('mercado_mantenimiento').then(cargarTodo, cargarTodo));
 
       function cargarTodo() {
         cargarResumen();
+        revisarMetodos();
         if (vista === 'recargas') cargarRecargas();
         if (vista === 'chats') cargarChats();
         if (vista === 'revision') cargarRevision();
@@ -1070,17 +1082,24 @@
         e.preventDefault();
         const b = $('btnAjustes');
         b.disabled = true;
+        b.textContent = 'Guardando…';
         try {
           for (const clave of CLAVES) {
             const campo = $(`cfg_${clave}`);
             const valor = campo.value.trim();
             await M.rpc('admin_config', { p_clave: clave, p_valor: TEXTOS.includes(clave) ? valor : valor.replace(',', '.') }, `Revisa el valor de "${campo.labels[0].textContent}".`);
           }
-          M.mensaje($('mensajeAjustes'), 'Ajustes guardados. Ya se aplican en la tienda.', 'exito');
+          const config = await revisarMetodos();
+          await cargarAjustes();
+          const activos = M.metodosActivos(config).map((m) => M.METODOS_RECARGA[m].nombre);
+          M.mensaje($('mensajeAjustes'), activos.length
+            ? `Guardado. Tus clientes ya pueden recargar por: ${activos.join(', ')}.`
+            : 'Guardado, pero ningún método tiene datos: llena al menos el ID de Binance, el teléfono de Pago Móvil o el correo de PayPal.', activos.length ? 'exito' : 'aviso');
         } catch (error) {
-          M.mensaje($('mensajeAjustes'), error.message);
+          M.mensaje($('mensajeAjustes'), `No se guardó todo: ${error.message}`);
         } finally {
           b.disabled = false;
+          b.textContent = 'Guardar ajustes';
         }
       });
 
