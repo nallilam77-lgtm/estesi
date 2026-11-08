@@ -2277,7 +2277,11 @@
       // ---------------- Notificaciones push y app instalada ----------------
       // El service worker (sw.js) muestra las notificaciones aunque la tienda esté cerrada. Las manda la función
       // enviar-push de Supabase; aquí solo se pide permiso y se guarda la suscripción de este navegador.
-      const URL_PUSH = `${M.SUPABASE_URL}/functions/v1/enviar-push`;
+      // Dirección de la función que manda las notificaciones (Ajustes: push_url). Solo se acepta una función de NUESTRO Supabase.
+      const urlPush = () => {
+        const u = String(config.push_url || '').trim();
+        return u.startsWith(`${M.SUPABASE_URL}/functions/v1/`) ? u : `${M.SUPABASE_URL}/functions/v1/enviar-push`;
+      };
       const esIOS = /iphone|ipad|ipod/i.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
       const instalada = () => window.matchMedia?.('(display-mode: standalone)').matches || navigator.standalone === true;
       const soportaPush = () => window.isSecureContext && 'serviceWorker' in navigator && 'PushManager' in window && 'Notification' in window;
@@ -2292,7 +2296,8 @@
       };
       const aBase64 = (buf) => btoa(String.fromCharCode(...new Uint8Array(buf))).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
       async function clavePublica() {
-        const r = await fetch(URL_PUSH, { method: 'GET' });
+        if (!config.push_url) config = await M.config();
+        const r = await fetch(urlPush(), { method: 'GET' });
         const d = await r.json().catch(() => null);
         if (!r.ok || !d?.publica) throw new Error('SIN_PUSH');
         return d.publica;
