@@ -2287,6 +2287,7 @@
       const soportaPush = () => window.isSecureContext && 'serviceWorker' in navigator && 'PushManager' in window && 'Notification' in window;
       const permisoNotif = () => ('Notification' in window ? Notification.permission : 'default');
       const iosSinInstalar = () => esIOS && !instalada();
+      const navegadorInterno = () => /FBAN|FBAV|Instagram|WhatsApp|Line\/|; wv\)/i.test(navigator.userAgent);
       let registroSW = null;
       let pedidoInstalar = null;   // evento beforeinstallprompt (Android y computadora)
       let pushActivo = false;
@@ -2330,24 +2331,42 @@
           M.notificar('En iPhone primero instala Level Up: en Safari toca Compartir y luego "Agregar a inicio". Abre la app desde ese icono y activa las notificaciones ahí.', 'aviso', { titulo: 'Instala la app', duracion: 14000 });
           return;
         }
-        if (!soportaPush()) return M.notificar('Este navegador no permite notificaciones. Prueba con Chrome.', 'aviso');
-        if (!sesion) return;
-        const permiso = await Notification.requestPermission();
+        if (navegadorInterno()) {
+          M.notificar('Estás dentro de otra app (WhatsApp, Instagram, Facebook…). Toca ⋮ y elige "Abrir en Chrome", y activa las notificaciones desde ahí.', 'aviso', { titulo: 'Abre la tienda en Chrome', duracion: 14000 });
+          return;
+        }
+        if (!soportaPush()) return M.notificar('Este navegador no permite notificaciones. Abre la tienda en Chrome.', 'aviso', { duracion: 12000 });
+        if (!sesion) return M.notificar('Primero entra a tu cuenta.', 'aviso');
+        // Algunos navegadores viejos usan la forma con callback
+        const permiso = await new Promise((listo) => {
+          const r = Notification.requestPermission(listo);
+          if (r?.then) r.then(listo, () => listo('denied'));
+        });
         if (permiso !== 'granted') {
-          M.notificar('No diste permiso. Puedes darlo después en el candado de la barra de direcciones o en los ajustes del celular.', 'aviso');
+          M.notificar('El navegador no dio permiso a esta página. En Chrome: toca ⋮ → Configuración → Configuración de sitios → Notificaciones, busca estesi-blond.vercel.app y ponlo en "Permitir". Luego vuelve a tocar Activar.',
+            'aviso', { titulo: 'Permiso bloqueado en la página', duracion: 16000 });
           pintarPermiso();
           return;
         }
         const botones = [$('btnPermisoPanel'), $('btnPermisoAvisos')];
         botones.forEach((b) => { b.disabled = true; });
+        // Nunca dejar el botón trabado si el navegador no responde
+        const conLimite = (promesa, ms, codigo) => Promise.race([promesa, new Promise((_, no) => setTimeout(() => no(new Error(codigo)), ms))]);
         try {
-          registroSW = registroSW || await navigator.serviceWorker.ready;
-          await suscribir(true);
+          if (!registroSW) registroSW = await conLimite(navigator.serviceWorker.register('sw.js').then(() => navigator.serviceWorker.ready), 15000, 'SIN_SW');
+          await conLimite(suscribir(true), 25000, 'LENTO');
           M.notificar('Listo: te llegarán las notificaciones a este dispositivo aunque tengas Level Up cerrada.', 'exito', { titulo: 'Notificaciones activadas' });
         } catch (error) {
-          if (error.message !== 'SIN_PUSH') M.registrarError(`activar push: ${error.message}`, error.stack || '');
-          M.notificar(error.message === 'SIN_PUSH' ? 'Las notificaciones todavía no están listas en Level Up. Intenta más tarde.'
-            : error.message.startsWith('No pudimos') ? error.message : 'No pudimos activar las notificaciones. Intenta de nuevo en un momento.', 'error');
+          const m = String(error?.message || error);
+          const n = String(error?.name || '');
+          if (m !== 'SIN_PUSH') M.registrarError(`activar push: ${n} ${m}`, `${navigator.userAgent} ${error?.stack || ''}`);
+          const texto = m === 'SIN_PUSH' ? 'Las notificaciones todavía no están listas en Level Up. Intenta más tarde.'
+            : m === 'SIN_SW' ? 'Este navegador no dejó instalar el servicio de avisos. Abre la tienda en Chrome (no dentro de otra app) e intenta de nuevo.'
+              : m === 'LENTO' ? 'Tu conexión tardó demasiado. Intenta de nuevo con mejor señal.'
+                : n === 'NotAllowedError' ? 'El navegador bloqueó las notificaciones para esta página. En Chrome: ⋮ → Configuración → Configuración de sitios → Notificaciones → estesi-blond.vercel.app → Permitir.'
+                  : n === 'AbortError' || /push service|registration failed/i.test(m) ? 'Tu celular no pudo conectarse al servicio de notificaciones de Google. Pasa en celulares sin servicios de Google (algunos Huawei) o con ahorro de batería extremo. Prueba en Chrome con datos o Wi-Fi.'
+                    : m.startsWith('No pudimos') ? m : 'No pudimos activar las notificaciones.';
+          M.notificar(`${texto} (Detalle: ${n || 'Error'} · ${m.slice(0, 120)})`, 'error', { titulo: 'No se activaron', duracion: 20000 });
         } finally {
           botones.forEach((b) => { b.disabled = false; });
           pintarPermiso();
@@ -2410,8 +2429,9 @@
         const t = $('textoPermiso');
         b.classList.remove('oculto');
         if (iosSinInstalar()) { t.textContent = 'En iPhone primero instala la app (arriba) y actívalas desde ella.'; b.classList.add('oculto'); }
-        else if (!soportaPush()) { t.textContent = 'Este navegador no las permite. Prueba con Chrome.'; b.classList.add('oculto'); }
-        else if (permisoNotif() === 'denied') { t.textContent = 'Bloqueadas: permítelas en el candado de la barra de direcciones o en los ajustes del celular.'; b.classList.add('oculto'); }
+        else if (navegadorInterno()) { t.textContent = 'Estás dentro de otra app (WhatsApp, Instagram…). Toca ⋮ → "Abrir en Chrome" y actívalas desde ahí.'; b.classList.add('oculto'); }
+        else if (!soportaPush()) { t.textContent = 'Este navegador no las permite. Abre la tienda en Chrome.'; b.classList.add('oculto'); }
+        else if (permisoNotif() === 'denied') { t.textContent = 'Bloqueadas para esta página. En Chrome: ⋮ → Configuración → Configuración de sitios → Notificaciones → estesi-blond.vercel.app → Permitir. Luego recarga.'; b.classList.add('oculto'); }
         else if (pushActivo) { t.textContent = 'Activadas: te llegan aunque tengas Level Up cerrada.'; b.textContent = 'Desactivar'; }
         else { t.textContent = 'Te llegan aunque tengas Level Up cerrada: ventas, entregas, recargas y respuestas.'; b.textContent = 'Activar'; }
         const fila = $('filaInstalar');
